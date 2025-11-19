@@ -1,4 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import {
   LayoutDashboard,
   ClipboardCheck,
@@ -17,45 +18,45 @@ interface SidebarProps {
 }
 
 interface NavItem {
-  title: string
+  titleKey: string
   href: string
   icon: React.ComponentType<{ className?: string }>
   roles: ('admin' | 'manager' | 'inspector')[]
 }
 
-const navItems: NavItem[] = [
+const getNavItems = (): NavItem[] => [
   {
-    title: '대시보드',
+    titleKey: 'nav.dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
     roles: ['admin', 'manager', 'inspector'],
   },
   {
-    title: '검사 실행',
+    titleKey: 'nav.inspection',
     href: '/inspection',
     icon: ClipboardCheck,
     roles: ['admin', 'manager', 'inspector'],
   },
   {
-    title: '불량 관리',
+    titleKey: 'nav.defects',
     href: '/defects',
     icon: AlertTriangle,
     roles: ['admin', 'manager', 'inspector'],
   },
   {
-    title: '분석',
+    titleKey: 'nav.analytics',
     href: '/analytics',
     icon: TrendingUp,
     roles: ['admin', 'manager'],
   },
   {
-    title: '보고서',
+    titleKey: 'nav.reports',
     href: '/reports',
     icon: FileText,
     roles: ['admin', 'manager'],
   },
   {
-    title: '관리',
+    titleKey: 'nav.management',
     href: '/management',
     icon: Settings,
     roles: ['admin', 'manager'],
@@ -63,7 +64,9 @@ const navItems: NavItem[] = [
 ]
 
 export function Sidebar({ isOpen, onClose, userRole = 'inspector' }: SidebarProps) {
+  const { t } = useTranslation()
   const location = useLocation()
+  const navItems = getNavItems()
 
   const filteredNavItems = navItems.filter((item) =>
     item.roles.includes(userRole)
@@ -104,7 +107,7 @@ export function Sidebar({ isOpen, onClose, userRole = 'inspector' }: SidebarProp
                 )}
               >
                 <Icon className="h-4 w-4" />
-                <span>{item.title}</span>
+                <span>{t(item.titleKey)}</span>
               </Link>
             )
           })}

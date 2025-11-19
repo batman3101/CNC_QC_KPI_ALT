@@ -2,6 +2,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { ClipboardCheck } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -34,16 +35,19 @@ interface InspectionSetupProps {
   onStart: (data: { machineId: string; modelId: string }) => void
 }
 
-const formSchema = z.object({
-  machineId: z.string().min(1, '설비를 선택해주세요'),
-  modelId: z.string().min(1, '제품 모델을 선택해주세요'),
-})
+type FormValues = z.infer<ReturnType<typeof createFormSchema>>
 
-type FormValues = z.infer<typeof formSchema>
+function createFormSchema(t: (key: string) => string) {
+  return z.object({
+    machineId: z.string().min(1, t('validation.selectMachine')),
+    modelId: z.string().min(1, t('validation.selectModel')),
+  })
+}
 
 export function InspectionSetup({ onStart }: InspectionSetupProps) {
+  const { t } = useTranslation()
   const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(createFormSchema(t)),
     defaultValues: {
       machineId: '',
       modelId: '',
@@ -82,7 +86,7 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <ClipboardCheck className="h-5 w-5" />
-          검사 시작 준비
+          {t('inspection.setupTitle')}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -94,7 +98,7 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
               name="machineId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>설비 선택 *</FormLabel>
+                  <FormLabel>{t('inspection.selectMachine')} *</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
@@ -102,7 +106,7 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="검사할 설비를 선택하세요" />
+                        <SelectValue placeholder={t('inspection.selectMachinePlaceholder')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -129,7 +133,7 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
               name="modelId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>제품 모델 선택 *</FormLabel>
+                  <FormLabel>{t('inspection.selectModel')} *</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
@@ -137,7 +141,7 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="검사할 제품 모델을 선택하세요" />
+                        <SelectValue placeholder={t('inspection.selectModelPlaceholder')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -164,11 +168,11 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
                 <h4 className="mb-3 font-medium">검사 정보 확인</h4>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">설비:</span>
+                    <span className="text-muted-foreground">{t('dashboard.machine')}:</span>
                     <span className="font-medium">{selectedMachine.name}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">제품 모델:</span>
+                    <span className="text-muted-foreground">{t('dashboard.model')}:</span>
                     <span className="font-medium">{selectedModel.name}</span>
                   </div>
                 </div>
@@ -183,7 +187,7 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
               disabled={!selectedMachine || !selectedModel}
             >
               <ClipboardCheck className="mr-2 h-4 w-4" />
-              검사 시작
+              {t('inspection.startInspection')}
             </Button>
           </form>
         </Form>

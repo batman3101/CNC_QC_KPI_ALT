@@ -1,22 +1,25 @@
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export function ReportsPage() {
+  const { t } = useTranslation()
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">보고서</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('reports.title')}</h1>
         <p className="text-muted-foreground">
-          검사 성적서 및 분석 보고서를 생성하세요
+          {t('reports.description')}
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>보고서 생성</CardTitle>
+          <CardTitle>{t('reports.title')}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            보고서 생성 옵션이 여기에 표시됩니다.
+            {t('reports.comingSoon')}
           </p>
         </CardContent>
       </Card>

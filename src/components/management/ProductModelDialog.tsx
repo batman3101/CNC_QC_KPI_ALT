@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
@@ -39,28 +40,33 @@ interface ProductModelDialogProps {
   model?: ProductModel | null
 }
 
-const formSchema = z.object({
-  name: z
-    .string()
-    .min(1, '모델명을 입력해주세요')
-    .max(100, '모델명은 100자 이내로 입력해주세요'),
-  code: z
-    .string()
-    .min(1, '모델 코드를 입력해주세요')
-    .max(50, '모델 코드는 50자 이내로 입력해주세요')
-    .regex(/^[A-Z0-9-_]+$/, '모델 코드는 대문자, 숫자, -, _만 사용 가능합니다'),
-})
+function createFormSchema(t: (key: string) => string) {
+  return z.object({
+    name: z
+      .string()
+      .min(1, t('validation.enterModelName'))
+      .max(100, t('validation.enterModelName')),
+    code: z
+      .string()
+      .min(1, t('validation.enterModelCode'))
+      .max(50, t('validation.enterModelCode'))
+      .regex(/^[A-Z0-9-_]+$/, t('validation.enterModelCode')),
+  })
+}
 
-type FormValues = z.infer<typeof formSchema>
+type FormValues = z.infer<ReturnType<typeof createFormSchema>>
 
 export function ProductModelDialog({
   open,
   onOpenChange,
   model,
 }: ProductModelDialogProps) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const isEditing = !!model
+
+  const formSchema = createFormSchema(t)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -94,15 +100,15 @@ export function ProductModelDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-models'] })
       toast({
-        title: '등록 완료',
-        description: '제품 모델이 등록되었습니다.',
+        title: t('management.addProductModel'),
+        description: t('management.productModelCreated'),
       })
       onOpenChange(false)
       form.reset()
     },
     onError: (error: Error) => {
       toast({
-        title: '등록 실패',
+        title: t('common.error'),
         description: error.message,
         variant: 'destructive',
       })
@@ -116,15 +122,15 @@ export function ProductModelDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-models'] })
       toast({
-        title: '수정 완료',
-        description: '제품 모델이 수정되었습니다.',
+        title: t('management.editProductModel'),
+        description: t('management.productModelUpdated'),
       })
       onOpenChange(false)
       form.reset()
     },
     onError: (error: Error) => {
       toast({
-        title: '수정 실패',
+        title: t('common.error'),
         description: error.message,
         variant: 'destructive',
       })
@@ -149,12 +155,12 @@ export function ProductModelDialog({
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? '제품 모델 수정' : '제품 모델 등록'}
+            {isEditing ? t('management.editProductModel') : t('management.addProductModel')}
           </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? '제품 모델 정보를 수정합니다.'
-              : '새로운 제품 모델을 등록합니다.'}
+              ? t('management.editProductModel')
+              : t('management.addProductModel')}
           </DialogDescription>
         </DialogHeader>
 
@@ -165,10 +171,10 @@ export function ProductModelDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>모델명 *</FormLabel>
+                  <FormLabel>{t('management.modelName')} *</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="예: CNC-A1000"
+                      placeholder="CNC-A1000"
                       {...field}
                       disabled={isLoading}
                     />
@@ -183,10 +189,10 @@ export function ProductModelDialog({
               name="code"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>모델 코드 *</FormLabel>
+                  <FormLabel>{t('management.modelCode')} *</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="예: A1000"
+                      placeholder="A1000"
                       {...field}
                       disabled={isLoading}
                       onChange={(e) => {
@@ -207,10 +213,10 @@ export function ProductModelDialog({
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
               >
-                취소
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? '처리 중...' : isEditing ? '수정' : '등록'}
+                {isLoading ? t('common.loading') : isEditing ? t('common.edit') : t('common.add')}
               </Button>
             </DialogFooter>
           </form>

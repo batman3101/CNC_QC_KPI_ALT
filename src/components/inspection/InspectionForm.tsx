@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -59,6 +60,7 @@ export function InspectionForm({
   onComplete,
   onCancel,
 }: InspectionFormProps) {
+  const { t } = useTranslation()
   const [itemResults, setItemResults] = useState<Record<string, ItemResult>>({})
   const queryClient = useQueryClient()
   const { toast } = useToast()
@@ -77,7 +79,7 @@ export function InspectionForm({
     items.forEach((item) => {
       if (item.data_type === 'numeric') {
         schema[item.id] = z
-          .number({ invalid_type_error: '숫자를 입력해주세요' })
+          .number({ invalid_type_error: t('validation.number') })
           .or(z.string().transform((val) => parseFloat(val)))
       } else {
         schema[item.id] = z.boolean()
@@ -186,8 +188,8 @@ export function InspectionForm({
       queryClient.invalidateQueries({ queryKey: ['kpi-summary'] })
 
       toast({
-        title: '검사 완료',
-        description: `검사 결과: ${overallStatus === 'pass' ? '합격' : '불합격'}`,
+        title: t('inspection.inspectionSaved'),
+        description: `${t('inspection.inspectionResult')}: ${overallStatus === 'pass' ? t('dashboard.pass') : t('dashboard.fail')}`,
         variant: overallStatus === 'pass' ? 'default' : 'destructive',
       })
 
@@ -195,7 +197,7 @@ export function InspectionForm({
     },
     onError: (error: Error) => {
       toast({
-        title: '저장 실패',
+        title: t('inspection.inspectionSaveError'),
         description: error.message,
         variant: 'destructive',
       })
@@ -208,7 +210,7 @@ export function InspectionForm({
 
     if (missingItems.length > 0) {
       toast({
-        title: '입력 필요',
+        title: t('inspection.allItemsRequired'),
         description: `${missingItems.length}개 항목이 입력되지 않았습니다.`,
         variant: 'destructive',
       })
@@ -230,7 +232,7 @@ export function InspectionForm({
       <Card>
         <CardContent className="py-8">
           <p className="text-center text-muted-foreground">
-            검사 항목을 불러오는 중...
+            {t('common.loading')}
           </p>
         </CardContent>
       </Card>
@@ -244,13 +246,12 @@ export function InspectionForm({
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              이 제품 모델에 등록된 검사 항목이 없습니다. 먼저 검사 항목을
-              등록해주세요.
+              {t('common.noData')}
             </AlertDescription>
           </Alert>
           <Button onClick={onCancel} variant="outline" className="mt-4">
             <ArrowLeft className="mr-2 h-4 w-4" />
-            돌아가기
+            {t('inspection.backToSetup')}
           </Button>
         </CardContent>
       </Card>
@@ -263,17 +264,17 @@ export function InspectionForm({
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>검사 진행 현황</CardTitle>
+            <CardTitle>{t('inspection.progress')}</CardTitle>
             <Button variant="outline" size="sm" onClick={onCancel}>
               <ArrowLeft className="mr-2 h-4 w-4" />
-              취소
+              {t('common.cancel')}
             </Button>
           </div>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-3">
             <div className="rounded-lg border p-4">
-              <div className="text-sm text-muted-foreground">진행률</div>
+              <div className="text-sm text-muted-foreground">{t('inspection.progress')}</div>
               <div className="mt-1 text-2xl font-bold">
                 {totalItems > 0
                   ? Math.round((completedItems / totalItems) * 100)
@@ -281,22 +282,22 @@ export function InspectionForm({
                 %
               </div>
               <div className="mt-1 text-xs text-muted-foreground">
-                {completedItems} / {totalItems} 항목
+                {completedItems} / {totalItems}
               </div>
             </div>
             <div className="rounded-lg border p-4">
-              <div className="text-sm text-muted-foreground">합격</div>
+              <div className="text-sm text-muted-foreground">{t('dashboard.pass')}</div>
               <div className="mt-1 text-2xl font-bold text-green-600">
                 {completedItems - failedItems}
               </div>
-              <div className="mt-1 text-xs text-muted-foreground">항목</div>
+              <div className="mt-1 text-xs text-muted-foreground">{t('dashboard.inspections')}</div>
             </div>
             <div className="rounded-lg border p-4">
-              <div className="text-sm text-muted-foreground">불합격</div>
+              <div className="text-sm text-muted-foreground">{t('dashboard.fail')}</div>
               <div className="mt-1 text-2xl font-bold text-destructive">
                 {failedItems}
               </div>
-              <div className="mt-1 text-xs text-muted-foreground">항목</div>
+              <div className="mt-1 text-xs text-muted-foreground">{t('dashboard.inspections')}</div>
             </div>
           </div>
         </CardContent>
@@ -305,7 +306,7 @@ export function InspectionForm({
       {/* Inspection Items Card */}
       <Card>
         <CardHeader>
-          <CardTitle>검사 항목</CardTitle>
+          <CardTitle>{t('inspection.itemName')}</CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -338,7 +339,7 @@ export function InspectionForm({
                               ) : (
                                 <XCircle className="mr-1 h-3 w-3" />
                               )}
-                              {result.result === 'pass' ? '합격' : '불합격'}
+                              {result.result === 'pass' ? t('dashboard.pass') : t('dashboard.fail')}
                             </Badge>
                           )}
                         </div>
@@ -346,7 +347,7 @@ export function InspectionForm({
                         {isNumeric ? (
                           <div className="space-y-2">
                             <div className="text-sm text-muted-foreground">
-                              기준: {item.standard_value.toFixed(2)} {item.unit} (
+                              {t('inspection.standard')}: {item.standard_value.toFixed(2)} {item.unit} (
                               {item.tolerance_min.toFixed(2)} ~{' '}
                               {item.tolerance_max.toFixed(2)} {item.unit})
                             </div>
@@ -354,7 +355,7 @@ export function InspectionForm({
                               <Input
                                 type="number"
                                 step="0.01"
-                                placeholder={`측정값 입력 (${item.unit})`}
+                                placeholder={`${t('inspection.measuredValue')} (${item.unit})`}
                                 onChange={(e) =>
                                   handleNumericChange(item.id, e.target.value)
                                 }
@@ -377,7 +378,7 @@ export function InspectionForm({
                               htmlFor={item.id}
                               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                             >
-                              OK (합격)
+                              OK ({t('dashboard.pass')})
                             </label>
                           </div>
                         )}
@@ -398,13 +399,13 @@ export function InspectionForm({
               disabled={completedItems !== totalItems || saveMutation.isPending}
             >
               <Save className="mr-2 h-4 w-4" />
-              {saveMutation.isPending ? '저장 중...' : '검사 완료 및 저장'}
+              {saveMutation.isPending ? t('common.loading') : t('inspection.saveInspection')}
             </Button>
           </div>
 
           {completedItems !== totalItems && (
             <p className="mt-2 text-center text-sm text-muted-foreground">
-              모든 항목을 입력해주세요 ({completedItems}/{totalItems})
+              {t('inspection.allItemsRequired')} ({completedItems}/{totalItems})
             </p>
           )}
         </CardContent>

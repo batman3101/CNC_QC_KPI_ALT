@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
@@ -49,38 +50,40 @@ interface InspectionItemDialogProps {
   models: ProductModel[]
 }
 
-const formSchema = z
-  .object({
-    model_id: z.string().min(1, '제품 모델을 선택해주세요'),
-    name: z
-      .string()
-      .min(1, '검사 항목명을 입력해주세요')
-      .max(100, '검사 항목명은 100자 이내로 입력해주세요'),
-    data_type: z.enum(['numeric', 'ok_ng'], {
-      required_error: '데이터 타입을 선택해주세요',
-    }),
-    standard_value: z.number().optional(),
-    tolerance: z.number().optional(),
-    unit: z.string().optional(),
-  })
-  .refine(
-    (data) => {
-      if (data.data_type === 'numeric') {
-        return (
-          data.standard_value !== undefined &&
-          data.tolerance !== undefined &&
-          data.unit !== undefined
-        )
+function createFormSchema(t: (key: string) => string) {
+  return z
+    .object({
+      model_id: z.string().min(1, t('validation.selectModel')),
+      name: z
+        .string()
+        .min(1, t('validation.enterItemName'))
+        .max(100, t('validation.enterItemName')),
+      data_type: z.enum(['numeric', 'ok_ng'], {
+        required_error: t('validation.selectDataType'),
+      }),
+      standard_value: z.number().optional(),
+      tolerance: z.number().optional(),
+      unit: z.string().optional(),
+    })
+    .refine(
+      (data) => {
+        if (data.data_type === 'numeric') {
+          return (
+            data.standard_value !== undefined &&
+            data.tolerance !== undefined &&
+            data.unit !== undefined
+          )
+        }
+        return true
+      },
+      {
+        message: t('validation.numericFieldsRequired'),
+        path: ['standard_value'],
       }
-      return true
-    },
-    {
-      message: '수치형 데이터는 기준값, 공차, 단위를 입력해야 합니다',
-      path: ['standard_value'],
-    }
-  )
+    )
+}
 
-type FormValues = z.infer<typeof formSchema>
+type FormValues = z.infer<ReturnType<typeof createFormSchema>>
 
 export function InspectionItemDialog({
   open,
@@ -88,9 +91,12 @@ export function InspectionItemDialog({
   item,
   models,
 }: InspectionItemDialogProps) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const isEditing = !!item
+
+  const formSchema = createFormSchema(t)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -142,15 +148,15 @@ export function InspectionItemDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inspection-items'] })
       toast({
-        title: '등록 완료',
-        description: '검사 항목이 등록되었습니다.',
+        title: t('management.addInspectionItem'),
+        description: t('management.inspectionItemCreated'),
       })
       onOpenChange(false)
       form.reset()
     },
     onError: (error: Error) => {
       toast({
-        title: '등록 실패',
+        title: t('common.error'),
         description: error.message,
         variant: 'destructive',
       })
@@ -164,15 +170,15 @@ export function InspectionItemDialog({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inspection-items'] })
       toast({
-        title: '수정 완료',
-        description: '검사 항목이 수정되었습니다.',
+        title: t('management.editInspectionItem'),
+        description: t('management.inspectionItemUpdated'),
       })
       onOpenChange(false)
       form.reset()
     },
     onError: (error: Error) => {
       toast({
-        title: '수정 실패',
+        title: t('common.error'),
         description: error.message,
         variant: 'destructive',
       })
@@ -224,12 +230,12 @@ export function InspectionItemDialog({
       <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? '검사 항목 수정' : '검사 항목 등록'}
+            {isEditing ? t('management.editInspectionItem') : t('management.addInspectionItem')}
           </DialogTitle>
           <DialogDescription>
             {isEditing
-              ? '검사 항목 정보를 수정합니다.'
-              : '새로운 검사 항목을 등록합니다.'}
+              ? t('management.editInspectionItem')
+              : t('management.addInspectionItem')}
           </DialogDescription>
         </DialogHeader>
 
@@ -240,7 +246,7 @@ export function InspectionItemDialog({
               name="model_id"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>제품 모델 *</FormLabel>
+                  <FormLabel>{t('management.model')} *</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
@@ -248,7 +254,7 @@ export function InspectionItemDialog({
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="제품 모델을 선택하세요" />
+                        <SelectValue placeholder={t('management.model')} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -269,10 +275,10 @@ export function InspectionItemDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>검사 항목명 *</FormLabel>
+                  <FormLabel>{t('management.itemName')} *</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="예: 외경, 내경, 높이"
+                      placeholder={t('management.itemName')}
                       {...field}
                       disabled={isLoading}
                     />
@@ -287,7 +293,7 @@ export function InspectionItemDialog({
               name="data_type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>데이터 타입 *</FormLabel>
+                  <FormLabel>{t('management.dataType')} *</FormLabel>
                   <Select
                     onValueChange={field.onChange}
                     value={field.value}
@@ -299,13 +305,12 @@ export function InspectionItemDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="numeric">수치형 (측정값)</SelectItem>
-                      <SelectItem value="ok_ng">OK/NG형 (합격/불합격)</SelectItem>
+                      <SelectItem value="numeric">{t('management.dataTypeNumeric')}</SelectItem>
+                      <SelectItem value="ok_ng">{t('management.dataTypeOkNg')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    수치형: 측정값을 숫자로 입력 (예: 50.02mm) / OK/NG형: 합격 또는
-                    불합격만 선택
+                    {t('management.dataTypeNumeric')}: {t('inspection.measuredValue')} / {t('management.dataTypeOkNg')}: {t('inspection.judgment')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -320,7 +325,7 @@ export function InspectionItemDialog({
                     name="standard_value"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>기준값 *</FormLabel>
+                        <FormLabel>{t('management.standardValue')} *</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -341,7 +346,7 @@ export function InspectionItemDialog({
                     name="tolerance"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>공차 (±) *</FormLabel>
+                        <FormLabel>{t('management.tolerance')} (±) *</FormLabel>
                         <FormControl>
                           <Input
                             type="number"
@@ -353,7 +358,7 @@ export function InspectionItemDialog({
                           />
                         </FormControl>
                         <FormDescription>
-                          허용 오차 범위 (예: ±0.05)
+                          {t('management.tolerance')}
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -366,10 +371,10 @@ export function InspectionItemDialog({
                   name="unit"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>단위 *</FormLabel>
+                      <FormLabel>{t('management.unit')} *</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="mm, μm, mm², °C 등"
+                          placeholder="mm, μm, mm², °C"
                           {...field}
                           disabled={isLoading}
                         />
@@ -388,10 +393,10 @@ export function InspectionItemDialog({
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
               >
-                취소
+                {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading ? '처리 중...' : isEditing ? '수정' : '등록'}
+                {isLoading ? t('common.loading') : isEditing ? t('common.edit') : t('common.add')}
               </Button>
             </DialogFooter>
           </form>

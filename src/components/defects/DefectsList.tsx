@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import {
   AlertTriangle,
   Eye,
@@ -36,25 +37,8 @@ import * as inspectionService from '@/ui_test/mockServices/mockInspectionService
 
 type Defect = Database['public']['Tables']['defects']['Row']
 
-const statusConfig = {
-  pending: {
-    label: '조치 대기',
-    icon: Clock,
-    variant: 'destructive' as const,
-  },
-  in_progress: {
-    label: '조치 중',
-    icon: PlayCircle,
-    variant: 'default' as const,
-  },
-  resolved: {
-    label: '조치 완료',
-    icon: CheckCircle2,
-    variant: 'secondary' as const,
-  },
-}
-
 export function DefectsList() {
+  const { t } = useTranslation()
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedDefect, setSelectedDefect] = useState<Defect | null>(null)
@@ -62,6 +46,24 @@ export function DefectsList() {
 
   const queryClient = useQueryClient()
   const { toast } = useToast()
+
+  const statusConfig = {
+    pending: {
+      label: t('defects.statusPending'),
+      icon: Clock,
+      variant: 'destructive' as const,
+    },
+    in_progress: {
+      label: t('defects.statusInProgress'),
+      icon: PlayCircle,
+      variant: 'default' as const,
+    },
+    resolved: {
+      label: t('defects.statusResolved'),
+      icon: CheckCircle2,
+      variant: 'secondary' as const,
+    },
+  }
 
   // Fetch defects
   const { data: defects = [], isLoading } = useQuery({
@@ -81,13 +83,13 @@ export function DefectsList() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['defects'] })
       toast({
-        title: '상태 변경 완료',
-        description: '불량 상태가 변경되었습니다.',
+        title: t('defects.statusChanged'),
+        description: t('defects.statusChanged'),
       })
     },
     onError: (error: Error) => {
       toast({
-        title: '상태 변경 실패',
+        title: t('defects.statusChangeError'),
         description: error.message,
         variant: 'destructive',
       })
@@ -132,7 +134,7 @@ export function DefectsList() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  전체 불량
+                  {t('defects.title')}
                 </p>
                 <p className="text-2xl font-bold">{counts.all}</p>
               </div>
@@ -146,7 +148,7 @@ export function DefectsList() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  조치 대기
+                  {t('defects.statusPending')}
                 </p>
                 <p className="text-2xl font-bold text-destructive">
                   {counts.pending}
@@ -162,7 +164,7 @@ export function DefectsList() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  조치 중
+                  {t('defects.statusInProgress')}
                 </p>
                 <p className="text-2xl font-bold">{counts.in_progress}</p>
               </div>
@@ -176,7 +178,7 @@ export function DefectsList() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  조치 완료
+                  {t('defects.statusResolved')}
                 </p>
                 <p className="text-2xl font-bold text-green-600">
                   {counts.resolved}
@@ -192,7 +194,7 @@ export function DefectsList() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>불량 목록</CardTitle>
+            <CardTitle>{t('defects.listTitle')}</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
@@ -201,7 +203,7 @@ export function DefectsList() {
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="불량 유형 또는 설명으로 검색..."
+                placeholder={t('defects.defectType')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8"
@@ -209,13 +211,13 @@ export function DefectsList() {
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="상태 선택" />
+                <SelectValue placeholder={t('defects.filterByStatus')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">전체 상태</SelectItem>
-                <SelectItem value="pending">조치 대기</SelectItem>
-                <SelectItem value="in_progress">조치 중</SelectItem>
-                <SelectItem value="resolved">조치 완료</SelectItem>
+                <SelectItem value="all">{t('defects.all')}</SelectItem>
+                <SelectItem value="pending">{t('defects.statusPending')}</SelectItem>
+                <SelectItem value="in_progress">{t('defects.statusInProgress')}</SelectItem>
+                <SelectItem value="resolved">{t('defects.statusResolved')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -223,24 +225,24 @@ export function DefectsList() {
           {/* Table */}
           {isLoading ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
-              데이터를 불러오는 중...
+              {t('common.loading')}
             </div>
           ) : filteredDefects.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               {searchQuery || statusFilter !== 'all'
-                ? '검색 결과가 없습니다.'
-                : '등록된 불량이 없습니다.'}
+                ? t('common.noData')
+                : t('common.noData')}
             </div>
           ) : (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>불량 유형</TableHead>
-                    <TableHead>설명</TableHead>
-                    <TableHead>상태</TableHead>
-                    <TableHead>등록일</TableHead>
-                    <TableHead className="text-right">작업</TableHead>
+                    <TableHead>{t('defects.defectType')}</TableHead>
+                    <TableHead>{t('defects.description')}</TableHead>
+                    <TableHead>{t('defects.status')}</TableHead>
+                    <TableHead>{t('defects.registeredDate')}</TableHead>
+                    <TableHead className="text-right">{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -284,7 +286,7 @@ export function DefectsList() {
                                   handleStatusChange(defect.id, 'in_progress')
                                 }
                               >
-                                조치 시작
+                                {t('defects.startAction')}
                               </Button>
                             )}
                             {defect.status === 'in_progress' && (
@@ -295,7 +297,7 @@ export function DefectsList() {
                                   handleStatusChange(defect.id, 'resolved')
                                 }
                               >
-                                조치 완료
+                                {t('defects.completeAction')}
                               </Button>
                             )}
                           </div>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { Plus, Pencil, Trash2, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -41,6 +42,7 @@ type InspectionItem = Database['public']['Tables']['inspection_items']['Row']
 type ProductModel = Database['public']['Tables']['product_models']['Row']
 
 export function InspectionItemManagement() {
+  const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedModelId, setSelectedModelId] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -72,15 +74,15 @@ export function InspectionItemManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inspection-items'] })
       toast({
-        title: '삭제 완료',
-        description: '검사 항목이 삭제되었습니다.',
+        title: t('management.deleteInspectionItem'),
+        description: t('management.inspectionItemDeleted'),
       })
       setDeleteDialogOpen(false)
       setDeletingId(null)
     },
     onError: (error: Error) => {
       toast({
-        title: '삭제 실패',
+        title: t('common.error'),
         description: error.message,
         variant: 'destructive',
       })
@@ -124,10 +126,10 @@ export function InspectionItemManagement() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>검사 항목 목록</CardTitle>
+            <CardTitle>{t('management.inspectionItemList')}</CardTitle>
             <Button onClick={handleAdd}>
               <Plus className="mr-2 h-4 w-4" />
-              항목 등록
+              {t('management.addInspectionItem')}
             </Button>
           </div>
         </CardHeader>
@@ -137,7 +139,7 @@ export function InspectionItemManagement() {
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="검사 항목명으로 검색..."
+                placeholder={t('common.search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8"
@@ -145,10 +147,10 @@ export function InspectionItemManagement() {
             </div>
             <Select value={selectedModelId} onValueChange={setSelectedModelId}>
               <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder="제품 모델 선택" />
+                <SelectValue placeholder={t('management.model')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">전체 모델</SelectItem>
+                <SelectItem value="all">{t('defects.all')}</SelectItem>
                 {models.map((model) => (
                   <SelectItem key={model.id} value={model.id}>
                     {model.name}
@@ -161,26 +163,26 @@ export function InspectionItemManagement() {
           {/* Table */}
           {isLoading ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
-              데이터를 불러오는 중...
+              {t('common.loading')}
             </div>
           ) : filteredItems.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               {searchQuery || selectedModelId !== 'all'
-                ? '검색 결과가 없습니다.'
-                : '등록된 검사 항목이 없습니다.'}
+                ? t('common.noData')
+                : t('common.noData')}
             </div>
           ) : (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>제품 모델</TableHead>
-                    <TableHead>검사 항목</TableHead>
-                    <TableHead>타입</TableHead>
-                    <TableHead>기준값</TableHead>
-                    <TableHead>공차</TableHead>
-                    <TableHead>단위</TableHead>
-                    <TableHead className="text-right">작업</TableHead>
+                    <TableHead>{t('management.model')}</TableHead>
+                    <TableHead>{t('management.itemName')}</TableHead>
+                    <TableHead>{t('management.dataType')}</TableHead>
+                    <TableHead>{t('management.standardValue')}</TableHead>
+                    <TableHead>{t('management.tolerance')}</TableHead>
+                    <TableHead>{t('management.unit')}</TableHead>
+                    <TableHead className="text-right">{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -198,7 +200,7 @@ export function InspectionItemManagement() {
                             item.data_type === 'numeric' ? 'default' : 'outline'
                           }
                         >
-                          {item.data_type === 'numeric' ? '수치형' : 'OK/NG'}
+                          {item.data_type === 'numeric' ? t('management.dataTypeNumeric') : t('management.dataTypeOkNg')}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -251,18 +253,18 @@ export function InspectionItemManagement() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>검사 항목 삭제</AlertDialogTitle>
+            <AlertDialogTitle>{t('management.deleteInspectionItem')}</AlertDialogTitle>
             <AlertDialogDescription>
-              이 검사 항목을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+              {t('management.deleteInspectionItemConfirm')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              삭제
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

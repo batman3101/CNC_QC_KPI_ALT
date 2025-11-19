@@ -1,20 +1,23 @@
+import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart3, CheckCircle2, XCircle, Clock } from 'lucide-react'
 
 export function DashboardPage() {
+  const { t } = useTranslation()
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">대시보드</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('dashboard.title')}</h1>
         <p className="text-muted-foreground">
-          실시간 품질 검사 KPI를 모니터링하세요
+          {t('dashboard.description')}
         </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">총 검사 건수</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.todayInspections')}</CardTitle>
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -25,7 +28,7 @@ export function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">합격률</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.passRate')}</CardTitle>
             <CheckCircle2 className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
@@ -36,7 +39,7 @@ export function DashboardPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">불량 건수</CardTitle>
+            <CardTitle className="text-sm font-medium">{t('dashboard.defectRate')}</CardTitle>
             <XCircle className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
@@ -59,7 +62,7 @@ export function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>최근 검사 내역</CardTitle>
+          <CardTitle>{t('dashboard.recentInspections')}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">

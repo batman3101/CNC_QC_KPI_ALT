@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { subDays } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { KPICards } from '@/components/analytics/KPICards'
 import { AnalyticsFilters } from '@/components/analytics/AnalyticsFilters'
@@ -17,6 +18,7 @@ import * as analyticsService from '@/ui_test/mockServices/mockAnalyticsService'
 import { mockMachines, mockProductModels } from '@/ui_test/mockData/analyticsMockData'
 
 export function AnalyticsPage() {
+  const { t } = useTranslation()
   const [filters, setFilters] = useState<Filters>({
     dateRange: {
       from: subDays(new Date(), 30),
@@ -69,9 +71,9 @@ export function AnalyticsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">분석</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('analytics.title')}</h1>
         <p className="text-muted-foreground">
-          품질 검사 데이터를 다각도로 분석하고 인사이트를 도출하세요
+          {t('analytics.description')}
         </p>
       </div>
 

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { InspectionSetup } from '@/components/inspection/InspectionSetup'
 import { InspectionForm } from '@/components/inspection/InspectionForm'
 
@@ -9,6 +10,7 @@ interface InspectionState {
 }
 
 export function InspectionPage() {
+  const { t } = useTranslation()
   const [inspectionState, setInspectionState] = useState<InspectionState>({
     isActive: false,
     machineId: null,
@@ -42,9 +44,9 @@ export function InspectionPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">검사 실행</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{t('inspection.title')}</h1>
         <p className="text-muted-foreground">
-          새로운 품질 검사를 시작하고 데이터를 입력하세요
+          {t('inspection.description')}
         </p>
       </div>
 

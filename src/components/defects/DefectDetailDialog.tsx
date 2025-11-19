@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import {
   Dialog,
   DialogContent,
@@ -24,37 +25,39 @@ interface DefectDetailDialogProps {
   onStatusChange: (defectId: string, newStatus: Defect['status']) => void
 }
 
-const statusConfig = {
-  pending: {
-    label: '조치 대기',
-    icon: Clock,
-    variant: 'destructive' as const,
-    nextStatus: 'in_progress' as const,
-    nextLabel: '조치 시작',
-  },
-  in_progress: {
-    label: '조치 중',
-    icon: PlayCircle,
-    variant: 'default' as const,
-    nextStatus: 'resolved' as const,
-    nextLabel: '조치 완료',
-  },
-  resolved: {
-    label: '조치 완료',
-    icon: CheckCircle2,
-    variant: 'secondary' as const,
-    nextStatus: null,
-    nextLabel: null,
-  },
-}
-
 export function DefectDetailDialog({
   defect,
   open,
   onOpenChange,
   onStatusChange,
 }: DefectDetailDialogProps) {
+  const { t } = useTranslation()
+
   if (!defect) return null
+
+  const statusConfig = {
+    pending: {
+      label: t('defects.statusPending'),
+      icon: Clock,
+      variant: 'destructive' as const,
+      nextStatus: 'in_progress' as const,
+      nextLabel: t('defects.startAction'),
+    },
+    in_progress: {
+      label: t('defects.statusInProgress'),
+      icon: PlayCircle,
+      variant: 'default' as const,
+      nextStatus: 'resolved' as const,
+      nextLabel: t('defects.completeAction'),
+    },
+    resolved: {
+      label: t('defects.statusResolved'),
+      icon: CheckCircle2,
+      variant: 'secondary' as const,
+      nextStatus: null,
+      nextLabel: null,
+    },
+  }
 
   const config = statusConfig[defect.status]
   const Icon = config.icon
@@ -71,10 +74,10 @@ export function DefectDetailDialog({
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            불량 상세 정보
+            {t('defects.detailTitle')}
           </DialogTitle>
           <DialogDescription>
-            불량 발생 정보 및 조치 상태를 확인하세요
+            {t('defects.detailDescription')}
           </DialogDescription>
         </DialogHeader>
 
@@ -91,21 +94,21 @@ export function DefectDetailDialog({
           <div className="space-y-4">
             <div>
               <h4 className="mb-1 text-sm font-medium text-muted-foreground">
-                불량 유형
+                {t('defects.defectType')}
               </h4>
               <p className="text-base font-medium">{defect.defect_type}</p>
             </div>
 
             <div>
               <h4 className="mb-1 text-sm font-medium text-muted-foreground">
-                설명
+                {t('defects.description')}
               </h4>
               <p className="text-base">{defect.description}</p>
             </div>
 
             <div>
               <h4 className="mb-1 text-sm font-medium text-muted-foreground">
-                등록일시
+                {t('defects.registeredDate')}
               </h4>
               <p className="text-base">
                 {new Date(defect.created_at).toLocaleString('ko-KR')}
@@ -115,12 +118,12 @@ export function DefectDetailDialog({
             {defect.photo_url && (
               <div>
                 <h4 className="mb-2 text-sm font-medium text-muted-foreground">
-                  불량 사진
+                  {t('defects.photo')}
                 </h4>
                 <div className="overflow-hidden rounded-lg border">
                   <img
                     src={defect.photo_url}
-                    alt="불량 사진"
+                    alt={t('defects.photo')}
                     className="h-auto w-full object-cover"
                   />
                 </div>
@@ -131,7 +134,7 @@ export function DefectDetailDialog({
               <div className="rounded-lg border border-dashed p-8 text-center">
                 <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/50" />
                 <p className="mt-2 text-sm text-muted-foreground">
-                  등록된 사진이 없습니다
+                  {t('defects.noPhoto')}
                 </p>
               </div>
             )}
@@ -141,7 +144,7 @@ export function DefectDetailDialog({
           {config.nextStatus && (
             <div className="flex justify-end gap-2 border-t pt-4">
               <Button variant="outline" onClick={() => onOpenChange(false)}>
-                닫기
+                {t('common.close')}
               </Button>
               <Button onClick={handleStatusChange}>
                 {config.nextLabel}

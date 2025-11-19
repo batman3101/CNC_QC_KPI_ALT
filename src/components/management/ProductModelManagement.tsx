@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { Plus, Pencil, Trash2, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -33,6 +34,7 @@ import * as managementService from '@/ui_test/mockServices/mockManagementService
 type ProductModel = Database['public']['Tables']['product_models']['Row']
 
 export function ProductModelManagement() {
+  const { t } = useTranslation()
   const [searchQuery, setSearchQuery] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingModel, setEditingModel] = useState<ProductModel | null>(null)
@@ -54,15 +56,15 @@ export function ProductModelManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-models'] })
       toast({
-        title: '삭제 완료',
-        description: '제품 모델이 삭제되었습니다.',
+        title: t('management.deleteProductModel'),
+        description: t('management.productModelDeleted'),
       })
       setDeleteDialogOpen(false)
       setDeletingId(null)
     },
     onError: (error: Error) => {
       toast({
-        title: '삭제 실패',
+        title: t('common.error'),
         description: error.message,
         variant: 'destructive',
       })
@@ -102,10 +104,10 @@ export function ProductModelManagement() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>제품 모델 목록</CardTitle>
+            <CardTitle>{t('management.productModelList')}</CardTitle>
             <Button onClick={handleAdd}>
               <Plus className="mr-2 h-4 w-4" />
-              모델 등록
+              {t('management.addProductModel')}
             </Button>
           </div>
         </CardHeader>
@@ -115,7 +117,7 @@ export function ProductModelManagement() {
             <div className="relative flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="모델명 또는 코드로 검색..."
+                placeholder={t('common.search')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-8"
@@ -126,23 +128,23 @@ export function ProductModelManagement() {
           {/* Table */}
           {isLoading ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
-              데이터를 불러오는 중...
+              {t('common.loading')}
             </div>
           ) : filteredModels.length === 0 ? (
             <div className="py-8 text-center text-sm text-muted-foreground">
               {searchQuery
-                ? '검색 결과가 없습니다.'
-                : '등록된 제품 모델이 없습니다.'}
+                ? t('common.noData')
+                : t('common.noData')}
             </div>
           ) : (
             <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>모델명</TableHead>
-                    <TableHead>모델 코드</TableHead>
-                    <TableHead>등록일</TableHead>
-                    <TableHead className="text-right">작업</TableHead>
+                    <TableHead>{t('management.modelName')}</TableHead>
+                    <TableHead>{t('management.modelCode')}</TableHead>
+                    <TableHead>{t('defects.registeredDate')}</TableHead>
+                    <TableHead className="text-right">{t('common.actions')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -193,19 +195,18 @@ export function ProductModelManagement() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>제품 모델 삭제</AlertDialogTitle>
+            <AlertDialogTitle>{t('management.deleteProductModel')}</AlertDialogTitle>
             <AlertDialogDescription>
-              이 제품 모델을 삭제하시겠습니까? 연결된 검사 항목이 있는 경우
-              삭제할 수 없습니다.
+              {t('management.deleteProductModelConfirm')} {t('management.deleteProductModelWarning')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>취소</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              삭제
+              {t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
