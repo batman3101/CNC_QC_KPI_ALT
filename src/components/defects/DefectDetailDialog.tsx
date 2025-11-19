@@ -1,19 +1,21 @@
 import { useTranslation } from 'react-i18next'
 import {
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+  DialogContent,
+  DialogActions,
+  Box,
+  Typography,
+  Chip,
+  Button,
+  Divider,
+} from '@mui/material'
 import {
-  CheckCircle2,
-  Clock,
-  PlayCircle,
+  CheckCircle,
+  Schedule,
+  PlayArrow,
   Image as ImageIcon,
-} from 'lucide-react'
+} from '@mui/icons-material'
 import type { Database } from '@/types/database'
 
 type Defect = Database['public']['Tables']['defects']['Row']
@@ -38,22 +40,22 @@ export function DefectDetailDialog({
   const statusConfig = {
     pending: {
       label: t('defects.statusPending'),
-      icon: Clock,
-      variant: 'destructive' as const,
+      icon: Schedule,
+      color: 'error' as const,
       nextStatus: 'in_progress' as const,
       nextLabel: t('defects.startAction'),
     },
     in_progress: {
       label: t('defects.statusInProgress'),
-      icon: PlayCircle,
-      variant: 'default' as const,
+      icon: PlayArrow,
+      color: 'primary' as const,
       nextStatus: 'resolved' as const,
       nextLabel: t('defects.completeAction'),
     },
     resolved: {
       label: t('defects.statusResolved'),
-      icon: CheckCircle2,
-      variant: 'secondary' as const,
+      icon: CheckCircle,
+      color: 'success' as const,
       nextStatus: null,
       nextLabel: null,
     },
@@ -70,89 +72,113 @@ export function DefectDetailDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            {t('defects.detailTitle')}
-          </DialogTitle>
-          <DialogDescription>
-            {t('defects.detailDescription')}
-          </DialogDescription>
-        </DialogHeader>
+    <Dialog
+      open={open}
+      onClose={() => onOpenChange(false)}
+      maxWidth="sm"
+      fullWidth
+    >
+      <DialogTitle>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {t('defects.detailTitle')}
+        </Box>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          {t('defects.detailDescription')}
+        </Typography>
+      </DialogTitle>
 
-        <div className="space-y-6">
+      <DialogContent>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
           {/* Status Badge */}
-          <div>
-            <Badge variant={config.variant} className="text-sm">
-              <Icon className="mr-1.5 h-4 w-4" />
-              {config.label}
-            </Badge>
-          </div>
+          <Box>
+            <Chip
+              icon={<Icon />}
+              label={config.label}
+              color={config.color}
+            />
+          </Box>
+
+          <Divider />
 
           {/* Defect Information */}
-          <div className="space-y-4">
-            <div>
-              <h4 className="mb-1 text-sm font-medium text-muted-foreground">
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Box>
+              <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>
                 {t('defects.defectType')}
-              </h4>
-              <p className="text-base font-medium">{defect.defect_type}</p>
-            </div>
+              </Typography>
+              <Typography variant="body1" fontWeight={500}>
+                {defect.defect_type}
+              </Typography>
+            </Box>
 
-            <div>
-              <h4 className="mb-1 text-sm font-medium text-muted-foreground">
+            <Box>
+              <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>
                 {t('defects.description')}
-              </h4>
-              <p className="text-base">{defect.description}</p>
-            </div>
+              </Typography>
+              <Typography variant="body1">
+                {defect.description}
+              </Typography>
+            </Box>
 
-            <div>
-              <h4 className="mb-1 text-sm font-medium text-muted-foreground">
+            <Box>
+              <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>
                 {t('defects.registeredDate')}
-              </h4>
-              <p className="text-base">
+              </Typography>
+              <Typography variant="body1">
                 {new Date(defect.created_at).toLocaleString('ko-KR')}
-              </p>
-            </div>
+              </Typography>
+            </Box>
 
-            {defect.photo_url && (
-              <div>
-                <h4 className="mb-2 text-sm font-medium text-muted-foreground">
+            {defect.photo_url ? (
+              <Box>
+                <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>
                   {t('defects.photo')}
-                </h4>
-                <div className="overflow-hidden rounded-lg border">
-                  <img
-                    src={defect.photo_url}
-                    alt={t('defects.photo')}
-                    className="h-auto w-full object-cover"
-                  />
-                </div>
-              </div>
-            )}
-
-            {!defect.photo_url && (
-              <div className="rounded-lg border border-dashed p-8 text-center">
-                <ImageIcon className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                <p className="mt-2 text-sm text-muted-foreground">
+                </Typography>
+                <Box
+                  component="img"
+                  src={defect.photo_url}
+                  alt={t('defects.photo')}
+                  sx={{
+                    width: '100%',
+                    height: 'auto',
+                    borderRadius: 1,
+                    border: 1,
+                    borderColor: 'divider',
+                  }}
+                />
+              </Box>
+            ) : (
+              <Box
+                sx={{
+                  border: 1,
+                  borderStyle: 'dashed',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  p: 4,
+                  textAlign: 'center',
+                }}
+              >
+                <ImageIcon sx={{ fontSize: 48, color: 'text.disabled', mx: 'auto', mb: 1 }} />
+                <Typography variant="body2" color="text.secondary">
                   {t('defects.noPhoto')}
-                </p>
-              </div>
+                </Typography>
+              </Box>
             )}
-          </div>
-
-          {/* Action Buttons */}
-          {config.nextStatus && (
-            <div className="flex justify-end gap-2 border-t pt-4">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                {t('common.close')}
-              </Button>
-              <Button onClick={handleStatusChange}>
-                {config.nextLabel}
-              </Button>
-            </div>
-          )}
-        </div>
+          </Box>
+        </Box>
       </DialogContent>
+
+      {/* Action Buttons */}
+      <DialogActions>
+        <Button onClick={() => onOpenChange(false)}>
+          {config.nextStatus ? t('common.cancel') : t('common.close')}
+        </Button>
+        {config.nextStatus && (
+          <Button variant="contained" onClick={handleStatusChange}>
+            {config.nextLabel}
+          </Button>
+        )}
+      </DialogActions>
     </Dialog>
   )
 }

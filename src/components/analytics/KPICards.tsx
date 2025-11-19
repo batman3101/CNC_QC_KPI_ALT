@@ -1,132 +1,163 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, Box, Typography, Skeleton } from '@mui/material'
+import Grid2 from '@mui/material/Grid2'
 import {
-  BarChart3,
-  CheckCircle2,
-  XCircle,
-  Clock,
+  BarChart as BarChartIcon,
+  CheckCircle,
+  Cancel,
+  Schedule,
   TrendingUp,
-  Users,
-} from 'lucide-react'
+  People,
+} from '@mui/icons-material'
 import type { KPISummary } from '@/types/analytics'
 
 interface KPICardsProps {
-  data: KPISummary
+  data?: KPISummary
   isLoading?: boolean
 }
 
 export function KPICards({ data, isLoading }: KPICardsProps) {
-  if (isLoading) {
+  if (isLoading || !data) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <Grid2 container spacing={3}>
         {[...Array(6)].map((_, i) => (
-          <Card key={i}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <div className="h-4 w-24 animate-pulse rounded bg-muted" />
-              <div className="h-4 w-4 animate-pulse rounded bg-muted" />
-            </CardHeader>
-            <CardContent>
-              <div className="h-8 w-16 animate-pulse rounded bg-muted" />
-              <div className="mt-1 h-3 w-32 animate-pulse rounded bg-muted" />
-            </CardContent>
-          </Card>
+          <Grid2 xs={12} sm={6} lg={4} key={i}>
+            <Card>
+              <CardContent>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                  <Skeleton variant="text" width={100} height={20} />
+                  <Skeleton variant="circular" width={24} height={24} />
+                </Box>
+                <Skeleton variant="text" width={80} height={40} />
+                <Skeleton variant="text" width={120} height={16} />
+              </CardContent>
+            </Card>
+          </Grid2>
         ))}
-      </div>
+      </Grid2>
     )
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    <Grid2 container spacing={3}>
       {/* Total Inspections */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">총 검사 건수</CardTitle>
-          <BarChart3 className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
-            {data.totalInspections.toLocaleString()}
-          </div>
-          <p className="text-xs text-muted-foreground">선택된 기간</p>
-        </CardContent>
-      </Card>
+      <Grid2 xs={12} sm={6} lg={4}>
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+              <Typography variant="body2" fontWeight={500} color="text.secondary">
+                총 검사 건수
+              </Typography>
+              <BarChartIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+            </Box>
+            <Typography variant="h4" fontWeight={700} gutterBottom>
+              {data.totalInspections.toLocaleString()}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              선택된 기간
+            </Typography>
+          </CardContent>
+        </Card>
+      </Grid2>
 
       {/* First Pass Yield */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            최초 합격률 (FPY)
-          </CardTitle>
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-green-600">
-            {data.fpy.toFixed(2)}%
-          </div>
-          <p className="text-xs text-muted-foreground">
-            목표: 95% 이상
-          </p>
-        </CardContent>
-      </Card>
+      <Grid2 xs={12} sm={6} lg={4}>
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+              <Typography variant="body2" fontWeight={500} color="text.secondary">
+                최초 합격률 (FPY)
+              </Typography>
+              <CheckCircle sx={{ color: 'success.main', fontSize: 20 }} />
+            </Box>
+            <Typography variant="h4" fontWeight={700} color="success.main" gutterBottom>
+              {data.fpy.toFixed(2)}%
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              목표: 95% 이상
+            </Typography>
+          </CardContent>
+        </Card>
+      </Grid2>
 
       {/* Defect Rate */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">불량률</CardTitle>
-          <XCircle className="h-4 w-4 text-destructive" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-destructive">
-            {data.overallDefectRate.toFixed(2)}%
-          </div>
-          <p className="text-xs text-muted-foreground">
-            총 {data.totalDefects}건
-          </p>
-        </CardContent>
-      </Card>
+      <Grid2 xs={12} sm={6} lg={4}>
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+              <Typography variant="body2" fontWeight={500} color="text.secondary">
+                불량률
+              </Typography>
+              <Cancel sx={{ color: 'error.main', fontSize: 20 }} />
+            </Box>
+            <Typography variant="h4" fontWeight={700} color="error.main" gutterBottom>
+              {data.overallDefectRate.toFixed(2)}%
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              총 {data.totalDefects}건
+            </Typography>
+          </CardContent>
+        </Card>
+      </Grid2>
 
       {/* Average Inspection Time */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            평균 검사 시간
-          </CardTitle>
-          <Clock className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
-            {data.avgInspectionTime.toFixed(1)}분
-          </div>
-          <p className="text-xs text-muted-foreground">
-            목표: 5분 이하
-          </p>
-        </CardContent>
-      </Card>
+      <Grid2 xs={12} sm={6} lg={4}>
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+              <Typography variant="body2" fontWeight={500} color="text.secondary">
+                평균 검사 시간
+              </Typography>
+              <Schedule sx={{ color: 'text.secondary', fontSize: 20 }} />
+            </Box>
+            <Typography variant="h4" fontWeight={700} gutterBottom>
+              {data.avgInspectionTime.toFixed(1)}분
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              목표: 5분 이하
+            </Typography>
+          </CardContent>
+        </Card>
+      </Grid2>
 
       {/* Active Inspectors */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">활동 검사자</CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{data.activeInspectors}명</div>
-          <p className="text-xs text-muted-foreground">선택된 기간</p>
-        </CardContent>
-      </Card>
+      <Grid2 xs={12} sm={6} lg={4}>
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+              <Typography variant="body2" fontWeight={500} color="text.secondary">
+                활동 검사자
+              </Typography>
+              <People sx={{ color: 'text.secondary', fontSize: 20 }} />
+            </Box>
+            <Typography variant="h4" fontWeight={700} gutterBottom>
+              {data.activeInspectors}명
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              선택된 기간
+            </Typography>
+          </CardContent>
+        </Card>
+      </Grid2>
 
       {/* Quality Trend */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">품질 트렌드</CardTitle>
-          <TrendingUp className="h-4 w-4 text-green-600" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-green-600">우수</div>
-          <p className="text-xs text-muted-foreground">
-            목표 대비 +{(data.fpy - 95).toFixed(2)}%
-          </p>
-        </CardContent>
-      </Card>
-    </div>
+      <Grid2 xs={12} sm={6} lg={4}>
+        <Card>
+          <CardContent>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+              <Typography variant="body2" fontWeight={500} color="text.secondary">
+                품질 트렌드
+              </Typography>
+              <TrendingUp sx={{ color: 'success.main', fontSize: 20 }} />
+            </Box>
+            <Typography variant="h4" fontWeight={700} color="success.main" gutterBottom>
+              우수
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              목표 대비 +{(data.fpy - 95).toFixed(2)}%
+            </Typography>
+          </CardContent>
+        </Card>
+      </Grid2>
+    </Grid2>
   )
 }

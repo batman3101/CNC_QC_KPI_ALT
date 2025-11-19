@@ -1,17 +1,19 @@
 import { useState } from 'react'
 import { DateRange } from 'react-day-picker'
 import { subDays } from 'date-fns'
-import { Filter, RotateCcw } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import {
+  Card,
+  CardContent,
+  Box,
+  Typography,
+  Button,
+  FormControl,
+  InputLabel,
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  MenuItem,
+  ButtonGroup,
+} from '@mui/material'
+import { FilterList, Refresh } from '@mui/icons-material'
 import { DateRangePicker } from './DateRangePicker'
 import type { AnalyticsFilters as Filters } from '@/types/analytics'
 
@@ -69,99 +71,82 @@ export function AnalyticsFilters({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Filter className="h-5 w-5" />
-          필터
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Date Range */}
-        <div className="space-y-2">
-          <Label>기간</Label>
-          <DateRangePicker value={dateRange} onChange={handleDateChange} />
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleQuickDate(7)}
-            >
-              최근 7일
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleQuickDate(30)}
-            >
-              최근 30일
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleQuickDate(90)}
-            >
-              최근 90일
-            </Button>
-          </div>
-        </div>
+      <CardContent sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+          <FilterList color="primary" />
+          <Typography variant="h6" fontWeight={600}>
+            필터
+          </Typography>
+        </Box>
 
-        {/* Machine Filter */}
-        <div className="space-y-2">
-          <Label>설비</Label>
-          <Select
-            value={filters.machineId || 'all'}
-            onValueChange={(value) =>
-              onChange({
-                ...filters,
-                machineId: value === 'all' ? undefined : value,
-              })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="모든 설비" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">모든 설비</SelectItem>
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {/* Date Range */}
+          <Box>
+            <Typography variant="subtitle2" fontWeight={500} gutterBottom>
+              기간
+            </Typography>
+            <DateRangePicker value={dateRange} onChange={handleDateChange} />
+            <ButtonGroup variant="outlined" size="small" fullWidth sx={{ mt: 1 }}>
+              <Button onClick={() => handleQuickDate(7)}>최근 7일</Button>
+              <Button onClick={() => handleQuickDate(30)}>최근 30일</Button>
+              <Button onClick={() => handleQuickDate(90)}>최근 90일</Button>
+            </ButtonGroup>
+          </Box>
+
+          {/* Machine Filter */}
+          <FormControl fullWidth>
+            <InputLabel>설비</InputLabel>
+            <Select
+              value={filters.machineId || 'all'}
+              label="설비"
+              onChange={(e) =>
+                onChange({
+                  ...filters,
+                  machineId: e.target.value === 'all' ? undefined : e.target.value,
+                })
+              }
+            >
+              <MenuItem value="all">모든 설비</MenuItem>
               {machines.map((machine) => (
-                <SelectItem key={machine.id} value={machine.id}>
+                <MenuItem key={machine.id} value={machine.id}>
                   {machine.name}
-                </SelectItem>
+                </MenuItem>
               ))}
-            </SelectContent>
-          </Select>
-        </div>
+            </Select>
+          </FormControl>
 
-        {/* Model Filter */}
-        <div className="space-y-2">
-          <Label>제품 모델</Label>
-          <Select
-            value={filters.modelId || 'all'}
-            onValueChange={(value) =>
-              onChange({
-                ...filters,
-                modelId: value === 'all' ? undefined : value,
-              })
-            }
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="모든 모델" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">모든 모델</SelectItem>
+          {/* Model Filter */}
+          <FormControl fullWidth>
+            <InputLabel>제품 모델</InputLabel>
+            <Select
+              value={filters.modelId || 'all'}
+              label="제품 모델"
+              onChange={(e) =>
+                onChange({
+                  ...filters,
+                  modelId: e.target.value === 'all' ? undefined : e.target.value,
+                })
+              }
+            >
+              <MenuItem value="all">모든 모델</MenuItem>
               {models.map((model) => (
-                <SelectItem key={model.id} value={model.id}>
+                <MenuItem key={model.id} value={model.id}>
                   {model.name}
-                </SelectItem>
+                </MenuItem>
               ))}
-            </SelectContent>
-          </Select>
-        </div>
+            </Select>
+          </FormControl>
 
-        {/* Reset Button */}
-        <Button variant="outline" className="w-full" onClick={handleReset}>
-          <RotateCcw className="mr-2 h-4 w-4" />
-          필터 초기화
-        </Button>
+          {/* Reset Button */}
+          <Button
+            variant="outlined"
+            fullWidth
+            startIcon={<Refresh />}
+            onClick={handleReset}
+          >
+            필터 초기화
+          </Button>
+        </Box>
       </CardContent>
     </Card>
   )

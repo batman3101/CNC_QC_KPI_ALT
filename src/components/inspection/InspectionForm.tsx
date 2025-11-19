@@ -11,11 +11,11 @@ import {
   TextField,
   Checkbox,
   FormControlLabel,
-  Grid,
   Paper,
   Chip,
   Alert,
 } from '@mui/material'
+import Grid2 from '@mui/material/Grid2'
 import {
   CheckCircle,
   Cancel,
@@ -239,8 +239,8 @@ export function InspectionForm({
             </Button>
           </Box>
 
-          <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>
+          <Grid2 container spacing={2}>
+            <Grid2 xs={12} md={4}>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="body2" color="text.secondary">
                   {t('inspection.progress')}
@@ -255,8 +255,8 @@ export function InspectionForm({
                   {completedItems} / {totalItems}
                 </Typography>
               </Paper>
-            </Grid>
-            <Grid item xs={12} md={4}>
+            </Grid2>
+            <Grid2 xs={12} md={4}>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="body2" color="text.secondary">
                   {t('dashboard.pass')}
@@ -268,8 +268,8 @@ export function InspectionForm({
                   {t('dashboard.inspections')}
                 </Typography>
               </Paper>
-            </Grid>
-            <Grid item xs={12} md={4}>
+            </Grid2>
+            <Grid2 xs={12} md={4}>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="body2" color="text.secondary">
                   {t('dashboard.fail')}
@@ -281,8 +281,8 @@ export function InspectionForm({
                   {t('dashboard.inspections')}
                 </Typography>
               </Paper>
-            </Grid>
-          </Grid>
+            </Grid2>
+          </Grid2>
         </CardContent>
       </Card>
 

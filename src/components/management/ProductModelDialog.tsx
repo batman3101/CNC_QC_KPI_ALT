@@ -1,28 +1,20 @@
 import { useEffect } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
+  DialogContent,
+  DialogActions,
+  TextField,
+  Button,
+  Box,
+  Typography,
+} from '@mui/material'
+import { useSnackbar } from 'notistack'
 import type { Database } from '@/types/database'
 
 // UI 테스트용 Mock 서비스
@@ -63,12 +55,17 @@ export function ProductModelDialog({
 }: ProductModelDialogProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const { enqueueSnackbar } = useSnackbar()
   const isEditing = !!model
 
   const formSchema = createFormSchema(t)
 
-  const form = useForm<FormValues>({
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
@@ -80,18 +77,18 @@ export function ProductModelDialog({
   useEffect(() => {
     if (open) {
       if (model) {
-        form.reset({
+        reset({
           name: model.name,
           code: model.code,
         })
       } else {
-        form.reset({
+        reset({
           name: '',
           code: '',
         })
       }
     }
-  }, [open, model, form])
+  }, [open, model, reset])
 
   // Create mutation
   const createMutation = useMutation({
@@ -99,19 +96,12 @@ export function ProductModelDialog({
       managementService.createProductModel(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-models'] })
-      toast({
-        title: t('management.addProductModel'),
-        description: t('management.productModelCreated'),
-      })
+      enqueueSnackbar(t('management.productModelCreated'), { variant: 'success' })
       onOpenChange(false)
-      form.reset()
+      reset()
     },
     onError: (error: Error) => {
-      toast({
-        title: t('common.error'),
-        description: error.message,
-        variant: 'destructive',
-      })
+      enqueueSnackbar(error.message, { variant: 'error' })
     },
   })
 
@@ -121,19 +111,12 @@ export function ProductModelDialog({
       managementService.updateProductModel(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-models'] })
-      toast({
-        title: t('management.editProductModel'),
-        description: t('management.productModelUpdated'),
-      })
+      enqueueSnackbar(t('management.productModelUpdated'), { variant: 'success' })
       onOpenChange(false)
-      form.reset()
+      reset()
     },
     onError: (error: Error) => {
-      toast({
-        title: t('common.error'),
-        description: error.message,
-        variant: 'destructive',
-      })
+      enqueueSnackbar(error.message, { variant: 'error' })
     },
   })
 
@@ -151,77 +134,78 @@ export function ProductModelDialog({
   const isLoading = createMutation.isPending || updateMutation.isPending
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? t('management.editProductModel') : t('management.addProductModel')}
-          </DialogTitle>
-          <DialogDescription>
-            {isEditing
-              ? t('management.editProductModel')
-              : t('management.addProductModel')}
-          </DialogDescription>
-        </DialogHeader>
+    <Dialog
+      open={open}
+      onClose={() => onOpenChange(false)}
+      maxWidth="sm"
+      fullWidth
+    >
+      <DialogTitle>
+        {isEditing ? t('management.editProductModel') : t('management.addProductModel')}
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          {isEditing
+            ? t('management.editProductModel')
+            : t('management.addProductModel')}
+        </Typography>
+      </DialogTitle>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Controller
               name="name"
+              control={control}
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('management.modelName')} *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="CNC-A1000"
-                      {...field}
-                      disabled={isLoading}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                <TextField
+                  {...field}
+                  label={`${t('management.modelName')} *`}
+                  placeholder="CNC-A1000"
+                  disabled={isLoading}
+                  error={!!errors.name}
+                  helperText={errors.name?.message}
+                  fullWidth
+                />
               )}
             />
 
-            <FormField
-              control={form.control}
+            <Controller
               name="code"
+              control={control}
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('management.modelCode')} *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="A1000"
-                      {...field}
-                      disabled={isLoading}
-                      onChange={(e) => {
-                        // Auto uppercase
-                        field.onChange(e.target.value.toUpperCase())
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                <TextField
+                  {...field}
+                  label={`${t('management.modelCode')} *`}
+                  placeholder="A1000"
+                  disabled={isLoading}
+                  error={!!errors.code}
+                  helperText={errors.code?.message}
+                  onChange={(e) => {
+                    // Auto uppercase
+                    field.onChange(e.target.value.toUpperCase())
+                  }}
+                  fullWidth
+                />
               )}
             />
+          </Box>
+        </DialogContent>
 
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={isLoading}
-              >
-                {t('common.cancel')}
-              </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? t('common.loading') : isEditing ? t('common.edit') : t('common.add')}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
+            {t('common.cancel')}
+          </Button>
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={isLoading}
+          >
+            {isLoading ? t('common.loading') : isEditing ? t('common.edit') : t('common.add')}
+          </Button>
+        </DialogActions>
+      </form>
     </Dialog>
   )
 }

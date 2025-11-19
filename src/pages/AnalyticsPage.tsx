@@ -2,7 +2,8 @@ import { useState } from 'react'
 import { subDays } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Box, Typography, Grid, Tabs, Tab } from '@mui/material'
+import { Box, Typography, Tabs, Tab } from '@mui/material'
+import Grid2 from '@mui/material/Grid2'
 import { KPICards } from '@/components/analytics/KPICards'
 import { AnalyticsFilters } from '@/components/analytics/AnalyticsFilters'
 import { DefectRateTrendChart } from '@/components/analytics/DefectRateTrendChart'
@@ -106,19 +107,19 @@ export function AnalyticsPage() {
         </Typography>
       </Box>
 
-      <Grid container spacing={3}>
+      <Grid2 container spacing={3}>
         {/* Filters Sidebar */}
-        <Grid item xs={12} lg={3}>
+        <Grid2 xs={12} lg={3}>
           <AnalyticsFilters
             filters={filters}
             onChange={setFilters}
             machines={mockMachines}
             models={mockProductModels}
           />
-        </Grid>
+        </Grid2>
 
         {/* Main Content */}
-        <Grid item xs={12} lg={9}>
+        <Grid2 xs={12} lg={9}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {/* KPI Cards */}
             <KPICards data={kpiData} isLoading={kpiLoading} />
@@ -139,14 +140,14 @@ export function AnalyticsPage() {
 
               {/* Distribution Tab */}
               <TabPanel value={tabValue} index={1}>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} lg={6}>
+                <Grid2 container spacing={3}>
+                  <Grid2 xs={12} lg={6}>
                     <ModelDefectChart data={modelData || []} />
-                  </Grid>
-                  <Grid item xs={12} lg={6}>
+                  </Grid2>
+                  <Grid2 xs={12} lg={6}>
                     <DefectTypeChart data={defectTypeData || []} />
-                  </Grid>
-                </Grid>
+                  </Grid2>
+                </Grid2>
               </TabPanel>
 
               {/* Performance Tab */}
@@ -163,8 +164,8 @@ export function AnalyticsPage() {
               </TabPanel>
             </Box>
           </Box>
-        </Grid>
-      </Grid>
+        </Grid2>
+      </Grid2>
     </Box>
   )
 }

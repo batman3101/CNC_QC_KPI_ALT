@@ -1,30 +1,36 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Plus, Pencil, Trash2, Search } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  Button,
+  TextField,
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
-  TableHeader,
   TableRow,
-} from '@/components/ui/table'
+  Paper,
+  IconButton,
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  InputAdornment,
+} from '@mui/material'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
-import { useToast } from '@/hooks/use-toast'
+  Add,
+  Edit,
+  Delete,
+  Search as SearchIcon,
+} from '@mui/icons-material'
+import { useSnackbar } from 'notistack'
 import { ProductModelDialog } from './ProductModelDialog'
 import type { Database } from '@/types/database'
 
@@ -42,7 +48,7 @@ export function ProductModelManagement() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const { enqueueSnackbar } = useSnackbar()
 
   // Fetch product models
   const { data: models = [], isLoading } = useQuery({
@@ -55,19 +61,12 @@ export function ProductModelManagement() {
     mutationFn: managementService.deleteProductModel,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['product-models'] })
-      toast({
-        title: t('management.deleteProductModel'),
-        description: t('management.productModelDeleted'),
-      })
+      enqueueSnackbar(t('management.productModelDeleted'), { variant: 'success' })
       setDeleteDialogOpen(false)
       setDeletingId(null)
     },
     onError: (error: Error) => {
-      toast({
-        title: t('common.error'),
-        description: error.message,
-        variant: 'destructive',
-      })
+      enqueueSnackbar(error.message, { variant: 'error' })
     },
   })
 
@@ -102,84 +101,99 @@ export function ProductModelManagement() {
   return (
     <>
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>{t('management.productModelList')}</CardTitle>
-            <Button onClick={handleAdd}>
-              <Plus className="mr-2 h-4 w-4" />
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6" fontWeight={600}>
+              {t('management.productModelList')}
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={handleAdd}
+            >
               {t('management.addProductModel')}
             </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
+          </Box>
+
           {/* Search */}
-          <div className="mb-4 flex items-center gap-2">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={t('common.search')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-          </div>
+          <Box sx={{ mb: 3 }}>
+            <TextField
+              placeholder={t('common.search')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              size="small"
+              fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
 
           {/* Table */}
           {isLoading ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              {t('common.loading')}
-            </div>
+            <Box sx={{ py: 8, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                {t('common.loading')}
+              </Typography>
+            </Box>
           ) : filteredModels.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              {searchQuery
-                ? t('common.noData')
-                : t('common.noData')}
-            </div>
+            <Box sx={{ py: 8, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                {searchQuery ? t('common.noData') : t('common.noData')}
+              </Typography>
+            </Box>
           ) : (
-            <div className="rounded-md border">
+            <TableContainer component={Paper} variant="outlined">
               <Table>
-                <TableHeader>
+                <TableHead>
                   <TableRow>
-                    <TableHead>{t('management.modelName')}</TableHead>
-                    <TableHead>{t('management.modelCode')}</TableHead>
-                    <TableHead>{t('defects.registeredDate')}</TableHead>
-                    <TableHead className="text-right">{t('common.actions')}</TableHead>
+                    <TableCell>{t('management.modelName')}</TableCell>
+                    <TableCell>{t('management.modelCode')}</TableCell>
+                    <TableCell>{t('defects.registeredDate')}</TableCell>
+                    <TableCell align="right">{t('common.actions')}</TableCell>
                   </TableRow>
-                </TableHeader>
+                </TableHead>
                 <TableBody>
                   {filteredModels.map((model) => (
-                    <TableRow key={model.id}>
-                      <TableCell className="font-medium">{model.name}</TableCell>
+                    <TableRow key={model.id} hover>
                       <TableCell>
-                        <Badge variant="outline">{model.code}</Badge>
+                        <Typography variant="body2" fontWeight={500}>
+                          {model.name}
+                        </Typography>
                       </TableCell>
                       <TableCell>
-                        {new Date(model.created_at).toLocaleDateString('ko-KR')}
+                        <Chip label={model.code} variant="outlined" size="small" />
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(model)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(model.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
+                      <TableCell>
+                        <Typography variant="body2">
+                          {new Date(model.created_at).toLocaleDateString('ko-KR')}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <IconButton
+                          size="small"
+                          onClick={() => handleEdit(model)}
+                          color="primary"
+                        >
+                          <Edit />
+                        </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => handleDelete(model.id)}
+                          color="error"
+                        >
+                          <Delete />
+                        </IconButton>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
-            </div>
+            </TableContainer>
           )}
         </CardContent>
       </Card>
@@ -192,25 +206,22 @@ export function ProductModelManagement() {
       />
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('management.deleteProductModel')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('management.deleteProductModelConfirm')} {t('management.deleteProductModelWarning')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>{t('management.deleteProductModel')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {t('management.deleteProductModelConfirm')} {t('management.deleteProductModelWarning')}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">
+            {t('common.delete')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   )
 }

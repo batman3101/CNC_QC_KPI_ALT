@@ -2,33 +2,37 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
-  AlertTriangle,
-  Eye,
-  CheckCircle2,
-  Clock,
-  PlayCircle,
-  Search,
-} from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
+  Card,
+  CardContent,
+  Box,
+  Typography,
+  TextField,
+  Button,
   Table,
   TableBody,
   TableCell,
+  TableContainer,
   TableHead,
-  TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import {
+  Paper,
+  Chip,
+  IconButton,
+  FormControl,
+  InputLabel,
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { useToast } from '@/hooks/use-toast'
+  MenuItem,
+  InputAdornment,
+} from '@mui/material'
+import Grid2 from '@mui/material/Grid2'
+import {
+  Warning as WarningIcon,
+  Visibility,
+  CheckCircle,
+  Schedule,
+  PlayArrow,
+  Search as SearchIcon,
+} from '@mui/icons-material'
+import { useSnackbar } from 'notistack'
 import { DefectDetailDialog } from './DefectDetailDialog'
 import type { Database } from '@/types/database'
 
@@ -45,23 +49,23 @@ export function DefectsList() {
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
 
   const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const { enqueueSnackbar } = useSnackbar()
 
   const statusConfig = {
     pending: {
       label: t('defects.statusPending'),
-      icon: Clock,
-      variant: 'destructive' as const,
+      icon: Schedule,
+      color: 'error' as const,
     },
     in_progress: {
       label: t('defects.statusInProgress'),
-      icon: PlayCircle,
-      variant: 'default' as const,
+      icon: PlayArrow,
+      color: 'primary' as const,
     },
     resolved: {
       label: t('defects.statusResolved'),
-      icon: CheckCircle2,
-      variant: 'secondary' as const,
+      icon: CheckCircle,
+      color: 'success' as const,
     },
   }
 
@@ -82,17 +86,10 @@ export function DefectsList() {
     }) => inspectionService.updateDefectStatus(id, status),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['defects'] })
-      toast({
-        title: t('defects.statusChanged'),
-        description: t('defects.statusChanged'),
-      })
+      enqueueSnackbar(t('defects.statusChanged'), { variant: 'success' })
     },
     onError: (error: Error) => {
-      toast({
-        title: t('defects.statusChangeError'),
-        description: error.message,
-        variant: 'destructive',
-      })
+      enqueueSnackbar(error.message, { variant: 'error' })
     },
   })
 
@@ -128,186 +125,212 @@ export function DefectsList() {
   return (
     <>
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {t('defects.title')}
-                </p>
-                <p className="text-2xl font-bold">{counts.all}</p>
-              </div>
-              <AlertTriangle className="h-8 w-8 text-muted-foreground" />
-            </div>
-          </CardContent>
-        </Card>
+      <Grid2 container spacing={3} sx={{ mb: 3 }}>
+        <Grid2 xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                    {t('defects.title')}
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700}>
+                    {counts.all}
+                  </Typography>
+                </Box>
+                <WarningIcon sx={{ fontSize: 32, color: 'text.secondary' }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid2>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {t('defects.statusPending')}
-                </p>
-                <p className="text-2xl font-bold text-destructive">
-                  {counts.pending}
-                </p>
-              </div>
-              <Clock className="h-8 w-8 text-destructive" />
-            </div>
-          </CardContent>
-        </Card>
+        <Grid2 xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                    {t('defects.statusPending')}
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700} color="error.main">
+                    {counts.pending}
+                  </Typography>
+                </Box>
+                <Schedule sx={{ fontSize: 32, color: 'error.main' }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid2>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {t('defects.statusInProgress')}
-                </p>
-                <p className="text-2xl font-bold">{counts.in_progress}</p>
-              </div>
-              <PlayCircle className="h-8 w-8 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
+        <Grid2 xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                    {t('defects.statusInProgress')}
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700}>
+                    {counts.in_progress}
+                  </Typography>
+                </Box>
+                <PlayArrow sx={{ fontSize: 32, color: 'primary.main' }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid2>
 
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  {t('defects.statusResolved')}
-                </p>
-                <p className="text-2xl font-bold text-green-600">
-                  {counts.resolved}
-                </p>
-              </div>
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        <Grid2 xs={12} sm={6} md={3}>
+          <Card>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                    {t('defects.statusResolved')}
+                  </Typography>
+                  <Typography variant="h4" fontWeight={700} color="success.main">
+                    {counts.resolved}
+                  </Typography>
+                </Box>
+                <CheckCircle sx={{ fontSize: 32, color: 'success.main' }} />
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid2>
+      </Grid2>
 
       {/* Defects Table */}
       <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>{t('defects.listTitle')}</CardTitle>
-          </div>
-        </CardHeader>
         <CardContent>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+            <Typography variant="h6" fontWeight={600}>
+              {t('defects.listTitle')}
+            </Typography>
+          </Box>
+
           {/* Filters */}
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={t('defects.defectType')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder={t('defects.filterByStatus')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('defects.all')}</SelectItem>
-                <SelectItem value="pending">{t('defects.statusPending')}</SelectItem>
-                <SelectItem value="in_progress">{t('defects.statusInProgress')}</SelectItem>
-                <SelectItem value="resolved">{t('defects.statusResolved')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexDirection: { xs: 'column', sm: 'row' } }}>
+            <TextField
+              placeholder={t('defects.defectType')}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              size="small"
+              fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <FormControl size="small" sx={{ minWidth: 180 }}>
+              <InputLabel>{t('defects.filterByStatus')}</InputLabel>
+              <Select
+                value={statusFilter}
+                label={t('defects.filterByStatus')}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <MenuItem value="all">{t('defects.all')}</MenuItem>
+                <MenuItem value="pending">{t('defects.statusPending')}</MenuItem>
+                <MenuItem value="in_progress">{t('defects.statusInProgress')}</MenuItem>
+                <MenuItem value="resolved">{t('defects.statusResolved')}</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
 
           {/* Table */}
           {isLoading ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              {t('common.loading')}
-            </div>
+            <Box sx={{ py: 8, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                {t('common.loading')}
+              </Typography>
+            </Box>
           ) : filteredDefects.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              {searchQuery || statusFilter !== 'all'
-                ? t('common.noData')
-                : t('common.noData')}
-            </div>
+            <Box sx={{ py: 8, textAlign: 'center' }}>
+              <Typography variant="body2" color="text.secondary">
+                {searchQuery || statusFilter !== 'all'
+                  ? t('common.noData')
+                  : t('common.noData')}
+              </Typography>
+            </Box>
           ) : (
-            <div className="rounded-md border">
+            <TableContainer component={Paper} variant="outlined">
               <Table>
-                <TableHeader>
+                <TableHead>
                   <TableRow>
-                    <TableHead>{t('defects.defectType')}</TableHead>
-                    <TableHead>{t('defects.description')}</TableHead>
-                    <TableHead>{t('defects.status')}</TableHead>
-                    <TableHead>{t('defects.registeredDate')}</TableHead>
-                    <TableHead className="text-right">{t('common.actions')}</TableHead>
+                    <TableCell>{t('defects.defectType')}</TableCell>
+                    <TableCell>{t('defects.description')}</TableCell>
+                    <TableCell>{t('defects.status')}</TableCell>
+                    <TableCell>{t('defects.registeredDate')}</TableCell>
+                    <TableCell align="right">{t('common.actions')}</TableCell>
                   </TableRow>
-                </TableHeader>
+                </TableHead>
                 <TableBody>
                   {filteredDefects.map((defect) => {
                     const config = statusConfig[defect.status]
                     const Icon = config.icon
 
                     return (
-                      <TableRow key={defect.id}>
-                        <TableCell className="font-medium">
-                          {defect.defect_type}
+                      <TableRow key={defect.id} hover>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight={500}>
+                            {defect.defect_type}
+                          </Typography>
                         </TableCell>
-                        <TableCell className="max-w-md truncate">
-                          {defect.description}
+                        <TableCell sx={{ maxWidth: 400 }}>
+                          <Typography variant="body2" noWrap>
+                            {defect.description}
+                          </Typography>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={config.variant}>
-                            <Icon className="mr-1 h-3 w-3" />
-                            {config.label}
-                          </Badge>
+                          <Chip
+                            icon={<Icon />}
+                            label={config.label}
+                            color={config.color}
+                            size="small"
+                          />
                         </TableCell>
                         <TableCell>
-                          {new Date(defect.created_at).toLocaleDateString(
-                            'ko-KR'
-                          )}
+                          <Typography variant="body2">
+                            {new Date(defect.created_at).toLocaleDateString('ko-KR')}
+                          </Typography>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                        <TableCell align="right">
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                            <IconButton
+                              size="small"
                               onClick={() => handleViewDetail(defect)}
+                              color="primary"
                             >
-                              <Eye className="h-4 w-4" />
-                            </Button>
+                              <Visibility />
+                            </IconButton>
                             {defect.status === 'pending' && (
                               <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  handleStatusChange(defect.id, 'in_progress')
-                                }
+                                variant="outlined"
+                                size="small"
+                                onClick={() => handleStatusChange(defect.id, 'in_progress')}
                               >
                                 {t('defects.startAction')}
                               </Button>
                             )}
                             {defect.status === 'in_progress' && (
                               <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() =>
-                                  handleStatusChange(defect.id, 'resolved')
-                                }
+                                variant="outlined"
+                                size="small"
+                                onClick={() => handleStatusChange(defect.id, 'resolved')}
                               >
                                 {t('defects.completeAction')}
                               </Button>
                             )}
-                          </div>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     )
                   })}
                 </TableBody>
               </Table>
-            </div>
+            </TableContainer>
           )}
         </CardContent>
       </Card>
