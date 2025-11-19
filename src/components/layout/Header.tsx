@@ -37,6 +37,7 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
   return (
     <AppBar
       position="fixed"
+<<<<<<< HEAD
       color="inherit"
       elevation={0}
       sx={{ 
@@ -46,6 +47,13 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
       }}
     >
       <Toolbar sx={{ minHeight: 64 }}>
+=======
+      color="default"
+      elevation={1}
+      sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+    >
+      <Toolbar>
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
         <IconButton
           color="inherit"
           edge="start"
@@ -55,6 +63,7 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
           <MenuIcon />
         </IconButton>
 
+<<<<<<< HEAD
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Box
             component="img"
@@ -77,6 +86,22 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
             CNC QC KPI
           </Typography>
         </Box>
+=======
+        <Typography
+          variant="h6"
+          component="a"
+          href="/"
+          sx={{
+            flexGrow: 0,
+            mr: 4,
+            fontWeight: 700,
+            color: 'primary.main',
+            textDecoration: 'none',
+          }}
+        >
+          CNC QC KPI
+        </Typography>
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
 
         <Box sx={{ flexGrow: 1 }} />
 

@@ -6,7 +6,10 @@ import {
   Legend,
   Tooltip,
 } from 'recharts'
+<<<<<<< HEAD
 import { useTranslation } from 'react-i18next'
+=======
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { DefectTypeDistribution } from '@/types/analytics'
 
@@ -15,6 +18,7 @@ interface DefectTypeChartProps {
 }
 
 const COLORS = [
+<<<<<<< HEAD
   'hsl(var(--chart-1))',
   'hsl(var(--chart-2))',
   'hsl(var(--chart-3))',
@@ -29,6 +33,21 @@ export function DefectTypeChart({ data }: DefectTypeChartProps) {
     <Card>
       <CardHeader>
         <CardTitle>{t('charts.defectTypeDistribution')}</CardTitle>
+=======
+  'hsl(var(--destructive))',
+  'hsl(var(--primary))',
+  'hsl(142.1 76.2% 36.3%)',
+  'hsl(47.9 95.8% 53.1%)',
+  'hsl(280.4 89.5% 47.8%)',
+  'hsl(24.6 95% 53.1%)',
+]
+
+export function DefectTypeChart({ data }: DefectTypeChartProps) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>불량 유형 분포</CardTitle>
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={350}>
@@ -74,11 +93,14 @@ export function DefectTypeChart({ data }: DefectTypeChartProps) {
               ))}
             </Pie>
             <Tooltip
+<<<<<<< HEAD
               contentStyle={{ 
                 backgroundColor: 'hsl(var(--background))',
                 borderColor: 'hsl(var(--border))',
                 color: 'hsl(var(--foreground))'
               }}
+=======
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
               content={({ active, payload }) => {
                 if (!active || !payload?.length) return null
                 const data = payload[0].payload
@@ -87,12 +109,17 @@ export function DefectTypeChart({ data }: DefectTypeChartProps) {
                     <div className="grid gap-2">
                       <div className="flex flex-col">
                         <span className="text-[0.70rem] uppercase text-muted-foreground">
+<<<<<<< HEAD
                           {t('charts.defectType')}
+=======
+                          불량 유형
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
                         </span>
                         <span className="font-bold">{data.defectType}</span>
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-[0.70rem] uppercase text-muted-foreground">
+<<<<<<< HEAD
                           {t('charts.defectCount')}
                         </span>
                         <span className="font-bold">{data.count}</span>
@@ -100,6 +127,15 @@ export function DefectTypeChart({ data }: DefectTypeChartProps) {
                       <div className="flex justify-between gap-4">
                         <span className="text-[0.70rem] uppercase text-muted-foreground">
                           {t('charts.percentage')}
+=======
+                          건수
+                        </span>
+                        <span className="font-bold">{data.count}건</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-[0.70rem] uppercase text-muted-foreground">
+                          비율
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
                         </span>
                         <span className="font-bold">
                           {data.percentage.toFixed(1)}%
@@ -113,9 +149,15 @@ export function DefectTypeChart({ data }: DefectTypeChartProps) {
             <Legend
               verticalAlign="bottom"
               height={36}
+<<<<<<< HEAD
               formatter={(_value, entry: any) => {
                 const data = entry.payload
                 return `${data.defectType} (${data.count})`
+=======
+              formatter={(value, entry: any) => {
+                const data = entry.payload
+                return `${data.defectType} (${data.count}건)`
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
               }}
             />
           </PieChart>

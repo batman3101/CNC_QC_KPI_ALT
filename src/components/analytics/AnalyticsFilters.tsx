@@ -1,7 +1,10 @@
 import { useState } from 'react'
 import { DateRange } from 'react-day-picker'
 import { subDays } from 'date-fns'
+<<<<<<< HEAD
 import { useTranslation } from 'react-i18next'
+=======
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
 import {
   Card,
   CardContent,
@@ -31,8 +34,11 @@ export function AnalyticsFilters({
   machines = [],
   models = [],
 }: AnalyticsFiltersProps) {
+<<<<<<< HEAD
   const { t } = useTranslation()
 
+=======
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: filters.dateRange.from,
     to: filters.dateRange.to,
@@ -71,9 +77,12 @@ export function AnalyticsFilters({
       modelId: undefined,
     })
   }
+<<<<<<< HEAD
   // ... existing state ...
 
   // ... existing handlers ...
+=======
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
 
   return (
     <Card>
@@ -81,7 +90,11 @@ export function AnalyticsFilters({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
           <FilterList color="primary" />
           <Typography variant="h6" fontWeight={600}>
+<<<<<<< HEAD
             {t('common.filter')}
+=======
+            필터
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
           </Typography>
         </Box>
 
@@ -89,6 +102,7 @@ export function AnalyticsFilters({
           {/* Date Range */}
           <Box>
             <Typography variant="subtitle2" fontWeight={500} gutterBottom>
+<<<<<<< HEAD
               {t('analytics.period')}
             </Typography>
             <DateRangePicker value={dateRange} onChange={handleDateChange} />
@@ -96,15 +110,31 @@ export function AnalyticsFilters({
               <Button onClick={() => handleQuickDate(7)}>{t('analytics.last7Days')}</Button>
               <Button onClick={() => handleQuickDate(30)}>{t('analytics.last30Days')}</Button>
               <Button onClick={() => handleQuickDate(90)}>{t('analytics.last90Days')}</Button>
+=======
+              기간
+            </Typography>
+            <DateRangePicker value={dateRange} onChange={handleDateChange} />
+            <ButtonGroup variant="outlined" size="small" fullWidth sx={{ mt: 1 }}>
+              <Button onClick={() => handleQuickDate(7)}>최근 7일</Button>
+              <Button onClick={() => handleQuickDate(30)}>최근 30일</Button>
+              <Button onClick={() => handleQuickDate(90)}>최근 90일</Button>
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
             </ButtonGroup>
           </Box>
 
           {/* Machine Filter */}
           <FormControl fullWidth>
+<<<<<<< HEAD
             <InputLabel>{t('dashboard.machine')}</InputLabel>
             <Select
               value={filters.machineId || 'all'}
               label={t('dashboard.machine')}
+=======
+            <InputLabel>설비</InputLabel>
+            <Select
+              value={filters.machineId || 'all'}
+              label="설비"
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
               onChange={(e) =>
                 onChange({
                   ...filters,
@@ -112,7 +142,11 @@ export function AnalyticsFilters({
                 })
               }
             >
+<<<<<<< HEAD
               <MenuItem value="all">{t('analytics.allMachines')}</MenuItem>
+=======
+              <MenuItem value="all">모든 설비</MenuItem>
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
               {machines.map((machine) => (
                 <MenuItem key={machine.id} value={machine.id}>
                   {machine.name}
@@ -123,10 +157,17 @@ export function AnalyticsFilters({
 
           {/* Model Filter */}
           <FormControl fullWidth>
+<<<<<<< HEAD
             <InputLabel>{t('dashboard.model')}</InputLabel>
             <Select
               value={filters.modelId || 'all'}
               label={t('dashboard.model')}
+=======
+            <InputLabel>제품 모델</InputLabel>
+            <Select
+              value={filters.modelId || 'all'}
+              label="제품 모델"
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
               onChange={(e) =>
                 onChange({
                   ...filters,
@@ -134,7 +175,11 @@ export function AnalyticsFilters({
                 })
               }
             >
+<<<<<<< HEAD
               <MenuItem value="all">{t('analytics.allModels')}</MenuItem>
+=======
+              <MenuItem value="all">모든 모델</MenuItem>
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
               {models.map((model) => (
                 <MenuItem key={model.id} value={model.id}>
                   {model.name}
@@ -150,7 +195,11 @@ export function AnalyticsFilters({
             startIcon={<Refresh />}
             onClick={handleReset}
           >
+<<<<<<< HEAD
             {t('analytics.resetFilter')}
+=======
+            필터 초기화
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
           </Button>
         </Box>
       </CardContent>

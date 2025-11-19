@@ -8,7 +8,10 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts'
+<<<<<<< HEAD
 import { useTranslation } from 'react-i18next'
+=======
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import type { HourlyDistribution } from '@/types/analytics'
 
@@ -19,12 +22,19 @@ interface HourlyDistributionChartProps {
 export function HourlyDistributionChart({
   data,
 }: HourlyDistributionChartProps) {
+<<<<<<< HEAD
   const { t } = useTranslation()
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>{t('charts.hourlyDistribution')}</CardTitle>
+=======
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>시간대별 검사 분포</CardTitle>
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
@@ -33,28 +43,45 @@ export function HourlyDistributionChart({
               <linearGradient id="colorInspections" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
+<<<<<<< HEAD
                   stopColor="hsl(var(--chart-1))"
+=======
+                  stopColor="hsl(var(--primary))"
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
                   stopOpacity={0.8}
                 />
                 <stop
                   offset="95%"
+<<<<<<< HEAD
                   stopColor="hsl(var(--chart-1))"
+=======
+                  stopColor="hsl(var(--primary))"
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
                   stopOpacity={0}
                 />
               </linearGradient>
               <linearGradient id="colorDefects" x1="0" y1="0" x2="0" y2="1">
                 <stop
                   offset="5%"
+<<<<<<< HEAD
                   stopColor="hsl(var(--chart-2))"
+=======
+                  stopColor="hsl(var(--destructive))"
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
                   stopOpacity={0.8}
                 />
                 <stop
                   offset="95%"
+<<<<<<< HEAD
                   stopColor="hsl(var(--chart-2))"
+=======
+                  stopColor="hsl(var(--destructive))"
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
                   stopOpacity={0}
                 />
               </linearGradient>
             </defs>
+<<<<<<< HEAD
             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
             <XAxis
               dataKey="hour"
@@ -72,6 +99,16 @@ export function HourlyDistributionChart({
                 borderColor: 'hsl(var(--border))',
                 color: 'hsl(var(--foreground))'
               }}
+=======
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              dataKey="hour"
+              tick={{ fontSize: 12 }}
+              tickFormatter={(value) => `${value}시`}
+            />
+            <YAxis tick={{ fontSize: 12 }} />
+            <Tooltip
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
               content={({ active, payload }) => {
                 if (!active || !payload?.length) return null
                 const data = payload[0].payload
@@ -80,24 +117,42 @@ export function HourlyDistributionChart({
                     <div className="grid gap-2">
                       <div className="flex flex-col">
                         <span className="text-[0.70rem] uppercase text-muted-foreground">
+<<<<<<< HEAD
                           {t('charts.date')}
+=======
+                          시간
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
                         </span>
                         <span className="font-bold">{data.hour}시</span>
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-[0.70rem] uppercase text-muted-foreground">
+<<<<<<< HEAD
                           {t('charts.inspectionCount')}
                         </span>
                         <span className="font-bold">
                           {data.inspectionCount}
+=======
+                          검사 건수
+                        </span>
+                        <span className="font-bold">
+                          {data.inspectionCount}건
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
                         </span>
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-[0.70rem] uppercase text-muted-foreground">
+<<<<<<< HEAD
                           {t('charts.defectCount')}
                         </span>
                         <span className="font-bold text-destructive">
                           {data.defectCount}
+=======
+                          불량 건수
+                        </span>
+                        <span className="font-bold text-destructive">
+                          {data.defectCount}건
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
                         </span>
                       </div>
                     </div>
@@ -109,18 +164,32 @@ export function HourlyDistributionChart({
             <Area
               type="monotone"
               dataKey="inspectionCount"
+<<<<<<< HEAD
               stroke="hsl(var(--chart-1))"
               fillOpacity={1}
               fill="url(#colorInspections)"
               name={t('charts.inspectionCount')}
+=======
+              stroke="hsl(var(--primary))"
+              fillOpacity={1}
+              fill="url(#colorInspections)"
+              name="검사 건수"
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
             />
             <Area
               type="monotone"
               dataKey="defectCount"
+<<<<<<< HEAD
               stroke="hsl(var(--chart-2))"
               fillOpacity={1}
               fill="url(#colorDefects)"
               name={t('charts.defectCount')}
+=======
+              stroke="hsl(var(--destructive))"
+              fillOpacity={1}
+              fill="url(#colorDefects)"
+              name="불량 건수"
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
             />
           </AreaChart>
         </ResponsiveContainer>

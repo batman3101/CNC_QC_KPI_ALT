@@ -260,7 +260,11 @@ export function DefectsList() {
                 <TableHead>
                   <TableRow>
                     <TableCell>{t('defects.defectType')}</TableCell>
+<<<<<<< HEAD
                     <TableCell>{t('defects.fieldDescription')}</TableCell>
+=======
+                    <TableCell>{t('defects.description')}</TableCell>
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
                     <TableCell>{t('defects.status')}</TableCell>
                     <TableCell>{t('defects.registeredDate')}</TableCell>
                     <TableCell align="right">{t('common.actions')}</TableCell>

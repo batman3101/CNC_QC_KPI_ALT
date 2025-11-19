@@ -1,5 +1,8 @@
+<<<<<<< HEAD
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
+=======
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -26,6 +29,7 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+<<<<<<< HEAD
     
     /* Chart Colors (Standard for Light Mode) */
     --chart-1: 142.1 76.2% 36.3%; /* Green */
@@ -45,6 +49,20 @@
     --primary: 239 84% 67%; /* #6366f1 */
     --primary-foreground: 210 40% 98%;
     --secondary: 330 81% 60%; /* #ec4899 */
+=======
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
     --secondary-foreground: 210 40% 98%;
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
@@ -54,6 +72,7 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
+<<<<<<< HEAD
     --ring: 239 84% 67%;
     
     /* Chart Colors (Brighter for Dark Mode) */
@@ -62,6 +81,9 @@
     --chart-3: 217 91% 75%; /* Bright Blue */
     --chart-4: 43 96% 75%; /* Bright Yellow */
     --chart-5: 27 96% 75%; /* Bright Orange */
+=======
+    --ring: 224.3 76.3% 48%;
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
   }
 }
 

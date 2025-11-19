@@ -2,7 +2,10 @@ import * as React from 'react'
 import { format } from 'date-fns'
 import { Calendar as CalendarIcon } from 'lucide-react'
 import { DateRange } from 'react-day-picker'
+<<<<<<< HEAD
 import { useTranslation } from 'react-i18next'
+=======
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
 
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -24,8 +27,11 @@ export function DateRangePicker({
   onChange,
   className,
 }: DateRangePickerProps) {
+<<<<<<< HEAD
   const { t } = useTranslation()
 
+=======
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
   return (
     <div className={cn('grid gap-2', className)}>
       <Popover>
@@ -49,7 +55,11 @@ export function DateRangePicker({
                 format(value.from, 'yyyy-MM-dd')
               )
             ) : (
+<<<<<<< HEAD
               <span>{t('analytics.selectDateRange')}</span>
+=======
+              <span>날짜 범위 선택</span>
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
             )}
           </Button>
         </PopoverTrigger>

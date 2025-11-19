@@ -126,10 +126,17 @@ export function AnalyticsPage() {
             {/* Charts Tabs */}
             <Box>
               <Tabs value={tabValue} onChange={handleTabChange} variant="fullWidth">
+<<<<<<< HEAD
                 <Tab label={t('analytics.trendAnalysis')} />
                 <Tab label={t('analytics.distributionAnalysis')} />
                 <Tab label={t('analytics.performanceAnalysis')} />
                 <Tab label={t('analytics.timeAnalysis')} />
+=======
+                <Tab label="추이 분석" />
+                <Tab label="분포 분석" />
+                <Tab label="성능 분석" />
+                <Tab label="시간 분석" />
+>>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
               </Tabs>
 
               {/* Trends Tab */}
