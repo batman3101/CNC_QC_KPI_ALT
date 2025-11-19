@@ -1,15 +1,9 @@
-import { Menu, User, LogOut, Languages } from 'lucide-react'
+import { AppBar, Toolbar, IconButton, Typography, Menu, MenuItem, Box, ListItemIcon, ListItemText, Divider } from '@mui/material'
+import { Menu as MenuIcon, Person, Logout, Language, Brightness4, Brightness7 } from '@mui/icons-material'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
-import { Button } from '@/components/ui/button'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+import { useThemeMode } from '@/contexts/ThemeContext'
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -20,80 +14,133 @@ interface HeaderProps {
 export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
   const { t, i18n } = useTranslation()
   const { signOut } = useAuth()
+  const { mode, toggleTheme } = useThemeMode()
+  const [languageAnchorEl, setLanguageAnchorEl] = useState<null | HTMLElement>(null)
+  const [userAnchorEl, setUserAnchorEl] = useState<null | HTMLElement>(null)
 
   const changeLanguage = (lng: string) => {
     i18n.changeLanguage(lng)
+    setLanguageAnchorEl(null)
   }
 
   const currentLanguage = i18n.language === 'vi' ? 'Tiếng Việt' : '한국어'
 
+  const handleUserMenuClose = () => {
+    setUserAnchorEl(null)
+  }
+
+  const handleSignOut = () => {
+    handleUserMenuClose()
+    signOut()
+  }
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="mr-2 md:hidden"
+    <AppBar position="sticky" color="default" elevation={1}>
+      <Toolbar>
+        <IconButton
+          color="inherit"
+          edge="start"
           onClick={onMenuClick}
+          sx={{ mr: 2, display: { md: 'none' } }}
         >
-          <Menu className="h-5 w-5" />
-        </Button>
+          <MenuIcon />
+        </IconButton>
 
-        <div className="mr-4 flex">
-          <a href="/" className="mr-6 flex items-center space-x-2">
-            <span className="font-bold text-primary">CNC QC KPI</span>
-          </a>
-        </div>
+        <Typography
+          variant="h6"
+          component="a"
+          href="/"
+          sx={{
+            flexGrow: 0,
+            mr: 4,
+            fontWeight: 700,
+            color: 'primary.main',
+            textDecoration: 'none',
+          }}
+        >
+          CNC QC KPI
+        </Typography>
 
-        <div className="flex flex-1 items-center justify-end space-x-2">
+        <Box sx={{ flexGrow: 1 }} />
+
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          {/* Theme Toggle */}
+          <IconButton onClick={toggleTheme} color="inherit">
+            {mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
+          </IconButton>
+
           {/* Language Switcher */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-2">
-                <Languages className="h-4 w-4" />
-                <span className="hidden sm:inline">{currentLanguage}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => changeLanguage('ko')}>
-                한국어 (Korean)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => changeLanguage('vi')}>
-                Tiếng Việt (Vietnamese)
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <IconButton
+            color="inherit"
+            onClick={(e) => setLanguageAnchorEl(e.currentTarget)}
+          >
+            <Language />
+            <Typography variant="body2" sx={{ ml: 1, display: { xs: 'none', sm: 'block' } }}>
+              {currentLanguage}
+            </Typography>
+          </IconButton>
+          <Menu
+            anchorEl={languageAnchorEl}
+            open={Boolean(languageAnchorEl)}
+            onClose={() => setLanguageAnchorEl(null)}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+          >
+            <MenuItem onClick={() => changeLanguage('ko')}>
+              한국어 (Korean)
+            </MenuItem>
+            <MenuItem onClick={() => changeLanguage('vi')}>
+              Tiếng Việt (Vietnamese)
+            </MenuItem>
+          </Menu>
 
           {/* User Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="relative">
-                <User className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    {userName || t('auth.login')}
-                  </p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {userRole || 'Inspector'}
-                  </p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={signOut}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>{t('auth.logout')}</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
-    </header>
+          <IconButton
+            color="inherit"
+            onClick={(e) => setUserAnchorEl(e.currentTarget)}
+          >
+            <Person />
+          </IconButton>
+          <Menu
+            anchorEl={userAnchorEl}
+            open={Boolean(userAnchorEl)}
+            onClose={handleUserMenuClose}
+            anchorOrigin={{
+              vertical: 'bottom',
+              horizontal: 'right',
+            }}
+            transformOrigin={{
+              vertical: 'top',
+              horizontal: 'right',
+            }}
+            PaperProps={{
+              sx: { minWidth: 200 },
+            }}
+          >
+            <Box sx={{ px: 2, py: 1 }}>
+              <Typography variant="body2" fontWeight={600}>
+                {userName || t('auth.login')}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {userRole || 'Inspector'}
+              </Typography>
+            </Box>
+            <Divider />
+            <MenuItem onClick={handleSignOut} sx={{ color: 'error.main' }}>
+              <ListItemIcon>
+                <Logout fontSize="small" color="error" />
+              </ListItemIcon>
+              <ListItemText>{t('auth.logout')}</ListItemText>
+            </MenuItem>
+          </Menu>
+        </Box>
+      </Toolbar>
+    </AppBar>
   )
 }

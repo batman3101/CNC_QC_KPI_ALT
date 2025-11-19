@@ -1,15 +1,14 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Box, useTheme, useMediaQuery, Toolbar } from '@mui/material'
 import {
-  LayoutDashboard,
-  ClipboardCheck,
-  Settings,
-  AlertTriangle,
-  BarChart3,
-  TrendingUp,
-  FileText,
-} from 'lucide-react'
-import { cn } from '@/lib/utils'
+  Dashboard as DashboardIcon,
+  Assignment as AssignmentIcon,
+  Settings as SettingsIcon,
+  Warning as WarningIcon,
+  TrendingUp as TrendingUpIcon,
+  Description as DescriptionIcon,
+} from '@mui/icons-material'
 
 interface SidebarProps {
   isOpen: boolean
@@ -20,7 +19,7 @@ interface SidebarProps {
 interface NavItem {
   titleKey: string
   href: string
-  icon: React.ComponentType<{ className?: string }>
+  icon: React.ComponentType<any>
   roles: ('admin' | 'manager' | 'inspector')[]
 }
 
@@ -28,91 +27,133 @@ const getNavItems = (): NavItem[] => [
   {
     titleKey: 'nav.dashboard',
     href: '/dashboard',
-    icon: LayoutDashboard,
+    icon: DashboardIcon,
     roles: ['admin', 'manager', 'inspector'],
   },
   {
     titleKey: 'nav.inspection',
     href: '/inspection',
-    icon: ClipboardCheck,
+    icon: AssignmentIcon,
     roles: ['admin', 'manager', 'inspector'],
   },
   {
     titleKey: 'nav.defects',
     href: '/defects',
-    icon: AlertTriangle,
+    icon: WarningIcon,
     roles: ['admin', 'manager', 'inspector'],
   },
   {
     titleKey: 'nav.analytics',
     href: '/analytics',
-    icon: TrendingUp,
+    icon: TrendingUpIcon,
     roles: ['admin', 'manager'],
   },
   {
     titleKey: 'nav.reports',
     href: '/reports',
-    icon: FileText,
+    icon: DescriptionIcon,
     roles: ['admin', 'manager'],
   },
   {
     titleKey: 'nav.management',
     href: '/management',
-    icon: Settings,
+    icon: SettingsIcon,
     roles: ['admin', 'manager'],
   },
 ]
 
+const drawerWidth = 256
+
 export function Sidebar({ isOpen, onClose, userRole = 'inspector' }: SidebarProps) {
   const { t } = useTranslation()
   const location = useLocation()
+  const theme = useTheme()
+  const isMdUp = useMediaQuery(theme.breakpoints.up('md'))
   const navItems = getNavItems()
 
   const filteredNavItems = navItems.filter((item) =>
     item.roles.includes(userRole)
   )
 
-  return (
-    <>
-      {/* Mobile Overlay */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 md:hidden"
-          onClick={onClose}
-        />
-      )}
+  const drawerContent = (
+    <Box>
+      <Toolbar /> {/* This pushes content below AppBar */}
+      <List sx={{ px: 2 }}>
+        {filteredNavItems.map((item) => {
+          const Icon = item.icon
+          const isActive = location.pathname === item.href
 
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          'fixed left-0 top-14 z-40 h-[calc(100vh-3.5rem)] w-64 border-r bg-background transition-transform md:sticky md:translate-x-0',
-          isOpen ? 'translate-x-0' : '-translate-x-full'
-        )}
-      >
-        <nav className="flex h-full flex-col gap-2 p-4">
-          {filteredNavItems.map((item) => {
-            const Icon = item.icon
-            const isActive = location.pathname === item.href
-
-            return (
-              <Link
-                key={item.href}
+          return (
+            <ListItem key={item.href} disablePadding sx={{ mb: 0.5 }}>
+              <ListItemButton
+                component={Link}
                 to={item.href}
-                onClick={() => onClose()}
-                className={cn(
-                  'flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
-                  isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                )}
+                onClick={() => !isMdUp && onClose()}
+                selected={isActive}
+                sx={{
+                  borderRadius: 1,
+                  '&.Mui-selected': {
+                    backgroundColor: 'primary.main',
+                    color: 'primary.contrastText',
+                    '&:hover': {
+                      backgroundColor: 'primary.dark',
+                    },
+                    '& .MuiListItemIcon-root': {
+                      color: 'primary.contrastText',
+                    },
+                  },
+                }}
               >
-                <Icon className="h-4 w-4" />
-                <span>{t(item.titleKey)}</span>
-              </Link>
-            )
-          })}
-        </nav>
-      </aside>
-    </>
+                <ListItemIcon sx={{ minWidth: 40 }}>
+                  <Icon />
+                </ListItemIcon>
+                <ListItemText primary={t(item.titleKey)} />
+              </ListItemButton>
+            </ListItem>
+          )
+        })}
+      </List>
+    </Box>
+  )
+
+  return (
+    <Box
+      component="nav"
+      sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}
+    >
+      {/* Mobile drawer */}
+      <Drawer
+        variant="temporary"
+        open={isOpen}
+        onClose={onClose}
+        ModalProps={{
+          keepMounted: true, // Better mobile performance
+        }}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: drawerWidth,
+          },
+        }}
+      >
+        {drawerContent}
+      </Drawer>
+
+      {/* Desktop drawer */}
+      <Drawer
+        variant="permanent"
+        sx={{
+          display: { xs: 'none', md: 'block' },
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: drawerWidth,
+          },
+        }}
+        open
+      >
+        {drawerContent}
+      </Drawer>
+    </Box>
   )
 }

@@ -1,27 +1,24 @@
-import { useForm } from 'react-hook-form'
+import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { ClipboardCheck } from 'lucide-react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  Form,
+  Card,
+  CardContent,
+  TextField,
+  Button,
+  Box,
+  Typography,
   FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import {
+  InputLabel,
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+  MenuItem,
+  FormHelperText,
+  Chip,
+  Paper,
+} from '@mui/material'
+import { Assignment } from '@mui/icons-material'
 import type { Database } from '@/types/database'
 
 // UI 테스트용 Mock 서비스
@@ -46,7 +43,12 @@ function createFormSchema(t: (key: string) => string) {
 
 export function InspectionSetup({ onStart }: InspectionSetupProps) {
   const { t } = useTranslation()
-  const form = useForm<FormValues>({
+  const {
+    control,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<FormValues>({
     resolver: zodResolver(createFormSchema(t)),
     defaultValues: {
       machineId: '',
@@ -66,8 +68,8 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
     queryFn: managementService.getProductModels,
   })
 
-  const selectedMachineId = form.watch('machineId')
-  const selectedModelId = form.watch('modelId')
+  const selectedMachineId = watch('machineId')
+  const selectedModelId = watch('modelId')
 
   const selectedMachine = machines.find((m) => m.id === selectedMachineId)
   const selectedModel = models.find((m) => m.id === selectedModelId)
@@ -83,114 +85,110 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <ClipboardCheck className="h-5 w-5" />
-          {t('inspection.setupTitle')}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <CardContent sx={{ p: 4 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+          <Assignment color="primary" />
+          <Typography variant="h6" fontWeight={600}>
+            {t('inspection.setupTitle')}
+          </Typography>
+        </Box>
+
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             {/* Machine Selection */}
-            <FormField
-              control={form.control}
+            <Controller
               name="machineId"
+              control={control}
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('inspection.selectMachine')} *</FormLabel>
+                <FormControl fullWidth error={!!errors.machineId} disabled={isLoading}>
+                  <InputLabel>{t('inspection.selectMachine')} *</InputLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={isLoading}
+                    {...field}
+                    label={`${t('inspection.selectMachine')} *`}
                   >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('inspection.selectMachinePlaceholder')} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {machines.map((machine) => (
-                        <SelectItem key={machine.id} value={machine.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{machine.name}</span>
-                            <Badge variant="outline" className="text-xs">
-                              {machine.model}
-                            </Badge>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                    {machines.map((machine) => (
+                      <MenuItem key={machine.id} value={machine.id}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <span>{machine.name}</span>
+                          <Chip label={machine.model} size="small" variant="outlined" />
+                        </Box>
+                      </MenuItem>
+                    ))}
                   </Select>
-                  <FormMessage />
-                </FormItem>
+                  {errors.machineId && (
+                    <FormHelperText>{errors.machineId.message}</FormHelperText>
+                  )}
+                </FormControl>
               )}
             />
 
             {/* Product Model Selection */}
-            <FormField
-              control={form.control}
+            <Controller
               name="modelId"
+              control={control}
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('inspection.selectModel')} *</FormLabel>
+                <FormControl fullWidth error={!!errors.modelId} disabled={isLoading}>
+                  <InputLabel>{t('inspection.selectModel')} *</InputLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    disabled={isLoading}
+                    {...field}
+                    label={`${t('inspection.selectModel')} *`}
                   >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t('inspection.selectModelPlaceholder')} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {models.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{model.name}</span>
-                            <Badge variant="secondary" className="text-xs">
-                              {model.code}
-                            </Badge>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
+                    {models.map((model) => (
+                      <MenuItem key={model.id} value={model.id}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <span>{model.name}</span>
+                          <Chip label={model.code} size="small" color="primary" variant="outlined" />
+                        </Box>
+                      </MenuItem>
+                    ))}
                   </Select>
-                  <FormMessage />
-                </FormItem>
+                  {errors.modelId && (
+                    <FormHelperText>{errors.modelId.message}</FormHelperText>
+                  )}
+                </FormControl>
               )}
             />
 
             {/* Summary */}
             {selectedMachine && selectedModel && (
-              <div className="rounded-lg border bg-muted/50 p-4">
-                <h4 className="mb-3 font-medium">검사 정보 확인</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t('dashboard.machine')}:</span>
-                    <span className="font-medium">{selectedMachine.name}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t('dashboard.model')}:</span>
-                    <span className="font-medium">{selectedModel.name}</span>
-                  </div>
-                </div>
-              </div>
+              <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
+                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                  검사 정보 확인
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {t('dashboard.machine')}:
+                    </Typography>
+                    <Typography variant="body2" fontWeight={500}>
+                      {selectedMachine.name}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      {t('dashboard.model')}:
+                    </Typography>
+                    <Typography variant="body2" fontWeight={500}>
+                      {selectedModel.name}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Paper>
             )}
 
             {/* Start Button */}
             <Button
               type="submit"
-              className="w-full"
-              size="lg"
+              variant="contained"
+              size="large"
+              fullWidth
               disabled={!selectedMachine || !selectedModel}
+              startIcon={<Assignment />}
             >
-              <ClipboardCheck className="mr-2 h-4 w-4" />
               {t('inspection.startInspection')}
             </Button>
-          </form>
-        </Form>
+          </Box>
+        </form>
       </CardContent>
     </Card>
   )

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Box, Typography } from '@mui/material'
 import { InspectionSetup } from '@/components/inspection/InspectionSetup'
 import { InspectionForm } from '@/components/inspection/InspectionForm'
 
@@ -42,13 +43,15 @@ export function InspectionPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('inspection.title')}</h1>
-        <p className="text-muted-foreground">
+    <Box>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
+          {t('inspection.title')}
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
           {t('inspection.description')}
-        </p>
-      </div>
+        </Typography>
+      </Box>
 
       {!inspectionState.isActive ? (
         <InspectionSetup onStart={handleStart} />
@@ -60,6 +63,6 @@ export function InspectionPage() {
           onCancel={handleCancel}
         />
       )}
-    </div>
+    </Box>
   )
 }

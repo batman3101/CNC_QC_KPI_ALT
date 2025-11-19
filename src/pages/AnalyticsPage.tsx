@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { subDays } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Box, Typography, Grid, Tabs, Tab } from '@mui/material'
 import { KPICards } from '@/components/analytics/KPICards'
 import { AnalyticsFilters } from '@/components/analytics/AnalyticsFilters'
 import { DefectRateTrendChart } from '@/components/analytics/DefectRateTrendChart'
@@ -17,14 +17,41 @@ import type { AnalyticsFilters as Filters } from '@/types/analytics'
 import * as analyticsService from '@/ui_test/mockServices/mockAnalyticsService'
 import { mockMachines, mockProductModels } from '@/ui_test/mockData/analyticsMockData'
 
+interface TabPanelProps {
+  children?: React.ReactNode
+  index: number
+  value: number
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props
+
+  return (
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`analytics-tabpanel-${index}`}
+      aria-labelledby={`analytics-tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+    </div>
+  )
+}
+
 export function AnalyticsPage() {
   const { t } = useTranslation()
+  const [tabValue, setTabValue] = useState(0)
   const [filters, setFilters] = useState<Filters>({
     dateRange: {
       from: subDays(new Date(), 30),
       to: new Date(),
     },
   })
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue)
+  }
 
   // Fetch KPI Summary
   const { data: kpiData, isLoading: kpiLoading } = useQuery({
@@ -69,65 +96,75 @@ export function AnalyticsPage() {
   })
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('analytics.title')}</h1>
-        <p className="text-muted-foreground">
+    <Box>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
+          {t('analytics.title')}
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
           {t('analytics.description')}
-        </p>
-      </div>
+        </Typography>
+      </Box>
 
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+      <Grid container spacing={3}>
         {/* Filters Sidebar */}
-        <aside>
+        <Grid item xs={12} lg={3}>
           <AnalyticsFilters
             filters={filters}
             onChange={setFilters}
             machines={mockMachines}
             models={mockProductModels}
           />
-        </aside>
+        </Grid>
 
         {/* Main Content */}
-        <div className="space-y-6">
-          {/* KPI Cards */}
-          <KPICards data={kpiData} isLoading={kpiLoading} />
+        <Grid item xs={12} lg={9}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* KPI Cards */}
+            <KPICards data={kpiData} isLoading={kpiLoading} />
 
-          {/* Charts Tabs */}
-          <Tabs defaultValue="trends" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="trends">추이 분석</TabsTrigger>
-              <TabsTrigger value="distribution">분포 분석</TabsTrigger>
-              <TabsTrigger value="performance">성능 분석</TabsTrigger>
-              <TabsTrigger value="time">시간 분석</TabsTrigger>
-            </TabsList>
+            {/* Charts Tabs */}
+            <Box>
+              <Tabs value={tabValue} onChange={handleTabChange} variant="fullWidth">
+                <Tab label="추이 분석" />
+                <Tab label="분포 분석" />
+                <Tab label="성능 분석" />
+                <Tab label="시간 분석" />
+              </Tabs>
 
-            {/* Trends Tab */}
-            <TabsContent value="trends" className="space-y-6">
-              <DefectRateTrendChart data={trendData || []} />
-            </TabsContent>
+              {/* Trends Tab */}
+              <TabPanel value={tabValue} index={0}>
+                <DefectRateTrendChart data={trendData || []} />
+              </TabPanel>
 
-            {/* Distribution Tab */}
-            <TabsContent value="distribution" className="space-y-6">
-              <div className="grid gap-6 lg:grid-cols-2">
-                <ModelDefectChart data={modelData || []} />
-                <DefectTypeChart data={defectTypeData || []} />
-              </div>
-            </TabsContent>
+              {/* Distribution Tab */}
+              <TabPanel value={tabValue} index={1}>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} lg={6}>
+                    <ModelDefectChart data={modelData || []} />
+                  </Grid>
+                  <Grid item xs={12} lg={6}>
+                    <DefectTypeChart data={defectTypeData || []} />
+                  </Grid>
+                </Grid>
+              </TabPanel>
 
-            {/* Performance Tab */}
-            <TabsContent value="performance" className="space-y-6">
-              <MachinePerformanceChart data={machineData || []} />
-              <InspectorPerformanceChart data={inspectorData || []} />
-            </TabsContent>
+              {/* Performance Tab */}
+              <TabPanel value={tabValue} index={2}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <MachinePerformanceChart data={machineData || []} />
+                  <InspectorPerformanceChart data={inspectorData || []} />
+                </Box>
+              </TabPanel>
 
-            {/* Time Tab */}
-            <TabsContent value="time" className="space-y-6">
-              <HourlyDistributionChart data={hourlyData || []} />
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
-    </div>
+              {/* Time Tab */}
+              <TabPanel value={tabValue} index={3}>
+                <HourlyDistributionChart data={hourlyData || []} />
+              </TabPanel>
+            </Box>
+          </Box>
+        </Grid>
+      </Grid>
+    </Box>
   )
 }

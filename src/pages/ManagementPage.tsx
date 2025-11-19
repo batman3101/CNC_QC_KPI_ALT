@@ -1,37 +1,64 @@
 import { useTranslation } from 'react-i18next'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Info } from 'lucide-react'
+import { Box, Typography, Tabs, Tab } from '@mui/material'
+import { useState } from 'react'
 import { ProductModelManagement } from '@/components/management/ProductModelManagement'
 import { InspectionItemManagement } from '@/components/management/InspectionItemManagement'
 
-export function ManagementPage() {
-  const { t } = useTranslation()
+interface TabPanelProps {
+  children?: React.ReactNode
+  index: number
+  value: number
+}
+
+function TabPanel(props: TabPanelProps) {
+  const { children, value, index, ...other } = props
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t('management.title')}</h1>
-        <p className="text-muted-foreground">
-          {t('management.description')}
-        </p>
-      </div>
-
-      <Tabs defaultValue="models" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="models">{t('management.productModels')}</TabsTrigger>
-          <TabsTrigger value="items">{t('management.inspectionItems')}</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="models">
-          <ProductModelManagement />
-        </TabsContent>
-
-        <TabsContent value="items">
-          <InspectionItemManagement />
-        </TabsContent>
-      </Tabs>
+    <div
+      role="tabpanel"
+      hidden={value !== index}
+      id={`management-tabpanel-${index}`}
+      aria-labelledby={`management-tab-${index}`}
+      {...other}
+    >
+      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
     </div>
+  )
+}
+
+export function ManagementPage() {
+  const { t } = useTranslation()
+  const [tabValue, setTabValue] = useState(0)
+
+  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue)
+  }
+
+  return (
+    <Box>
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
+          {t('management.title')}
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          {t('management.description')}
+        </Typography>
+      </Box>
+
+      <Box>
+        <Tabs value={tabValue} onChange={handleTabChange} aria-label="management tabs">
+          <Tab label={t('management.productModels')} id="management-tab-0" />
+          <Tab label={t('management.inspectionItems')} id="management-tab-1" />
+        </Tabs>
+
+        <TabPanel value={tabValue} index={0}>
+          <ProductModelManagement />
+        </TabPanel>
+
+        <TabPanel value={tabValue} index={1}>
+          <InspectionItemManagement />
+        </TabPanel>
+      </Box>
+    </Box>
   )
 }
