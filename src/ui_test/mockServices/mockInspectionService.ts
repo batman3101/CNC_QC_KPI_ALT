@@ -1,0 +1,228 @@
+import type { Database } from '@/types/database'
+import {
+  mockMachines,
+  mockInspections,
+  mockInspectionResults,
+} from '../mockData/inspectionMockData'
+
+type Machine = Database['public']['Tables']['machines']['Row']
+type Inspection = Database['public']['Tables']['inspections']['Row']
+type InspectionInsert = Database['public']['Tables']['inspections']['Insert']
+type InspectionResult =
+  Database['public']['Tables']['inspection_results']['Row']
+type InspectionResultInsert =
+  Database['public']['Tables']['inspection_results']['Insert']
+type Defect = Database['public']['Tables']['defects']['Row']
+type DefectInsert = Database['public']['Tables']['defects']['Insert']
+
+// In-memory storage
+let inspectionsData = [...mockInspections]
+let inspectionResultsData = [...mockInspectionResults]
+let defectsData: Defect[] = []
+
+// Helper function to simulate async delay
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+// ============= Machines (Read-only from other app) =============
+
+export async function getMachines(): Promise<Machine[]> {
+  await delay(200)
+  return mockMachines.filter((m) => m.status === 'active')
+}
+
+export async function getMachineById(id: string): Promise<Machine | null> {
+  await delay(100)
+  return mockMachines.find((m) => m.id === id) || null
+}
+
+// ============= Inspections CRUD =============
+
+export async function getInspections(userId?: string): Promise<Inspection[]> {
+  await delay(300)
+  let data = inspectionsData
+
+  if (userId) {
+    data = data.filter((inspection) => inspection.user_id === userId)
+  }
+
+  return data.sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  )
+}
+
+export async function getInspectionById(
+  id: string
+): Promise<Inspection | null> {
+  await delay(200)
+  return inspectionsData.find((inspection) => inspection.id === id) || null
+}
+
+export async function createInspection(
+  data: InspectionInsert
+): Promise<Inspection> {
+  await delay(400)
+
+  const newInspection: Inspection = {
+    id: `inspection-${Date.now()}`,
+    user_id: data.user_id,
+    machine_id: data.machine_id,
+    model_id: data.model_id,
+    status: data.status || 'pending',
+    created_at: new Date().toISOString(),
+  }
+
+  inspectionsData.push(newInspection)
+  return newInspection
+}
+
+export async function updateInspectionStatus(
+  id: string,
+  status: 'pass' | 'fail' | 'pending'
+): Promise<Inspection> {
+  await delay(300)
+
+  const index = inspectionsData.findIndex((inspection) => inspection.id === id)
+  if (index === -1) {
+    throw new Error('Inspection not found')
+  }
+
+  inspectionsData[index] = {
+    ...inspectionsData[index],
+    status,
+  }
+
+  return inspectionsData[index]
+}
+
+// ============= Inspection Results CRUD =============
+
+export async function getInspectionResults(
+  inspectionId: string
+): Promise<InspectionResult[]> {
+  await delay(200)
+  return inspectionResultsData.filter(
+    (result) => result.inspection_id === inspectionId
+  )
+}
+
+export async function createInspectionResult(
+  data: InspectionResultInsert
+): Promise<InspectionResult> {
+  await delay(300)
+
+  const newResult: InspectionResult = {
+    id: `result-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    inspection_id: data.inspection_id,
+    item_id: data.item_id,
+    measured_value: data.measured_value,
+    result: data.result,
+    created_at: new Date().toISOString(),
+  }
+
+  inspectionResultsData.push(newResult)
+  return newResult
+}
+
+export async function batchCreateInspectionResults(
+  results: InspectionResultInsert[]
+): Promise<InspectionResult[]> {
+  await delay(500)
+
+  const newResults: InspectionResult[] = results.map((data, index) => ({
+    id: `result-${Date.now()}-${index}`,
+    inspection_id: data.inspection_id,
+    item_id: data.item_id,
+    measured_value: data.measured_value,
+    result: data.result,
+    created_at: new Date().toISOString(),
+  }))
+
+  inspectionResultsData.push(...newResults)
+  return newResults
+}
+
+// ============= Defects CRUD =============
+
+export async function getDefects(inspectionId?: string): Promise<Defect[]> {
+  await delay(300)
+
+  if (inspectionId) {
+    return defectsData.filter((defect) => defect.inspection_id === inspectionId)
+  }
+
+  return defectsData.sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  )
+}
+
+export async function createDefect(data: DefectInsert): Promise<Defect> {
+  await delay(400)
+
+  const newDefect: Defect = {
+    id: `defect-${Date.now()}`,
+    inspection_id: data.inspection_id,
+    defect_type: data.defect_type,
+    description: data.description,
+    photo_url: data.photo_url || null,
+    status: data.status || 'pending',
+    created_at: new Date().toISOString(),
+  }
+
+  defectsData.push(newDefect)
+  return newDefect
+}
+
+export async function updateDefectStatus(
+  id: string,
+  status: 'pending' | 'in_progress' | 'resolved'
+): Promise<Defect> {
+  await delay(300)
+
+  const index = defectsData.findIndex((defect) => defect.id === id)
+  if (index === -1) {
+    throw new Error('Defect not found')
+  }
+
+  defectsData[index] = {
+    ...defectsData[index],
+    status,
+  }
+
+  return defectsData[index]
+}
+
+// ============= Utility Functions =============
+
+export interface InspectionWithResults {
+  inspection: Inspection
+  results: InspectionResult[]
+  defects: Defect[]
+}
+
+export async function getInspectionWithResults(
+  id: string
+): Promise<InspectionWithResults | null> {
+  await delay(400)
+
+  const inspection = inspectionsData.find((i) => i.id === id)
+  if (!inspection) return null
+
+  const results = inspectionResultsData.filter(
+    (r) => r.inspection_id === id
+  )
+  const defects = defectsData.filter((d) => d.inspection_id === id)
+
+  return { inspection, results, defects }
+}
+
+// Helper function to determine overall inspection status
+export function determineInspectionStatus(
+  results: InspectionResult[]
+): 'pass' | 'fail' | 'pending' {
+  if (results.length === 0) return 'pending'
+
+  const hasFailure = results.some((result) => result.result === 'fail')
+  return hasFailure ? 'fail' : 'pass'
+}
