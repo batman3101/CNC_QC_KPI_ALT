@@ -1,5 +1,4 @@
-import { Card, CardContent, Box, Typography, Skeleton } from '@mui/material'
-import Grid2 from '@mui/material/Grid2'
+import { Card, CardContent, Box, Typography, Skeleton, Grid } from '@mui/material'
 import {
   BarChart as BarChartIcon,
   CheckCircle,
@@ -18,9 +17,9 @@ interface KPICardsProps {
 export function KPICards({ data, isLoading }: KPICardsProps) {
   if (isLoading || !data) {
     return (
-      <Grid2 container spacing={3}>
+      <Grid container spacing={3}>
         {[...Array(6)].map((_, i) => (
-          <Grid2 xs={12} sm={6} lg={4} key={i}>
+          <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={i}>
             <Card>
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
@@ -31,16 +30,16 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
                 <Skeleton variant="text" width={120} height={16} />
               </CardContent>
             </Card>
-          </Grid2>
+          </Grid>
         ))}
-      </Grid2>
+      </Grid>
     )
   }
 
   return (
-    <Grid2 container spacing={3}>
+    <Grid container spacing={3}>
       {/* Total Inspections */}
-      <Grid2 xs={12} sm={6} lg={4}>
+      <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
         <Card>
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
@@ -57,10 +56,10 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
             </Typography>
           </CardContent>
         </Card>
-      </Grid2>
+      </Grid>
 
       {/* First Pass Yield */}
-      <Grid2 xs={12} sm={6} lg={4}>
+      <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
         <Card>
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
@@ -77,10 +76,10 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
             </Typography>
           </CardContent>
         </Card>
-      </Grid2>
+      </Grid>
 
       {/* Defect Rate */}
-      <Grid2 xs={12} sm={6} lg={4}>
+      <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
         <Card>
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
@@ -97,10 +96,10 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
             </Typography>
           </CardContent>
         </Card>
-      </Grid2>
+      </Grid>
 
       {/* Average Inspection Time */}
-      <Grid2 xs={12} sm={6} lg={4}>
+      <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
         <Card>
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
@@ -117,10 +116,10 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
             </Typography>
           </CardContent>
         </Card>
-      </Grid2>
+      </Grid>
 
       {/* Active Inspectors */}
-      <Grid2 xs={12} sm={6} lg={4}>
+      <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
         <Card>
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
@@ -137,10 +136,10 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
             </Typography>
           </CardContent>
         </Card>
-      </Grid2>
+      </Grid>
 
       {/* Quality Trend */}
-      <Grid2 xs={12} sm={6} lg={4}>
+      <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
         <Card>
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
@@ -157,7 +156,7 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
             </Typography>
           </CardContent>
         </Card>
-      </Grid2>
-    </Grid2>
+      </Grid>
+    </Grid>
   )
 }

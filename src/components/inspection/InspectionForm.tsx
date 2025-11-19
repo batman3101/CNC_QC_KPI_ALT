@@ -14,8 +14,8 @@ import {
   Paper,
   Chip,
   Alert,
+  Grid,
 } from '@mui/material'
-import Grid2 from '@mui/material/Grid2'
 import {
   CheckCircle,
   Cancel,
@@ -147,7 +147,7 @@ export function InspectionForm({
 
       // 3. Determine overall status
       const overallStatus =
-        inspectionService.determineInspectionStatus(results)
+        inspectionService.determineInspectionStatus(results as any)
 
       // 4. Update inspection status
       await inspectionService.updateInspectionStatus(
@@ -239,8 +239,8 @@ export function InspectionForm({
             </Button>
           </Box>
 
-          <Grid2 container spacing={2}>
-            <Grid2 xs={12} md={4}>
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="body2" color="text.secondary">
                   {t('inspection.progress')}
@@ -255,8 +255,8 @@ export function InspectionForm({
                   {completedItems} / {totalItems}
                 </Typography>
               </Paper>
-            </Grid2>
-            <Grid2 xs={12} md={4}>
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="body2" color="text.secondary">
                   {t('dashboard.pass')}
@@ -268,8 +268,8 @@ export function InspectionForm({
                   {t('dashboard.inspections')}
                 </Typography>
               </Paper>
-            </Grid2>
-            <Grid2 xs={12} md={4}>
+            </Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
               <Paper variant="outlined" sx={{ p: 2 }}>
                 <Typography variant="body2" color="text.secondary">
                   {t('dashboard.fail')}
@@ -281,8 +281,8 @@ export function InspectionForm({
                   {t('dashboard.inspections')}
                 </Typography>
               </Paper>
-            </Grid2>
-          </Grid2>
+            </Grid>
+          </Grid>
         </CardContent>
       </Card>
 

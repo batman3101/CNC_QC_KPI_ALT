@@ -54,7 +54,11 @@ export function InspectionPage() {
       </Box>
 
       {!inspectionState.isActive ? (
-        <InspectionSetup onStart={handleStart} />
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 8 }}>
+          <Box sx={{ maxWidth: 600, width: '100%' }}>
+            <InspectionSetup onStart={handleStart} />
+          </Box>
+        </Box>
       ) : (
         <InspectionForm
           machineId={inspectionState.machineId!}

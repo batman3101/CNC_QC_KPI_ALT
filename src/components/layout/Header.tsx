@@ -35,7 +35,12 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
   }
 
   return (
-    <AppBar position="sticky" color="default" elevation={1}>
+    <AppBar
+      position="fixed"
+      color="default"
+      elevation={1}
+      sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}
+    >
       <Toolbar>
         <IconButton
           color="inherit"

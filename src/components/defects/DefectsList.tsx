@@ -22,8 +22,8 @@ import {
   Select,
   MenuItem,
   InputAdornment,
+  Grid,
 } from '@mui/material'
-import Grid2 from '@mui/material/Grid2'
 import {
   Warning as WarningIcon,
   Visibility,
@@ -125,8 +125,8 @@ export function DefectsList() {
   return (
     <>
       {/* Summary Cards */}
-      <Grid2 container spacing={3} sx={{ mb: 3 }}>
-        <Grid2 xs={12} sm={6} md={3}>
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -142,9 +142,9 @@ export function DefectsList() {
               </Box>
             </CardContent>
           </Card>
-        </Grid2>
+        </Grid>
 
-        <Grid2 xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -160,9 +160,9 @@ export function DefectsList() {
               </Box>
             </CardContent>
           </Card>
-        </Grid2>
+        </Grid>
 
-        <Grid2 xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -178,9 +178,9 @@ export function DefectsList() {
               </Box>
             </CardContent>
           </Card>
-        </Grid2>
+        </Grid>
 
-        <Grid2 xs={12} sm={6} md={3}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
           <Card>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -196,8 +196,8 @@ export function DefectsList() {
               </Box>
             </CardContent>
           </Card>
-        </Grid2>
-      </Grid2>
+        </Grid>
+      </Grid>
 
       {/* Defects Table */}
       <Card>

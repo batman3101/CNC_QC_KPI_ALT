@@ -23,7 +23,7 @@ interface MockAuthResponse {
 const MOCK_USERS: MockUser[] = [
   {
     id: 'mock-admin-001',
-    email: 'admin@test.com',
+    email: 'zetooo1972@gmail.com',
     name: 'Admin User',
     role: 'admin',
     aud: 'authenticated',
@@ -48,7 +48,7 @@ const MOCK_USERS: MockUser[] = [
 ]
 
 // 모든 테스트 계정의 비밀번호는 동일
-const MOCK_PASSWORD = 'test123'
+const MOCK_PASSWORD = 'youkillme-1972'
 
 /**
  * Mock 로그인 함수

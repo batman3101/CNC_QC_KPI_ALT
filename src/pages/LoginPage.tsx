@@ -47,7 +47,7 @@ export function LoginPage() {
               {t('auth.loginDescription')}
             </Typography>
 
-            <form onSubmit={handleLogin}>
+            <form onSubmit={handleLogin} autoComplete="off">
               {error && (
                 <Alert severity="error" icon={<ErrorOutline />} sx={{ mb: 3 }}>
                   {error}
@@ -63,6 +63,7 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="off"
                 sx={{ mb: 2 }}
               />
 
@@ -75,6 +76,7 @@ export function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="new-password"
                 sx={{ mb: 3 }}
               />
 

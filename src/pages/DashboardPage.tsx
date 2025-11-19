@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { Card, CardContent, Typography, Box, Table, TableBody, TableCell, TableHead, TableRow, Chip, Skeleton, TableContainer, Paper } from '@mui/material'
-import Grid2 from '@mui/material/Grid2'
+import { Card, CardContent, Typography, Box, Table, TableBody, TableCell, TableHead, TableRow, Chip, Skeleton, TableContainer, Paper, Grid } from '@mui/material'
 import { BarChart, CheckCircle, Cancel, AccessTime } from '@mui/icons-material'
 
 // UI 테스트용 Mock 서비스
@@ -67,11 +66,11 @@ export function DashboardPage() {
         </Typography>
       </Box>
 
-      <Grid2 container spacing={3} sx={{ mb: 3 }}>
+      <Grid container spacing={3} sx={{ mb: 3 }}>
         {stats.map((stat, index) => {
           const Icon = stat.icon
           return (
-            <Grid2 xs={12} sm={6} lg={3} key={index}>
+            <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={index}>
               <Card>
                 <CardContent>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
@@ -88,10 +87,10 @@ export function DashboardPage() {
                   </Typography>
                 </CardContent>
               </Card>
-            </Grid2>
+            </Grid>
           )
         })}
-      </Grid2>
+      </Grid>
 
       <Card>
         <CardContent>
