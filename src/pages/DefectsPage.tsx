@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { DefectsList } from '@/components/defects/DefectsList'
 
 export function DefectsPage() {
   return (
@@ -10,16 +10,7 @@ export function DefectsPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>불량 목록</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            불량 목록이 여기에 표시됩니다.
-          </p>
-        </CardContent>
-      </Card>
+      <DefectsList />
     </div>
   )
 }

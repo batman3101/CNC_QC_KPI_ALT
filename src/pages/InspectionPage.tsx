@@ -1,6 +1,44 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useState } from 'react'
+import { InspectionSetup } from '@/components/inspection/InspectionSetup'
+import { InspectionForm } from '@/components/inspection/InspectionForm'
+
+interface InspectionState {
+  isActive: boolean
+  machineId: string | null
+  modelId: string | null
+}
 
 export function InspectionPage() {
+  const [inspectionState, setInspectionState] = useState<InspectionState>({
+    isActive: false,
+    machineId: null,
+    modelId: null,
+  })
+
+  const handleStart = (data: { machineId: string; modelId: string }) => {
+    setInspectionState({
+      isActive: true,
+      machineId: data.machineId,
+      modelId: data.modelId,
+    })
+  }
+
+  const handleComplete = () => {
+    setInspectionState({
+      isActive: false,
+      machineId: null,
+      modelId: null,
+    })
+  }
+
+  const handleCancel = () => {
+    setInspectionState({
+      isActive: false,
+      machineId: null,
+      modelId: null,
+    })
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -10,16 +48,16 @@ export function InspectionPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>검사 시작</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            검사 폼이 여기에 표시됩니다.
-          </p>
-        </CardContent>
-      </Card>
+      {!inspectionState.isActive ? (
+        <InspectionSetup onStart={handleStart} />
+      ) : (
+        <InspectionForm
+          machineId={inspectionState.machineId!}
+          modelId={inspectionState.modelId!}
+          onComplete={handleComplete}
+          onCancel={handleCancel}
+        />
+      )}
     </div>
   )
 }
