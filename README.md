@@ -48,6 +48,37 @@ npm run dev
 
 브라우저에서 `http://localhost:5173`을 열어 애플리케이션을 확인하세요.
 
+## 🔐 개발 테스트 계정
+
+**Supabase 연결 전까지는 Mock 인증을 사용합니다.**
+
+다음 테스트 계정으로 로그인할 수 있습니다:
+
+### 관리자 (Admin)
+```
+이메일: admin@test.com
+비밀번호: test123
+권한: 모든 기능 접근 가능
+```
+
+### 매니저 (Manager)
+```
+이메일: manager@test.com
+비밀번호: test123
+권한: 분석, 리포트, 관리 페이지 접근
+```
+
+### 검사원 (Inspector)
+```
+이메일: inspector@test.com
+비밀번호: test123
+권한: 대시보드, 검사 실행, 불량 관리
+```
+
+> 💡 **참고**: 브라우저 콘솔(F12)을 열면 테스트 계정 정보가 자동으로 출력됩니다.
+
+> ⚠️ **중요**: Supabase 연결 후에는 `src/hooks/useAuth.ts`에서 `USE_MOCK_AUTH`를 `false`로 변경하세요.
+
 ### 4. 빌드
 
 ```bash

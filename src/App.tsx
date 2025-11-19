@@ -30,74 +30,10 @@ function AppRoutes() {
 
   // Initialize auth state on app load
   useEffect(() => {
-    // Check for existing session
-    supabase.auth
-      .getSession()
-      .then(({ data: { session } }) => {
-        setUser(session?.user ?? null)
-
-        // TODO: Remove this mock user when Supabase is connected
-        // For development without Supabase, auto-login as mock admin
-        if (!session?.user) {
-          const mockUser = {
-            id: 'mock-admin-001',
-            email: 'admin@test.com',
-            aud: 'authenticated',
-            role: 'authenticated',
-            created_at: new Date().toISOString(),
-          } as any
-
-          setUser(mockUser)
-
-          // Set mock profile
-          if (!profile) {
-            const mockProfile = {
-              id: 'mock-admin-001',
-              email: 'admin@test.com',
-              name: 'Mock Admin',
-              role: 'admin' as const,
-            }
-            setProfile(mockProfile)
-          }
-        }
-      })
-      .catch((error) => {
-        console.error('Auth session error:', error)
-
-        // Fallback to mock user on error
-        const mockUser = {
-          id: 'mock-admin-001',
-          email: 'admin@test.com',
-          aud: 'authenticated',
-          role: 'authenticated',
-          created_at: new Date().toISOString(),
-        } as any
-
-        setUser(mockUser)
-
-        if (!profile) {
-          const mockProfile = {
-            id: 'mock-admin-001',
-            email: 'admin@test.com',
-            name: 'Mock Admin',
-            role: 'admin' as const,
-          }
-          setProfile(mockProfile)
-        }
-      })
-      .finally(() => {
-        setLoading(false)
-      })
-
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null)
-    })
-
-    return () => subscription.unsubscribe()
-  }, [setUser, setProfile, setLoading, profile])
+    // Auth 초기화는 useAuth hook에서 처리
+    // 여기서는 로딩 상태만 false로 설정
+    setLoading(false)
+  }, [setLoading])
 
   return (
     <Routes>
