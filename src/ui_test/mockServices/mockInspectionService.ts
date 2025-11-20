@@ -1,4 +1,5 @@
 import type { Database } from '@/types/database'
+import type { InspectionRecordInput } from '@/types/inspection'
 import {
   mockMachines,
   mockInspections,
@@ -226,4 +227,59 @@ export function determineInspectionStatus(
 
   const hasFailure = results.some((result) => result.result === 'fail')
   return hasFailure ? 'fail' : 'pass'
+}
+
+// ============= Inspection Record (New simplified flow) =============
+
+// Helper function to get Ho Chi Minh timezone timestamp
+function getHoChiMinhTimestamp(): string {
+  // Ho Chi Minh is UTC+7
+  const now = new Date()
+  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000
+  const hcmTime = new Date(utcTime + 7 * 60 * 60000)
+  return hcmTime.toISOString()
+}
+
+export async function createInspectionRecord(
+  data: InspectionRecordInput
+): Promise<Inspection> {
+  await delay(500)
+
+  // Calculate status based on defect quantity
+  const status: 'pass' | 'fail' =
+    data.defect_quantity > 0 ? 'fail' : 'pass'
+
+  const timestamp = getHoChiMinhTimestamp()
+
+  const newInspection: Inspection = {
+    id: `inspection-${Date.now()}`,
+    user_id: data.inspector_id,
+    machine_id: null, // No machine in new flow
+    model_id: data.model_id,
+    inspection_process: data.inspection_process,
+    defect_type: data.defect_type_id,
+    inspection_quantity: data.inspection_quantity,
+    defect_quantity: data.defect_quantity,
+    photo_url: data.photo_url || null,
+    status,
+    created_at: timestamp,
+  }
+
+  inspectionsData.unshift(newInspection)
+
+  // If there are defects, create a defect record
+  if (data.defect_quantity > 0 && data.defect_type_id) {
+    const defect: Defect = {
+      id: `defect-${Date.now()}`,
+      inspection_id: newInspection.id,
+      defect_type: data.defect_type_id,
+      description: `검사 공정 ${data.inspection_process}에서 ${data.defect_quantity}개 불량 발생`,
+      photo_url: data.photo_url || null,
+      status: 'pending',
+      created_at: timestamp,
+    }
+    defectsData.unshift(defect)
+  }
+
+  return newInspection
 }

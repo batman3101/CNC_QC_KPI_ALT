@@ -2,12 +2,10 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { USE_MOCK_AUTH } from '@/config/app.config'
 
 // UI 테스트용 Mock 서비스
 import * as mockAuthService from '@/ui_test/mockServices/mockAuthService'
-
-// Mock 모드 활성화 (Supabase 연결 전까지 true로 설정)
-const USE_MOCK_AUTH = true
 
 export function useAuth() {
   const navigate = useNavigate()

@@ -1,9 +1,11 @@
 import type { Database } from '@/types/database'
+import type { DefectType } from '@/types/inspection'
 import {
   mockProductModels,
   mockInspectionItems,
   getItemsByModelId,
 } from '../mockData/managementMockData'
+import { MOCK_USERS } from './mockAuthService'
 
 type ProductModel = Database['public']['Tables']['product_models']['Row']
 type ProductModelInsert =
@@ -17,9 +19,58 @@ type InspectionItemInsert =
 type InspectionItemUpdate =
   Database['public']['Tables']['inspection_items']['Update']
 
+type User = Database['public']['Tables']['users']['Row']
+
+// Mock 불량 유형 데이터
+const mockDefectTypes: DefectType[] = [
+  {
+    id: 'defect-type-001',
+    name: '치수 불량',
+    description: '측정값이 공차 범위를 벗어남',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'defect-type-002',
+    name: '표면 불량',
+    description: '표면에 긁힘, 녹, 거칠기 초과 등',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'defect-type-003',
+    name: '형상 불량',
+    description: '각도, 평면도, 동심도, 직각도 불량',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'defect-type-004',
+    name: '재질 불량',
+    description: '재질 경도, 금속 성분, 열처리 불량',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'defect-type-005',
+    name: '조립 불량',
+    description: '부품 조립 누락, 순서 오류, 체결 불량',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'defect-type-006',
+    name: '도장 불량',
+    description: '도장 두께, 색상, 벗겨짐 불량',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'defect-type-007',
+    name: '기타',
+    description: '기타 불량',
+    created_at: new Date().toISOString(),
+  },
+]
+
 // In-memory storage (simulates database)
 let productModelsData = [...mockProductModels]
 let inspectionItemsData = [...mockInspectionItems]
+let defectTypesData = [...mockDefectTypes]
 
 // Helper function to simulate async delay
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -166,4 +217,27 @@ export async function getInspectionItemsByModelId(
 ): Promise<InspectionItem[]> {
   await delay(200)
   return getItemsByModelId(modelId)
+}
+
+// ============= Defect Types =============
+
+export async function getDefectTypes(): Promise<DefectType[]> {
+  await delay(200)
+  return defectTypesData.sort(
+    (a, b) =>
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  )
+}
+
+// ============= Users =============
+
+export async function getUsers(): Promise<User[]> {
+  await delay(200)
+  return MOCK_USERS.map(user => ({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    name: user.name,
+    created_at: user.created_at,
+  }))
 }

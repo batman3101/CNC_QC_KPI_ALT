@@ -14,7 +14,10 @@
       "Bash(git push:*)",
       "Bash(timeout 5 bash:*)",
       "Bash(timeout 3 bash:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(nul)",
+      "Bash(dir /s /b \"C:\\WORK\\app_management\\CNC_QC_KPI_ALT\\src\\*i18n*\" 2)"
     ],
     "deny": [],
     "ask": []

@@ -114,24 +114,39 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          machine_id: string
+          machine_id: string | null
           model_id: string
+          inspection_process: 'IQC' | 'PQC' | 'OQC' | 'H/G' | 'MMS' | 'CNC-OQC' | 'POSITION' | '외관' | 'TRI'
+          defect_type: string | null
+          inspection_quantity: number
+          defect_quantity: number
+          photo_url: string | null
           status: 'pass' | 'fail' | 'pending'
           created_at: string
         }
         Insert: {
           id?: string
           user_id: string
-          machine_id: string
+          machine_id?: string | null
           model_id: string
+          inspection_process: 'IQC' | 'PQC' | 'OQC' | 'H/G' | 'MMS' | 'CNC-OQC' | 'POSITION' | '외관' | 'TRI'
+          defect_type?: string | null
+          inspection_quantity: number
+          defect_quantity: number
+          photo_url?: string | null
           status?: 'pass' | 'fail' | 'pending'
           created_at?: string
         }
         Update: {
           id?: string
           user_id?: string
-          machine_id?: string
+          machine_id?: string | null
           model_id?: string
+          inspection_process?: 'IQC' | 'PQC' | 'OQC' | 'H/G' | 'MMS' | 'CNC-OQC' | 'POSITION' | '외관' | 'TRI'
+          defect_type?: string | null
+          inspection_quantity?: number
+          defect_quantity?: number
+          photo_url?: string | null
           status?: 'pass' | 'fail' | 'pending'
           created_at?: string
         }
