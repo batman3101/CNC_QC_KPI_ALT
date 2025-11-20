@@ -164,8 +164,10 @@ const FormMessage = React.forwardRef<
 })
 FormMessage.displayName = "FormMessage"
 
+// eslint-disable-next-line react-refresh/only-export-components
+export { useFormField }
+
 export {
-  useFormField,
   Form,
   FormItem,
   FormLabel,

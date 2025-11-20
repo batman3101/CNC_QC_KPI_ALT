@@ -19,7 +19,7 @@ interface SidebarProps {
 interface NavItem {
   titleKey: string
   href: string
-  icon: React.ComponentType<any>
+  icon: React.ComponentType
   roles: ('admin' | 'manager' | 'inspector')[]
 }
 
@@ -84,24 +84,19 @@ export function Sidebar({ isOpen, onClose, userRole = 'inspector' }: SidebarProp
           const isActive = location.pathname === item.href
 
           return (
-<<<<<<< HEAD
             <ListItem key={item.href} disablePadding sx={{ mb: 1, px: 1 }}>
-=======
-            <ListItem key={item.href} disablePadding sx={{ mb: 0.5 }}>
->>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
               <ListItemButton
                 component={Link}
                 to={item.href}
                 onClick={() => !isMdUp && onClose()}
                 selected={isActive}
                 sx={{
-<<<<<<< HEAD
                   borderRadius: 2,
                   py: 1,
                   px: 2,
                   color: 'text.secondary',
                   '&.Mui-selected': {
-                    backgroundColor: 'rgba(99, 102, 241, 0.12)', // Primary color with low opacity
+                    backgroundColor: 'rgba(99, 102, 241, 0.12)',
                     color: 'primary.main',
                     '&:hover': {
                       backgroundColor: 'rgba(99, 102, 241, 0.16)',
@@ -115,30 +110,19 @@ export function Sidebar({ isOpen, onClose, userRole = 'inspector' }: SidebarProp
                     color: 'text.primary',
                     '& .MuiListItemIcon-root': {
                       color: 'text.primary',
-=======
-                  borderRadius: 1,
-                  '&.Mui-selected': {
-                    backgroundColor: 'primary.main',
-                    color: 'primary.contrastText',
-                    '&:hover': {
-                      backgroundColor: 'primary.dark',
-                    },
-                    '& .MuiListItemIcon-root': {
-                      color: 'primary.contrastText',
->>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
                     },
                   },
                 }}
               >
-<<<<<<< HEAD
                 <ListItemIcon 
                   sx={{ 
                     minWidth: 36,
                     color: isActive ? 'primary.main' : 'text.secondary',
                     transition: 'color 0.2s',
+                    fontSize: '1.25rem',
                   }}
                 >
-                  <Icon fontSize="small" />
+                  <Icon />
                 </ListItemIcon>
                 <ListItemText 
                   primary={t(item.titleKey)} 
@@ -147,12 +131,6 @@ export function Sidebar({ isOpen, onClose, userRole = 'inspector' }: SidebarProp
                     fontWeight: isActive ? 600 : 500 
                   }} 
                 />
-=======
-                <ListItemIcon sx={{ minWidth: 40 }}>
-                  <Icon />
-                </ListItemIcon>
-                <ListItemText primary={t(item.titleKey)} />
->>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
               </ListItemButton>
             </ListItem>
           )

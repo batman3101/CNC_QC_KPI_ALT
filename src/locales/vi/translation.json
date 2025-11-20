@@ -59,15 +59,13 @@
     "pass": "Đạt",
     "fail": "Không đạt",
     "pending": "Chờ",
-<<<<<<< HEAD
+    "inProgress": "Đang xử lý",
+    "resolved": "Đã giải quyết",
     "viewAll": "Xem tất cả",
     "todayBasis": "Tính theo hôm nay",
     "avgInspectionTime": "Thời gian kiểm tra TB",
     "inspectionId": "Mã kiểm tra",
     "inspectionDate": "Ngày kiểm tra"
-=======
-    "viewAll": "Xem tất cả"
->>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
   },
   "inspection": {
     "title": "Kiểm tra",
@@ -114,11 +112,7 @@
     "viewDetails": "Xem chi tiết",
     "detailTitle": "Thông tin chi tiết lỗi",
     "detailDescription": "Kiểm tra thông tin lỗi và trạng thái xử lý",
-<<<<<<< HEAD
-    "fieldDescription": "Mô tả",
-=======
     "description": "Mô tả",
->>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
     "photo": "Hình ảnh lỗi",
     "noPhoto": "Không có hình ảnh",
     "startAction": "Bắt đầu xử lý",
@@ -129,7 +123,6 @@
   "analytics": {
     "title": "Phân tích",
     "description": "Phân tích dữ liệu chất lượng và xem thông tin chi tiết",
-<<<<<<< HEAD
     "comingSoon": "Sắp ra mắt",
     "trendAnalysis": "Phân tích xu hướng",
     "distributionAnalysis": "Phân tích phân bố",
@@ -142,7 +135,6 @@
     "allMachines": "Tất cả thiết bị",
     "allModels": "Tất cả mẫu",
     "resetFilter": "Đặt lại bộ lọc",
-
     "selectDateRange": "Chọn khoảng thời gian",
     "fpy": "Tỷ lệ đạt lần đầu (FPY)",
     "target95": "Mục tiêu: > 95%",
@@ -160,14 +152,14 @@
     "inspectionCount": "Số lượng kiểm tra",
     "date": "Ngày",
     "defectCount": "Số lượng lỗi",
+    "defectType": "Loại lỗi",
+    "percentage": "Tỷ lệ",
+    "inspector": "Kiểm tra viên",
     "modelDefectDistribution": "Phân bố lỗi theo mẫu",
     "defectTypeDistribution": "Phân bố loại lỗi",
     "machinePerformance": "Hiệu suất theo thiết bị (Biểu đồ Pareto)",
     "inspectorPerformance": "Hiệu suất theo người kiểm tra",
     "hourlyDistribution": "Phân bố kiểm tra theo giờ"
-=======
-    "comingSoon": "Sắp ra mắt"
->>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
   },
   "reports": {
     "title": "Báo cáo",
@@ -192,11 +184,7 @@
     "deleteInspectionItemConfirm": "Bạn có chắc chắn muốn xóa hạng mục kiểm tra này?",
     "modelCode": "Mã mẫu",
     "modelName": "Tên mẫu",
-<<<<<<< HEAD
-    "descriptionLabel": "Mô tả",
-=======
     "description": "Mô tả",
->>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
     "itemName": "Tên hạng mục",
     "dataType": "Loại dữ liệu",
     "standardValue": "Giá trị chuẩn",

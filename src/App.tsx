@@ -14,7 +14,6 @@ import { AnalyticsPage } from '@/pages/AnalyticsPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { ManagementPage } from '@/pages/ManagementPage'
 import { useAuthStore } from '@/stores/authStore'
-import { supabase } from '@/lib/supabase'
 import '@/i18n/config'
 
 const queryClient = new QueryClient({
@@ -27,7 +26,7 @@ const queryClient = new QueryClient({
 })
 
 function AppRoutes() {
-  const { profile, setUser, setProfile, setLoading } = useAuthStore()
+  const { profile, setLoading } = useAuthStore()
 
   // Initialize auth state on app load
   useEffect(() => {

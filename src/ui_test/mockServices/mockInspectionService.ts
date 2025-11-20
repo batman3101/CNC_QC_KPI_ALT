@@ -4,6 +4,7 @@ import {
   mockInspections,
   mockInspectionResults,
 } from '../mockData/inspectionMockData'
+import { mockDefects as initialMockDefects } from '../mockData/defectsMockData'
 
 type Machine = Database['public']['Tables']['machines']['Row']
 type Inspection = Database['public']['Tables']['inspections']['Row']
@@ -16,9 +17,9 @@ type Defect = Database['public']['Tables']['defects']['Row']
 type DefectInsert = Database['public']['Tables']['defects']['Insert']
 
 // In-memory storage
-let inspectionsData = [...mockInspections]
-let inspectionResultsData = [...mockInspectionResults]
-let defectsData: Defect[] = []
+const inspectionsData = [...mockInspections]
+const inspectionResultsData = [...mockInspectionResults]
+const defectsData: Defect[] = [...initialMockDefects]
 
 // Helper function to simulate async delay
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -219,7 +220,7 @@ export async function getInspectionWithResults(
 
 // Helper function to determine overall inspection status
 export function determineInspectionStatus(
-  results: InspectionResult[]
+  results: (InspectionResult | InspectionResultInsert)[]
 ): 'pass' | 'fail' | 'pending' {
   if (results.length === 0) return 'pending'
 

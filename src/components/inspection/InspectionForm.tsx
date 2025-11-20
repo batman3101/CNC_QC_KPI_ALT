@@ -147,7 +147,7 @@ export function InspectionForm({
 
       // 3. Determine overall status
       const overallStatus =
-        inspectionService.determineInspectionStatus(results as any)
+        inspectionService.determineInspectionStatus(results)
 
       // 4. Update inspection status
       await inspectionService.updateInspectionStatus(

@@ -39,7 +39,6 @@ import type { Database } from '@/types/database'
 import * as managementService from '@/ui_test/mockServices/mockManagementService'
 
 type InspectionItem = Database['public']['Tables']['inspection_items']['Row']
-type ProductModel = Database['public']['Tables']['product_models']['Row']
 
 export function InspectionItemManagement() {
   const { t } = useTranslation()

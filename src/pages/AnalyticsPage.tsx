@@ -49,7 +49,7 @@ export function AnalyticsPage() {
     },
   })
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue)
   }
 
@@ -60,37 +60,37 @@ export function AnalyticsPage() {
   })
 
   // Fetch Defect Rate Trend
-  const { data: trendData, isLoading: trendLoading } = useQuery({
+  const { data: trendData } = useQuery({
     queryKey: ['defect-trend', filters],
     queryFn: () => analyticsService.getDefectRateTrend(filters),
   })
 
   // Fetch Model Distribution
-  const { data: modelData, isLoading: modelLoading } = useQuery({
+  const { data: modelData } = useQuery({
     queryKey: ['model-distribution', filters],
     queryFn: () => analyticsService.getModelDefectDistribution(filters),
   })
 
   // Fetch Machine Performance
-  const { data: machineData, isLoading: machineLoading } = useQuery({
+  const { data: machineData } = useQuery({
     queryKey: ['machine-performance', filters],
     queryFn: () => analyticsService.getMachinePerformance(filters),
   })
 
   // Fetch Defect Types
-  const { data: defectTypeData, isLoading: defectTypeLoading } = useQuery({
+  const { data: defectTypeData } = useQuery({
     queryKey: ['defect-types', filters],
     queryFn: () => analyticsService.getDefectTypeDistribution(filters),
   })
 
   // Fetch Hourly Distribution
-  const { data: hourlyData, isLoading: hourlyLoading } = useQuery({
+  const { data: hourlyData } = useQuery({
     queryKey: ['hourly-distribution', filters],
     queryFn: () => analyticsService.getHourlyDistribution(filters),
   })
 
   // Fetch Inspector Performance
-  const { data: inspectorData, isLoading: inspectorLoading } = useQuery({
+  const { data: inspectorData } = useQuery({
     queryKey: ['inspector-performance', filters],
     queryFn: () => analyticsService.getInspectorPerformance(filters),
   })
@@ -126,17 +126,10 @@ export function AnalyticsPage() {
             {/* Charts Tabs */}
             <Box>
               <Tabs value={tabValue} onChange={handleTabChange} variant="fullWidth">
-<<<<<<< HEAD
                 <Tab label={t('analytics.trendAnalysis')} />
                 <Tab label={t('analytics.distributionAnalysis')} />
                 <Tab label={t('analytics.performanceAnalysis')} />
                 <Tab label={t('analytics.timeAnalysis')} />
-=======
-                <Tab label="추이 분석" />
-                <Tab label="분포 분석" />
-                <Tab label="성능 분석" />
-                <Tab label="시간 분석" />
->>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
               </Tabs>
 
               {/* Trends Tab */}

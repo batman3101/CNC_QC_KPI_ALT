@@ -6,7 +6,6 @@ import { useTranslation } from 'react-i18next'
 import {
   Card,
   CardContent,
-  TextField,
   Button,
   Box,
   Typography,
@@ -19,14 +18,10 @@ import {
   Paper,
 } from '@mui/material'
 import { Assignment } from '@mui/icons-material'
-import type { Database } from '@/types/database'
 
 // UI 테스트용 Mock 서비스
 import * as inspectionService from '@/ui_test/mockServices/mockInspectionService'
 import * as managementService from '@/ui_test/mockServices/mockManagementService'
-
-type Machine = Database['public']['Tables']['machines']['Row']
-type ProductModel = Database['public']['Tables']['product_models']['Row']
 
 interface InspectionSetupProps {
   onStart: (data: { machineId: string; modelId: string }) => void

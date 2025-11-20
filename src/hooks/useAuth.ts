@@ -22,6 +22,7 @@ export function useAuth() {
       // Mock 세션 확인
       mockAuthService.mockGetSession().then(({ user }) => {
         if (user) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           setUser(user as any)
           setProfile({
             id: user.id,
@@ -59,6 +60,7 @@ export function useAuth() {
     })
 
     return () => subscription.unsubscribe()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setUser, setProfile, setLoading])
 
   const fetchUserProfile = async (userId: string) => {
@@ -73,10 +75,10 @@ export function useAuth() {
 
       if (data) {
         setProfile({
-          id: data.id,
-          email: data.email,
-          name: data.name,
-          role: data.role,
+          id: (data as { id: string }).id,
+          email: (data as { email: string }).email,
+          name: (data as { name: string }).name,
+          role: (data as { role: 'admin' | 'manager' | 'inspector' }).role,
         })
       }
     } catch (error) {
@@ -94,6 +96,7 @@ export function useAuth() {
       }
 
       if (user) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         setUser(user as any)
         setProfile({
           id: user.id,
@@ -122,8 +125,8 @@ export function useAuth() {
       }
 
       return { error: null }
-    } catch (error: any) {
-      return { error: error.message }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : 'Unknown error' }
     }
   }
 

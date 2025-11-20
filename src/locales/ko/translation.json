@@ -59,15 +59,13 @@
     "pass": "합격",
     "fail": "불합격",
     "pending": "대기",
-<<<<<<< HEAD
+    "inProgress": "처리중",
+    "resolved": "해결됨",
     "viewAll": "전체 보기",
     "todayBasis": "금일 기준",
     "avgInspectionTime": "평균 검사 시간",
     "inspectionId": "검사 ID",
     "inspectionDate": "검사 일시"
-=======
-    "viewAll": "전체 보기"
->>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
   },
   "inspection": {
     "title": "검사 실행",
@@ -114,11 +112,7 @@
     "viewDetails": "상세보기",
     "detailTitle": "불량 상세 정보",
     "detailDescription": "불량 발생 정보 및 조치 상태를 확인하세요",
-<<<<<<< HEAD
-    "fieldDescription": "설명",
-=======
     "description": "설명",
->>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
     "photo": "불량 사진",
     "noPhoto": "등록된 사진이 없습니다",
     "startAction": "조치 시작",
@@ -129,7 +123,6 @@
   "analytics": {
     "title": "분석",
     "description": "품질 데이터를 분석하고 인사이트를 확인하세요",
-<<<<<<< HEAD
     "comingSoon": "곧 제공될 예정입니다",
     "trendAnalysis": "추이 분석",
     "distributionAnalysis": "분포 분석",
@@ -159,14 +152,14 @@
     "inspectionCount": "검사 건수",
     "date": "날짜",
     "defectCount": "불량 건수",
+    "defectType": "불량 유형",
+    "percentage": "비율",
+    "inspector": "검사자",
     "modelDefectDistribution": "모델별 불량 분포",
     "defectTypeDistribution": "불량 유형 분포",
     "machinePerformance": "설비별 성능 (파레토 차트)",
     "inspectorPerformance": "검사자별 성능",
     "hourlyDistribution": "시간대별 검사 분포"
-=======
-    "comingSoon": "곧 제공될 예정입니다"
->>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
   },
   "reports": {
     "title": "리포트",
@@ -191,11 +184,7 @@
     "deleteInspectionItemConfirm": "이 검사 항목을 삭제하시겠습니까?",
     "modelCode": "모델 코드",
     "modelName": "모델명",
-<<<<<<< HEAD
-    "descriptionLabel": "설명",
-=======
     "description": "설명",
->>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
     "itemName": "항목명",
     "dataType": "데이터 유형",
     "standardValue": "기준값",

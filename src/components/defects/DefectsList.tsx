@@ -127,7 +127,7 @@ export function DefectsList() {
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
+          <Card elevation={3}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
@@ -145,7 +145,7 @@ export function DefectsList() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
+          <Card elevation={3}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
@@ -163,7 +163,7 @@ export function DefectsList() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
+          <Card elevation={3}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
@@ -181,7 +181,7 @@ export function DefectsList() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card>
+          <Card elevation={3}>
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
@@ -200,7 +200,7 @@ export function DefectsList() {
       </Grid>
 
       {/* Defects Table */}
-      <Card>
+      <Card elevation={3}>
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
             <Typography variant="h6" fontWeight={600}>
@@ -255,16 +255,12 @@ export function DefectsList() {
               </Typography>
             </Box>
           ) : (
-            <TableContainer component={Paper} variant="outlined">
+            <TableContainer component={Paper} elevation={2}>
               <Table>
                 <TableHead>
                   <TableRow>
                     <TableCell>{t('defects.defectType')}</TableCell>
-<<<<<<< HEAD
-                    <TableCell>{t('defects.fieldDescription')}</TableCell>
-=======
                     <TableCell>{t('defects.description')}</TableCell>
->>>>>>> b4e71650e7ce2bca30d3999c3af60ea9b9a8188c
                     <TableCell>{t('defects.status')}</TableCell>
                     <TableCell>{t('defects.registeredDate')}</TableCell>
                     <TableCell align="right">{t('common.actions')}</TableCell>
