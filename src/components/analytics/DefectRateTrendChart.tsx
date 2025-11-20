@@ -20,7 +20,9 @@ export function DefectRateTrendChart({ data }: DefectRateTrendChartProps) {
   const { t } = useTranslation()
 
   return (
-    <Card className="shadow-md">
+    <Card 
+      className="shadow-md transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-lg"
+    >
       <CardHeader>
         <CardTitle>{t('charts.defectRateTrend')}</CardTitle>
       </CardHeader>

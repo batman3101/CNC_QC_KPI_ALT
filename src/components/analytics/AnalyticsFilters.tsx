@@ -73,7 +73,16 @@ export function AnalyticsFilters({
   }
 
   return (
-    <Card elevation={3}>
+    <Card 
+      elevation={3}
+      sx={{
+        transition: 'all 0.3s ease-in-out',
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          boxShadow: 6,
+        },
+      }}
+    >
       <CardContent sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
           <FilterList color="primary" />

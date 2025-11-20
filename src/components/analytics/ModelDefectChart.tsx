@@ -31,7 +31,9 @@ export function ModelDefectChart({ data }: ModelDefectChartProps) {
   const sortedData = [...data].sort((a, b) => b.defectCount - a.defectCount)
 
   return (
-    <Card className="shadow-md">
+    <Card 
+      className="shadow-md transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-lg"
+    >
       <CardHeader>
         <CardTitle>{t('charts.modelDefectDistribution')}</CardTitle>
       </CardHeader>

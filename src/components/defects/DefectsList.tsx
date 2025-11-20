@@ -127,7 +127,16 @@ export function DefectsList() {
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card elevation={3}>
+          <Card 
+            elevation={3}
+            sx={{
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 6,
+              },
+            }}
+          >
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
@@ -145,7 +154,16 @@ export function DefectsList() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card elevation={3}>
+          <Card 
+            elevation={3}
+            sx={{
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 6,
+              },
+            }}
+          >
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
@@ -163,7 +181,16 @@ export function DefectsList() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card elevation={3}>
+          <Card 
+            elevation={3}
+            sx={{
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 6,
+              },
+            }}
+          >
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
@@ -181,7 +208,16 @@ export function DefectsList() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card elevation={3}>
+          <Card 
+            elevation={3}
+            sx={{
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 6,
+              },
+            }}
+          >
             <CardContent>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
@@ -200,7 +236,16 @@ export function DefectsList() {
       </Grid>
 
       {/* Defects Table */}
-      <Card elevation={3}>
+      <Card 
+        elevation={3}
+        sx={{
+          transition: 'all 0.3s ease-in-out',
+          '&:hover': {
+            transform: 'translateY(-4px)',
+            boxShadow: 6,
+          },
+        }}
+      >
         <CardContent>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
             <Typography variant="h6" fontWeight={600}>

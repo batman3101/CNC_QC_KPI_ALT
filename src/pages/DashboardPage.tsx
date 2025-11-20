@@ -108,7 +108,16 @@ export function DashboardPage() {
           const Icon = stat.icon
           return (
             <Grid size={{ xs: 12, sm: 6, lg: 3 }} key={index}>
-              <Card elevation={3}>
+              <Card 
+                elevation={3}
+                sx={{
+                  transition: 'all 0.3s ease-in-out',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: 6,
+                  },
+                }}
+              >
                 <CardContent>
                   <Box
                     sx={{
@@ -143,7 +152,17 @@ export function DashboardPage() {
       <Grid container spacing={3}>
         {/* Recent Inspections Table */}
         <Grid size={{ xs: 12, lg: 8 }}>
-          <Card elevation={3} sx={{ height: '100%' }}>
+          <Card 
+            elevation={3} 
+            sx={{ 
+              height: '100%',
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 6,
+              },
+            }}
+          >
             <CardHeader
               title={t('dashboard.recentInspections')}
               action={
@@ -253,7 +272,17 @@ export function DashboardPage() {
 
         {/* Recent Defects List */}
         <Grid size={{ xs: 12, lg: 4 }}>
-          <Card elevation={3} sx={{ height: '100%' }}>
+          <Card 
+            elevation={3} 
+            sx={{ 
+              height: '100%',
+              transition: 'all 0.3s ease-in-out',
+              '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: 6,
+              },
+            }}
+          >
             <CardHeader
               title={t('dashboard.recentDefects')}
               action={
@@ -289,6 +318,13 @@ export function DashboardPage() {
                         bgcolor: 'background.default',
                         border: 1,
                         borderColor: 'divider',
+                        transition: 'all 0.2s ease-in-out',
+                        cursor: 'pointer',
+                        '&:hover': {
+                          transform: 'translateX(4px)',
+                          borderColor: 'primary.main',
+                          bgcolor: 'action.hover',
+                        },
                       }}
                     >
                       <Box

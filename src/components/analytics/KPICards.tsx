@@ -23,7 +23,16 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
       <Grid container spacing={3}>
         {[...Array(6)].map((_, i) => (
           <Grid size={{ xs: 12, sm: 6, lg: 4 }} key={i}>
-            <Card elevation={3}>
+            <Card 
+              elevation={3}
+              sx={{
+                transition: 'all 0.3s ease-in-out',
+                '&:hover': {
+                  transform: 'translateY(-4px)',
+                  boxShadow: 6,
+                },
+              }}
+            >
               <CardContent>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                   <Skeleton variant="text" width={100} height={20} />
@@ -43,7 +52,16 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
     <Grid container spacing={3}>
       {/* Total Inspections */}
       <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-        <Card elevation={3}>
+        <Card 
+          elevation={3}
+          sx={{
+            transition: 'all 0.3s ease-in-out',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: 6,
+            },
+          }}
+        >
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
               <Typography variant="body2" fontWeight={500} color="text.secondary">
@@ -63,7 +81,16 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
 
       {/* First Pass Yield */}
       <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-        <Card elevation={3}>
+        <Card 
+          elevation={3}
+          sx={{
+            transition: 'all 0.3s ease-in-out',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: 6,
+            },
+          }}
+        >
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
               <Typography variant="body2" fontWeight={500} color="text.secondary">
@@ -83,7 +110,16 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
 
       {/* Defect Rate */}
       <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-        <Card elevation={3}>
+        <Card 
+          elevation={3}
+          sx={{
+            transition: 'all 0.3s ease-in-out',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: 6,
+            },
+          }}
+        >
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
               <Typography variant="body2" fontWeight={500} color="text.secondary">
@@ -103,7 +139,16 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
 
       {/* Average Inspection Time */}
       <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-        <Card elevation={3}>
+        <Card 
+          elevation={3}
+          sx={{
+            transition: 'all 0.3s ease-in-out',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: 6,
+            },
+          }}
+        >
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
               <Typography variant="body2" fontWeight={500} color="text.secondary">
@@ -123,7 +168,16 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
 
       {/* Active Inspectors */}
       <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-        <Card elevation={3}>
+        <Card 
+          elevation={3}
+          sx={{
+            transition: 'all 0.3s ease-in-out',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: 6,
+            },
+          }}
+        >
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
               <Typography variant="body2" fontWeight={500} color="text.secondary">
@@ -143,7 +197,16 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
 
       {/* Quality Trend */}
       <Grid size={{ xs: 12, sm: 6, lg: 4 }}>
-        <Card elevation={3}>
+        <Card 
+          elevation={3}
+          sx={{
+            transition: 'all 0.3s ease-in-out',
+            '&:hover': {
+              transform: 'translateY(-4px)',
+              boxShadow: 6,
+            },
+          }}
+        >
           <CardContent>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
               <Typography variant="body2" fontWeight={500} color="text.secondary">
