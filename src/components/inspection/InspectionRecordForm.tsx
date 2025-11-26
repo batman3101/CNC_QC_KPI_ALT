@@ -47,6 +47,7 @@ type FormValues = z.infer<ReturnType<typeof createFormSchema>>
 function createFormSchema(t: (key: string) => string) {
   return z.object({
     defectTypeId: z.string().nullable(),
+    machineNumber: z.string().min(1, t('validation.enterMachineNumber')),
     inspectorId: z.string().min(1, t('validation.selectInspector')),
     inspectionQuantity: z
       .number({ invalid_type_error: t('validation.enterQuantity') })
@@ -84,6 +85,7 @@ export function InspectionRecordForm({
     resolver: zodResolver(createFormSchema(t)),
     defaultValues: {
       defectTypeId: null,
+      machineNumber: '',
       inspectorId: profile?.id || '',
       inspectionQuantity: 0,
       defectQuantity: 0,
@@ -155,6 +157,7 @@ export function InspectionRecordForm({
         model_id: modelId,
         inspection_process: inspectionProcess,
         defect_type_id: values.defectTypeId,
+        machine_number: values.machineNumber,
         inspector_id: values.inspectorId,
         inspection_quantity: values.inspectionQuantity,
         defect_quantity: values.defectQuantity,
@@ -227,6 +230,22 @@ export function InspectionRecordForm({
                     <FormHelperText>{errors.defectTypeId.message}</FormHelperText>
                   )}
                 </FormControl>
+              )}
+            />
+
+            {/* Machine Number */}
+            <Controller
+              name="machineNumber"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  label={`${t('inspection.machineNumber')} *`}
+                  fullWidth
+                  error={!!errors.machineNumber}
+                  helperText={errors.machineNumber?.message}
+                  placeholder={t('inspection.machineNumberPlaceholder')}
+                />
               )}
             />
 
