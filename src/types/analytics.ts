@@ -71,3 +71,58 @@ export interface InspectorPerformance {
   defectRate: number
   avgInspectionTime: number
 }
+
+// Detailed Inspector KPI Types
+export interface InspectorDetailedKPI {
+  inspectorId: string
+  inspectorName: string
+  // Summary KPIs
+  totalInspections: number
+  defectCount: number
+  defectRate: number
+  passRate: number
+  avgInspectionTime: number
+  // Ranking
+  rank: number
+  totalInspectors: number
+  // Trend data (daily for last 30 days)
+  dailyTrend: InspectorDailyTrend[]
+  // Performance by model
+  modelPerformance: InspectorModelPerformance[]
+  // Performance by process
+  processPerformance: InspectorProcessPerformance[]
+  // Comparison with team average
+  teamComparison: TeamComparison
+}
+
+export interface InspectorDailyTrend {
+  date: string
+  inspectionCount: number
+  defectCount: number
+  defectRate: number
+}
+
+export interface InspectorModelPerformance {
+  modelName: string
+  modelCode: string
+  inspectionCount: number
+  defectCount: number
+  defectRate: number
+}
+
+export interface InspectorProcessPerformance {
+  processName: string
+  processCode: string
+  inspectionCount: number
+  defectCount: number
+  defectRate: number
+}
+
+export interface TeamComparison {
+  avgDefectRate: number
+  avgInspectionTime: number
+  avgDailyInspections: number
+  defectRateDiff: number // positive = worse than avg, negative = better
+  inspectionTimeDiff: number
+  dailyInspectionsDiff: number
+}

@@ -10,6 +10,7 @@ import type {
   HourlyDistribution,
   InspectorPerformance,
   KPISummary,
+  InspectorDetailedKPI,
 } from '@/types/analytics'
 
 import {
@@ -20,6 +21,8 @@ import {
   mockDefectTypeDistribution,
   mockHourlyDistribution,
   mockInspectorPerformance,
+  mockInspectorList,
+  mockInspectorDetailedKPI,
 } from '../mockData/analyticsMockData'
 
 // Simulate async delay
@@ -79,4 +82,18 @@ export async function getInspectorPerformance(
 ): Promise<InspectorPerformance[]> {
   await delay(370)
   return mockInspectorPerformance
+}
+
+export async function getInspectorList(): Promise<{ id: string; name: string }[]> {
+  await delay(200)
+  return mockInspectorList
+}
+
+export async function getInspectorDetailedKPI(
+  inspectorId: string,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _filters: AnalyticsFilters
+): Promise<InspectorDetailedKPI | null> {
+  await delay(400)
+  return mockInspectorDetailedKPI[inspectorId] || null
 }

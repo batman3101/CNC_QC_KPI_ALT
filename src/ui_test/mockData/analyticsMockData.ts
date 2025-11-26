@@ -6,6 +6,7 @@ import type {
   HourlyDistribution,
   InspectorPerformance,
   KPISummary,
+  InspectorDetailedKPI,
 } from '@/types/analytics'
 
 // KPI Summary Mock Data
@@ -322,3 +323,196 @@ export const mockInspectionProcesses = [
   { id: 'process-3', name: 'OQC' },
   { id: 'process-4', name: 'FQC' },
 ]
+
+// Inspector list for selection
+export const mockInspectorList = [
+  { id: 'inspector-1', name: '김철수' },
+  { id: 'inspector-2', name: '이영희' },
+  { id: 'inspector-3', name: '박민수' },
+  { id: 'inspector-4', name: '정수연' },
+  { id: 'inspector-5', name: '최동욱' },
+]
+
+// Generate daily trend for inspector
+const generateDailyTrend = (baseRate: number, variance: number) => {
+  const trend = []
+  const today = new Date()
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date(today)
+    date.setDate(date.getDate() - i)
+    const inspectionCount = Math.floor(Math.random() * 15) + 5
+    const defectRate = Math.max(0, baseRate + (Math.random() - 0.5) * variance)
+    const defectCount = Math.round(inspectionCount * defectRate / 100)
+    trend.push({
+      date: date.toISOString().split('T')[0],
+      inspectionCount,
+      defectCount,
+      defectRate: inspectionCount > 0 ? (defectCount / inspectionCount) * 100 : 0,
+    })
+  }
+  return trend
+}
+
+// Detailed Inspector KPI Mock Data
+export const mockInspectorDetailedKPI: Record<string, InspectorDetailedKPI> = {
+  'inspector-1': {
+    inspectorId: 'inspector-1',
+    inspectorName: '김철수',
+    totalInspections: 287,
+    defectCount: 9,
+    defectRate: 3.14,
+    passRate: 96.86,
+    avgInspectionTime: 4.1,
+    rank: 2,
+    totalInspectors: 5,
+    dailyTrend: generateDailyTrend(3.14, 2),
+    modelPerformance: [
+      { modelName: 'Shaft Type A', modelCode: 'SHA-001', inspectionCount: 85, defectCount: 2, defectRate: 2.35 },
+      { modelName: 'Bearing Housing B', modelCode: 'BHB-002', inspectionCount: 72, defectCount: 3, defectRate: 4.17 },
+      { modelName: 'Flange C', modelCode: 'FLC-003', inspectionCount: 68, defectCount: 2, defectRate: 2.94 },
+      { modelName: 'Gear Assembly D', modelCode: 'GAD-004', inspectionCount: 42, defectCount: 1, defectRate: 2.38 },
+      { modelName: 'Connector E', modelCode: 'CNE-005', inspectionCount: 20, defectCount: 1, defectRate: 5.00 },
+    ],
+    processPerformance: [
+      { processName: '입고 검사', processCode: 'IQC', inspectionCount: 95, defectCount: 3, defectRate: 3.16 },
+      { processName: '공정 검사', processCode: 'PQC', inspectionCount: 112, defectCount: 4, defectRate: 3.57 },
+      { processName: '출하 검사', processCode: 'OQC', inspectionCount: 80, defectCount: 2, defectRate: 2.50 },
+    ],
+    teamComparison: {
+      avgDefectRate: 3.34,
+      avgInspectionTime: 4.18,
+      avgDailyInspections: 8.3,
+      defectRateDiff: -0.20,
+      inspectionTimeDiff: -0.08,
+      dailyInspectionsDiff: 1.26,
+    },
+  },
+  'inspector-2': {
+    inspectorId: 'inspector-2',
+    inspectorName: '이영희',
+    totalInspections: 312,
+    defectCount: 12,
+    defectRate: 3.85,
+    passRate: 96.15,
+    avgInspectionTime: 3.8,
+    rank: 4,
+    totalInspectors: 5,
+    dailyTrend: generateDailyTrend(3.85, 2.5),
+    modelPerformance: [
+      { modelName: 'Shaft Type A', modelCode: 'SHA-001', inspectionCount: 92, defectCount: 4, defectRate: 4.35 },
+      { modelName: 'Bearing Housing B', modelCode: 'BHB-002', inspectionCount: 88, defectCount: 4, defectRate: 4.55 },
+      { modelName: 'Flange C', modelCode: 'FLC-003', inspectionCount: 65, defectCount: 2, defectRate: 3.08 },
+      { modelName: 'Gear Assembly D', modelCode: 'GAD-004', inspectionCount: 45, defectCount: 1, defectRate: 2.22 },
+      { modelName: 'Connector E', modelCode: 'CNE-005', inspectionCount: 22, defectCount: 1, defectRate: 4.55 },
+    ],
+    processPerformance: [
+      { processName: '입고 검사', processCode: 'IQC', inspectionCount: 105, defectCount: 5, defectRate: 4.76 },
+      { processName: '공정 검사', processCode: 'PQC', inspectionCount: 125, defectCount: 4, defectRate: 3.20 },
+      { processName: '출하 검사', processCode: 'OQC', inspectionCount: 82, defectCount: 3, defectRate: 3.66 },
+    ],
+    teamComparison: {
+      avgDefectRate: 3.34,
+      avgInspectionTime: 4.18,
+      avgDailyInspections: 8.3,
+      defectRateDiff: 0.51,
+      inspectionTimeDiff: -0.38,
+      dailyInspectionsDiff: 2.10,
+    },
+  },
+  'inspector-3': {
+    inspectorId: 'inspector-3',
+    inspectorName: '박민수',
+    totalInspections: 245,
+    defectCount: 8,
+    defectRate: 3.27,
+    passRate: 96.73,
+    avgInspectionTime: 4.5,
+    rank: 3,
+    totalInspectors: 5,
+    dailyTrend: generateDailyTrend(3.27, 2),
+    modelPerformance: [
+      { modelName: 'Shaft Type A', modelCode: 'SHA-001', inspectionCount: 75, defectCount: 2, defectRate: 2.67 },
+      { modelName: 'Bearing Housing B', modelCode: 'BHB-002', inspectionCount: 62, defectCount: 3, defectRate: 4.84 },
+      { modelName: 'Flange C', modelCode: 'FLC-003', inspectionCount: 55, defectCount: 2, defectRate: 3.64 },
+      { modelName: 'Gear Assembly D', modelCode: 'GAD-004', inspectionCount: 35, defectCount: 1, defectRate: 2.86 },
+      { modelName: 'Connector E', modelCode: 'CNE-005', inspectionCount: 18, defectCount: 0, defectRate: 0.00 },
+    ],
+    processPerformance: [
+      { processName: '입고 검사', processCode: 'IQC', inspectionCount: 82, defectCount: 3, defectRate: 3.66 },
+      { processName: '공정 검사', processCode: 'PQC', inspectionCount: 98, defectCount: 3, defectRate: 3.06 },
+      { processName: '출하 검사', processCode: 'OQC', inspectionCount: 65, defectCount: 2, defectRate: 3.08 },
+    ],
+    teamComparison: {
+      avgDefectRate: 3.34,
+      avgInspectionTime: 4.18,
+      avgDailyInspections: 8.3,
+      defectRateDiff: -0.07,
+      inspectionTimeDiff: 0.32,
+      dailyInspectionsDiff: -0.13,
+    },
+  },
+  'inspector-4': {
+    inspectorId: 'inspector-4',
+    inspectorName: '정수연',
+    totalInspections: 198,
+    defectCount: 6,
+    defectRate: 3.03,
+    passRate: 96.97,
+    avgInspectionTime: 4.2,
+    rank: 1,
+    totalInspectors: 5,
+    dailyTrend: generateDailyTrend(3.03, 1.8),
+    modelPerformance: [
+      { modelName: 'Shaft Type A', modelCode: 'SHA-001', inspectionCount: 58, defectCount: 1, defectRate: 1.72 },
+      { modelName: 'Bearing Housing B', modelCode: 'BHB-002', inspectionCount: 52, defectCount: 2, defectRate: 3.85 },
+      { modelName: 'Flange C', modelCode: 'FLC-003', inspectionCount: 45, defectCount: 2, defectRate: 4.44 },
+      { modelName: 'Gear Assembly D', modelCode: 'GAD-004', inspectionCount: 28, defectCount: 1, defectRate: 3.57 },
+      { modelName: 'Connector E', modelCode: 'CNE-005', inspectionCount: 15, defectCount: 0, defectRate: 0.00 },
+    ],
+    processPerformance: [
+      { processName: '입고 검사', processCode: 'IQC', inspectionCount: 68, defectCount: 2, defectRate: 2.94 },
+      { processName: '공정 검사', processCode: 'PQC', inspectionCount: 78, defectCount: 2, defectRate: 2.56 },
+      { processName: '출하 검사', processCode: 'OQC', inspectionCount: 52, defectCount: 2, defectRate: 3.85 },
+    ],
+    teamComparison: {
+      avgDefectRate: 3.34,
+      avgInspectionTime: 4.18,
+      avgDailyInspections: 8.3,
+      defectRateDiff: -0.31,
+      inspectionTimeDiff: 0.02,
+      dailyInspectionsDiff: -1.70,
+    },
+  },
+  'inspector-5': {
+    inspectorId: 'inspector-5',
+    inspectorName: '최동욱',
+    totalInspections: 205,
+    defectCount: 7,
+    defectRate: 3.41,
+    passRate: 96.59,
+    avgInspectionTime: 4.3,
+    rank: 5,
+    totalInspectors: 5,
+    dailyTrend: generateDailyTrend(3.41, 2.2),
+    modelPerformance: [
+      { modelName: 'Shaft Type A', modelCode: 'SHA-001', inspectionCount: 62, defectCount: 2, defectRate: 3.23 },
+      { modelName: 'Bearing Housing B', modelCode: 'BHB-002', inspectionCount: 55, defectCount: 2, defectRate: 3.64 },
+      { modelName: 'Flange C', modelCode: 'FLC-003', inspectionCount: 48, defectCount: 2, defectRate: 4.17 },
+      { modelName: 'Gear Assembly D', modelCode: 'GAD-004', inspectionCount: 25, defectCount: 1, defectRate: 4.00 },
+      { modelName: 'Connector E', modelCode: 'CNE-005', inspectionCount: 15, defectCount: 0, defectRate: 0.00 },
+    ],
+    processPerformance: [
+      { processName: '입고 검사', processCode: 'IQC', inspectionCount: 72, defectCount: 3, defectRate: 4.17 },
+      { processName: '공정 검사', processCode: 'PQC', inspectionCount: 85, defectCount: 2, defectRate: 2.35 },
+      { processName: '출하 검사', processCode: 'OQC', inspectionCount: 48, defectCount: 2, defectRate: 4.17 },
+    ],
+    teamComparison: {
+      avgDefectRate: 3.34,
+      avgInspectionTime: 4.18,
+      avgDailyInspections: 8.3,
+      defectRateDiff: 0.07,
+      inspectionTimeDiff: 0.12,
+      dailyInspectionsDiff: -1.47,
+    },
+  },
+}

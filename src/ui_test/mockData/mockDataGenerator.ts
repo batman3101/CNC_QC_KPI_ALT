@@ -10,18 +10,35 @@ import type { Database } from '@/types/database'
 type Inspection = Database['public']['Tables']['inspections']['Row']
 type Defect = Database['public']['Tables']['defects']['Row']
 
-// 설비 목록 (10개)
-export const MACHINES = [
-  { id: 'machine-001', name: 'CNC 밀링 #1', model: 'Haas VF-2' },
-  { id: 'machine-002', name: 'CNC 밀링 #2', model: 'DMG Mori NLX 2500' },
-  { id: 'machine-003', name: 'CNC 선반 #1', model: 'Mazak Integrex i-200' },
-  { id: 'machine-004', name: 'CNC 선반 #2', model: 'Okuma LB3000' },
-  { id: 'machine-005', name: 'CNC 복합기 #1', model: 'DMG Mori NTX 1000' },
-  { id: 'machine-006', name: '머시닝센터 #1', model: 'Brother S1000' },
-  { id: 'machine-007', name: '머시닝센터 #2', model: 'Doosan DNM 400' },
-  { id: 'machine-008', name: '연삭기 #1', model: 'Studer S31' },
-  { id: 'machine-009', name: '연삭기 #2', model: 'Okamoto ACC-52' },
-  { id: 'machine-010', name: 'EDM 방전기 #1', model: 'Sodick AQ360L' },
+// 설비 목록 생성 함수 (CNC-001 ~ CNC-800)
+function generateMachines(count: number) {
+  const machines = []
+  for (let i = 1; i <= count; i++) {
+    const machineNumber = String(i).padStart(3, '0')
+    machines.push({
+      id: `machine-${machineNumber}`,
+      name: `CNC-${machineNumber}`,
+      model: `CNC Machine ${machineNumber}`,
+    })
+  }
+  return machines
+}
+
+// 설비 목록 (800개: CNC-001 ~ CNC-800)
+export const MACHINES = generateMachines(800)
+
+// 레거시 설비 목록 (기존 10개 - 분석용)
+export const LEGACY_MACHINES = [
+  { id: 'machine-001', name: 'CNC-001', model: 'Haas VF-2' },
+  { id: 'machine-002', name: 'CNC-002', model: 'DMG Mori NLX 2500' },
+  { id: 'machine-003', name: 'CNC-003', model: 'Mazak Integrex i-200' },
+  { id: 'machine-004', name: 'CNC-004', model: 'Okuma LB3000' },
+  { id: 'machine-005', name: 'CNC-005', model: 'DMG Mori NTX 1000' },
+  { id: 'machine-006', name: 'CNC-006', model: 'Brother S1000' },
+  { id: 'machine-007', name: 'CNC-007', model: 'Doosan DNM 400' },
+  { id: 'machine-008', name: 'CNC-008', model: 'Studer S31' },
+  { id: 'machine-009', name: 'CNC-009', model: 'Okamoto ACC-52' },
+  { id: 'machine-010', name: 'CNC-010', model: 'Sodick AQ360L' },
 ]
 
 // 제품 모델 목록 (15개)

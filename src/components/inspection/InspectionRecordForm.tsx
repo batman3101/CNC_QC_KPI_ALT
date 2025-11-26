@@ -20,6 +20,8 @@ import {
   Divider,
   Alert,
   IconButton,
+  Autocomplete,
+  CircularProgress,
 } from '@mui/material'
 import {
   Save as SaveIcon,
@@ -32,6 +34,7 @@ import {
 import type { InspectionProcess, InspectionRecordInput } from '@/types/inspection'
 import { useAuth } from '@/hooks/useAuth'
 import * as managementService from '@/ui_test/mockServices/mockManagementService'
+import type { Machine } from '@/ui_test/mockServices/mockManagementService'
 
 interface InspectionRecordFormProps {
   modelId: string
@@ -46,8 +49,8 @@ type FormValues = z.infer<ReturnType<typeof createFormSchema>>
 
 function createFormSchema(t: (key: string) => string) {
   return z.object({
-    defectTypeId: z.string().nullable(),
-    machineNumber: z.string().min(1, t('validation.enterMachineNumber')),
+    defectTypeId: z.string().min(1, t('validation.selectDefectType')),
+    machineId: z.string().nullable().optional(),
     inspectorId: z.string().min(1, t('validation.selectInspector')),
     inspectionQuantity: z
       .number({ invalid_type_error: t('validation.enterQuantity') })
@@ -75,17 +78,20 @@ export function InspectionRecordForm({
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [photoError, setPhotoError] = useState<string | null>(null)
+  const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null)
+  const [machineInputValue, setMachineInputValue] = useState('')
 
   const {
     control,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(createFormSchema(t)),
     defaultValues: {
-      defectTypeId: null,
-      machineNumber: '',
+      defectTypeId: '',
+      machineId: null,
       inspectorId: profile?.id || '',
       inspectionQuantity: 0,
       defectQuantity: 0,
@@ -103,6 +109,13 @@ export function InspectionRecordForm({
     queryKey: ['users'],
     queryFn: managementService.getUsers,
     enabled: profile?.role === 'admin' || profile?.role === 'manager',
+  })
+
+  // Fetch machines based on search input
+  const { data: machines = [], isLoading: machinesLoading } = useQuery({
+    queryKey: ['machines-search', machineInputValue],
+    queryFn: () => managementService.searchMachines(machineInputValue),
+    staleTime: 1000 * 60, // 1분간 캐시
   })
 
   const watchedValues = watch()
@@ -156,8 +169,8 @@ export function InspectionRecordForm({
       await onSubmit({
         model_id: modelId,
         inspection_process: inspectionProcess,
-        defect_type_id: values.defectTypeId,
-        machine_number: values.machineNumber,
+        defect_type_id: values.defectTypeId || null,
+        machine_number: selectedMachine?.name || null,
         inspector_id: values.inspectorId,
         inspection_quantity: values.inspectionQuantity,
         defect_quantity: values.defectQuantity,
@@ -211,15 +224,12 @@ export function InspectionRecordForm({
               control={control}
               render={({ field }) => (
                 <FormControl fullWidth error={!!errors.defectTypeId} disabled={isLoading}>
-                  <InputLabel>{t('inspection.defectType')}</InputLabel>
+                  <InputLabel>{t('inspection.defectType')} *</InputLabel>
                   <Select
                     {...field}
                     value={field.value || ''}
-                    label={t('inspection.defectType')}
+                    label={`${t('inspection.defectType')} *`}
                   >
-                    <MenuItem value="">
-                      <em>{t('common.none')}</em>
-                    </MenuItem>
                     {defectTypes.map((type) => (
                       <MenuItem key={type.id} value={type.id}>
                         {type.name}
@@ -233,18 +243,38 @@ export function InspectionRecordForm({
               )}
             />
 
-            {/* Machine Number */}
-            <Controller
-              name="machineNumber"
-              control={control}
-              render={({ field }) => (
+            {/* Machine Number - Searchable Dropdown */}
+            <Autocomplete
+              options={machines}
+              getOptionLabel={(option) => option.name}
+              value={selectedMachine}
+              onChange={(_event, newValue) => {
+                setSelectedMachine(newValue)
+                setValue('machineId', newValue?.id || null)
+              }}
+              inputValue={machineInputValue}
+              onInputChange={(_event, newInputValue) => {
+                setMachineInputValue(newInputValue)
+              }}
+              loading={machinesLoading}
+              filterOptions={(x) => x} // 서버에서 필터링하므로 클라이언트 필터 비활성화
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              noOptionsText={t('common.noData')}
+              loadingText={t('common.loading')}
+              renderInput={(params) => (
                 <TextField
-                  {...field}
-                  label={`${t('inspection.machineNumber')} *`}
-                  fullWidth
-                  error={!!errors.machineNumber}
-                  helperText={errors.machineNumber?.message}
+                  {...params}
+                  label={`${t('inspection.machineNumber')} (${t('common.optional')})`}
                   placeholder={t('inspection.machineNumberPlaceholder')}
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {machinesLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
                 />
               )}
             />

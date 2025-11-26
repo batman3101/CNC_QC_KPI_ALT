@@ -168,7 +168,28 @@
     "activeInspectors": "Kiểm tra viên hoạt động",
     "qualityTrend": "Xu hướng chất lượng",
     "excellent": "Xuất sắc",
-    "vsTarget": "So với mục tiêu {{value}}%"
+    "vsTarget": "So với mục tiêu {{value}}%",
+    "inspectorAnalysis": "Phân tích kiểm tra viên"
+  },
+  "inspectorKPI": {
+    "selectInspector": "Chọn kiểm tra viên",
+    "selectInspectorPlaceholder": "Vui lòng chọn kiểm tra viên",
+    "pleaseSelectInspector": "Vui lòng chọn kiểm tra viên để phân tích",
+    "noData": "Không có dữ liệu cho kiểm tra viên đã chọn",
+    "ranking": "Xếp hạng",
+    "totalInspections": "Tổng số kiểm tra",
+    "defectRate": "Tỷ lệ lỗi",
+    "avgInspectionTime": "Thời gian kiểm tra TB",
+    "minutes": " phút",
+    "perDay": " lần/ngày",
+    "vsTeamAvg": "So với TB nhóm",
+    "dailyTrend": "Xu hướng hàng ngày",
+    "performanceByModel": "Hiệu suất theo mẫu",
+    "performanceByProcess": "Hiệu suất theo quy trình",
+    "teamComparison": "So sánh với trung bình nhóm",
+    "teamAvgDefectRate": "Tỷ lệ lỗi TB nhóm",
+    "teamAvgInspectionTime": "Thời gian kiểm tra TB nhóm",
+    "teamAvgDailyInspections": "Kiểm tra hàng ngày TB nhóm"
   },
   "charts": {
     "defectRateTrend": "Xu hướng tỷ lệ lỗi",
@@ -284,6 +305,7 @@
     "selectModel": "Vui lòng chọn mẫu sản phẩm",
     "selectMachine": "Vui lòng chọn thiết bị",
     "selectProcess": "Vui lòng chọn quy trình kiểm tra",
+    "selectDefectType": "Vui lòng chọn loại lỗi",
     "selectInspector": "Vui lòng chọn người kiểm tra",
     "enterMachineNumber": "Vui lòng nhập số thiết bị",
     "enterModelCode": "Vui lòng nhập mã mẫu",

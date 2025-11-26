@@ -11,6 +11,7 @@ import { MachinePerformanceChart } from '@/components/analytics/MachinePerforman
 import { DefectTypeChart } from '@/components/analytics/DefectTypeChart'
 import { HourlyDistributionChart } from '@/components/analytics/HourlyDistributionChart'
 import { InspectorPerformanceChart } from '@/components/analytics/InspectorPerformanceChart'
+import { InspectorDetailedKPI } from '@/components/analytics/InspectorDetailedKPI'
 import type { AnalyticsFilters as Filters } from '@/types/analytics'
 
 // UI 테스트용 Mock 서비스 (나중에 실제 서비스로 교체)
@@ -125,11 +126,12 @@ export function AnalyticsPage() {
 
             {/* Charts Tabs */}
             <Box>
-              <Tabs value={tabValue} onChange={handleTabChange} variant="fullWidth">
+              <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
                 <Tab label={t('analytics.trendAnalysis')} />
                 <Tab label={t('analytics.distributionAnalysis')} />
                 <Tab label={t('analytics.performanceAnalysis')} />
                 <Tab label={t('analytics.timeAnalysis')} />
+                <Tab label={t('analytics.inspectorAnalysis')} />
               </Tabs>
 
               {/* Trends Tab */}
@@ -160,6 +162,11 @@ export function AnalyticsPage() {
               {/* Time Tab */}
               <TabPanel value={tabValue} index={3}>
                 <HourlyDistributionChart data={hourlyData || []} />
+              </TabPanel>
+
+              {/* Inspector Analysis Tab */}
+              <TabPanel value={tabValue} index={4}>
+                <InspectorDetailedKPI filters={filters} />
               </TabPanel>
             </Box>
           </Box>

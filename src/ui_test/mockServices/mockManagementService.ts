@@ -6,6 +6,7 @@ import {
   getItemsByModelId,
 } from '../mockData/managementMockData'
 import { MOCK_USERS } from './mockAuthService'
+import { MACHINES } from '../mockData/mockDataGenerator'
 
 type ProductModel = Database['public']['Tables']['product_models']['Row']
 type ProductModelInsert =
@@ -530,4 +531,24 @@ export async function deleteDefectTypeRow(id: string): Promise<void> {
   await delay(300)
   defectTypesRowsData = defectTypesRowsData.filter((type) => type.id !== id)
   defectTypesData = defectTypesData.filter((type) => type.id !== id)
+}
+
+// ============= Machines =============
+
+export interface Machine {
+  id: string
+  name: string
+  model: string
+}
+
+export async function getMachines(): Promise<Machine[]> {
+  await delay(100) // 빠른 응답
+  return MACHINES
+}
+
+export async function searchMachines(query: string): Promise<Machine[]> {
+  await delay(50) // 검색은 더 빠르게
+  if (!query) return MACHINES.slice(0, 50) // 빈 검색어면 처음 50개만
+  const lowerQuery = query.toLowerCase()
+  return MACHINES.filter((m) => m.name.toLowerCase().includes(lowerQuery)).slice(0, 50)
 }

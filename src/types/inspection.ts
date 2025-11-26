@@ -40,7 +40,7 @@ export interface InspectionRecordInput {
   model_id: string
   inspection_process: InspectionProcess
   defect_type_id: string | null
-  machine_number: string  // 설비 번호
+  machine_number: string | null  // 설비 번호 (선택사항)
   inspector_id: string
   inspection_quantity: number
   defect_quantity: number

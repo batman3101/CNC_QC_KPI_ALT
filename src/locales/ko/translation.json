@@ -168,7 +168,28 @@
     "activeInspectors": "활동 검사자",
     "qualityTrend": "품질 트렌드",
     "excellent": "우수",
-    "vsTarget": "목표 대비 {{value}}%"
+    "vsTarget": "목표 대비 {{value}}%",
+    "inspectorAnalysis": "검사자 분석"
+  },
+  "inspectorKPI": {
+    "selectInspector": "검사자 선택",
+    "selectInspectorPlaceholder": "검사자를 선택하세요",
+    "pleaseSelectInspector": "분석할 검사자를 선택해 주세요",
+    "noData": "선택한 검사자의 데이터가 없습니다",
+    "ranking": "순위",
+    "totalInspections": "총 검사 건수",
+    "defectRate": "불량률",
+    "avgInspectionTime": "평균 검사 시간",
+    "minutes": "분",
+    "perDay": "건/일",
+    "vsTeamAvg": "팀 평균 대비",
+    "dailyTrend": "일별 추이",
+    "performanceByModel": "모델별 실적",
+    "performanceByProcess": "공정별 실적",
+    "teamComparison": "팀 평균과 비교",
+    "teamAvgDefectRate": "팀 평균 불량률",
+    "teamAvgInspectionTime": "팀 평균 검사 시간",
+    "teamAvgDailyInspections": "팀 평균 일일 검사"
   },
   "charts": {
     "defectRateTrend": "불량률 추이",
@@ -327,6 +348,7 @@
     "selectModel": "제품 모델을 선택해주세요",
     "selectMachine": "설비를 선택해주세요",
     "selectProcess": "검사 공정을 선택해주세요",
+    "selectDefectType": "불량 유형을 선택해주세요",
     "selectInspector": "검사자를 선택해주세요",
     "enterMachineNumber": "설비 번호를 입력해주세요",
     "enterModelCode": "모델 코드를 입력해주세요",
