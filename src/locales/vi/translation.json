@@ -32,7 +32,10 @@
     "passwordPlaceholder": "Nhập mật khẩu",
     "loginSuccess": "Đăng nhập thành công",
     "loginError": "Đăng nhập thất bại",
-    "invalidCredentials": "Email hoặc mật khẩu không đúng"
+    "invalidCredentials": "Email hoặc mật khẩu không đúng",
+    "forgotPassword": "Quên mật khẩu?",
+    "noAccount": "Chưa có tài khoản? Vui lòng liên hệ quản trị viên",
+    "backToMain": "← Quay lại trang chính"
   },
   "nav": {
     "dashboard": "Bảng điều khiển",

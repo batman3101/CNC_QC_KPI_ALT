@@ -58,7 +58,7 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Box
             component="img"
-            src="/vite.svg"
+            src="/A symbol BLUE-02.png"
             sx={{ width: 32, height: 32, display: { xs: 'none', sm: 'block' } }}
             alt="Logo"
           />

@@ -32,7 +32,10 @@
     "passwordPlaceholder": "비밀번호를 입력하세요",
     "loginSuccess": "로그인 성공",
     "loginError": "로그인 실패",
-    "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다"
+    "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다",
+    "forgotPassword": "비밀번호를 잊으셨나요?",
+    "noAccount": "계정이 없으신가요? 관리자에게 문의하세요",
+    "backToMain": "← 메인으로 돌아가기"
   },
   "nav": {
     "dashboard": "대시보드",
