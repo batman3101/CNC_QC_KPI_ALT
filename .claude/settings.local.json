@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(npm install)",
+      "Bash(npx shadcn@latest add button input card form label table dialog select checkbox toast alert tabs badge dropdown-menu)",
+      "Bash(npm run dev:*)",
+      "Bash(npx shadcn@latest add:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git remote add:*)",
+      "Bash(git branch:*)",
+      "Bash(git push:*)",
+      "Bash(timeout 5 bash:*)",
+      "Bash(timeout 3 bash:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(nul)",
+      "Bash(dir /s /b \"C:\\WORK\\app_management\\CNC_QC_KPI_ALT\\src\\*i18n*\" 2)",
+      "Bash(dir /s /b \"C:\\Work Drive\\APP\\CNC_QC_KPI\\src\")",
+      "Bash(findstr:*)",
+      "Bash(npm audit:*)",
+      "Bash(npm uninstall:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
