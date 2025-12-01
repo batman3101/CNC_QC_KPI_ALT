@@ -256,12 +256,17 @@ export async function createInspectionRecord(
 
   const timestamp = getHoChiMinhTimestamp()
 
+  // 검사 공정 정보 추출 (객체 또는 문자열)
+  const processCode = typeof data.inspection_process === 'string'
+    ? data.inspection_process
+    : data.inspection_process.code
+
   const newInspection: Inspection = {
     id: `inspection-${Date.now()}`,
     user_id: data.inspector_id,
     machine_id: null, // No machine in new flow
     model_id: data.model_id,
-    inspection_process: data.inspection_process,
+    inspection_process: processCode,
     defect_type: data.defect_type_id,
     inspection_quantity: data.inspection_quantity,
     defect_quantity: data.defect_quantity,
@@ -278,7 +283,7 @@ export async function createInspectionRecord(
       id: `defect-${Date.now()}`,
       inspection_id: newInspection.id,
       defect_type: data.defect_type_id,
-      description: `검사 공정 ${data.inspection_process}에서 ${data.defect_quantity}개 불량 발생`,
+      description: `검사 공정 ${processCode}에서 ${data.defect_quantity}개 불량 발생`,
       photo_url: data.photo_url || null,
       status: 'pending',
       created_at: timestamp,

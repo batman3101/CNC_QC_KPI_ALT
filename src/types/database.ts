@@ -171,7 +171,7 @@ export interface Database {
           user_id: string
           machine_id: string | null
           model_id: string
-          inspection_process: 'IQC' | 'PQC' | 'OQC' | 'H/G' | 'MMS' | 'CNC-OQC' | 'POSITION' | '외관' | 'TRI'
+          inspection_process: string  // 관리 페이지에서 동적 관리
           defect_type: string | null
           inspection_quantity: number
           defect_quantity: number
@@ -184,7 +184,7 @@ export interface Database {
           user_id: string
           machine_id?: string | null
           model_id: string
-          inspection_process: 'IQC' | 'PQC' | 'OQC' | 'H/G' | 'MMS' | 'CNC-OQC' | 'POSITION' | '외관' | 'TRI'
+          inspection_process: string  // 관리 페이지에서 동적 관리
           defect_type?: string | null
           inspection_quantity: number
           defect_quantity: number
@@ -197,7 +197,7 @@ export interface Database {
           user_id?: string
           machine_id?: string | null
           model_id?: string
-          inspection_process?: 'IQC' | 'PQC' | 'OQC' | 'H/G' | 'MMS' | 'CNC-OQC' | 'POSITION' | '외관' | 'TRI'
+          inspection_process?: string  // 관리 페이지에서 동적 관리
           defect_type?: string | null
           inspection_quantity?: number
           defect_quantity?: number

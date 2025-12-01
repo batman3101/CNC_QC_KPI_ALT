@@ -29,6 +29,7 @@ import {
 
 // UI 테스트용 Mock 서비스
 import * as inspectionService from '@/ui_test/mockServices/mockInspectionService'
+import { getMachines, getProductModels } from '@/ui_test/mockServices/mockManagementService'
 
 export function DashboardPage() {
   const { t } = useTranslation()
@@ -45,6 +46,32 @@ export function DashboardPage() {
     queryKey: ['dashboard-defects'],
     queryFn: () => inspectionService.getDefects(),
   })
+
+  // Fetch machines from Management
+  const { data: machines = [] } = useQuery({
+    queryKey: ['machines'],
+    queryFn: getMachines,
+  })
+
+  // Fetch product models from Management
+  const { data: models = [] } = useQuery({
+    queryKey: ['product-models'],
+    queryFn: getProductModels,
+  })
+
+  // Helper function to get machine name by ID
+  const getMachineName = (machineId: string | null) => {
+    if (!machineId) return 'N/A'
+    const machine = machines.find((m) => m.id === machineId)
+    return machine?.name || machineId
+  }
+
+  // Helper function to get model code by ID
+  const getModelCode = (modelId: string | null) => {
+    if (!modelId) return 'N/A'
+    const model = models.find((m) => m.id === modelId)
+    return model?.code || modelId
+  }
 
   // Calculate stats from mock data
   const todayInspections = inspections.length
@@ -220,28 +247,12 @@ export function DashboardPage() {
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2">
-                              {inspection.machine_id?.includes('machine-001')
-                                ? 'CNC 밀링 #1'
-                                : inspection.machine_id?.includes('machine-002')
-                                ? 'CNC 밀링 #2'
-                                : inspection.machine_id?.includes('machine-003')
-                                ? 'CNC 선반 #1'
-                                : 'N/A'}
+                              {getMachineName(inspection.machine_id)}
                             </Typography>
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2">
-                              {inspection.model_id?.includes('BHB')
-                                ? 'BHB-002'
-                                : inspection.model_id?.includes('SHA')
-                                ? 'SHA-001'
-                                : inspection.model_id?.includes('FLC')
-                                ? 'FLC-003'
-                                : inspection.model_id?.includes('GAD')
-                                ? 'GAD-004'
-                                : inspection.model_id?.includes('CNE')
-                                ? 'CNE-005'
-                                : 'N/A'}
+                              {getModelCode(inspection.model_id)}
                             </Typography>
                           </TableCell>
                           <TableCell>

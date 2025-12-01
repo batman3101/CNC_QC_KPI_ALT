@@ -16,7 +16,7 @@ import type { AnalyticsFilters as Filters } from '@/types/analytics'
 
 // UI 테스트용 Mock 서비스 (나중에 실제 서비스로 교체)
 import * as analyticsService from '@/ui_test/mockServices/mockAnalyticsService'
-import { mockProductModels, mockInspectionProcesses } from '@/ui_test/mockData/analyticsMockData'
+import { getProductModels, getInspectionProcesses } from '@/ui_test/mockServices/mockManagementService'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -96,6 +96,18 @@ export function AnalyticsPage() {
     queryFn: () => analyticsService.getInspectorPerformance(filters),
   })
 
+  // Fetch Product Models from Management
+  const { data: productModels } = useQuery({
+    queryKey: ['product-models'],
+    queryFn: getProductModels,
+  })
+
+  // Fetch Inspection Processes from Management
+  const { data: inspectionProcesses } = useQuery({
+    queryKey: ['inspection-processes'],
+    queryFn: getInspectionProcesses,
+  })
+
   return (
     <Box>
       <Box sx={{ mb: 4 }}>
@@ -113,8 +125,8 @@ export function AnalyticsPage() {
           <AnalyticsFilters
             filters={filters}
             onChange={setFilters}
-            models={mockProductModels}
-            processes={mockInspectionProcesses}
+            models={productModels?.map((m) => ({ id: m.id, name: m.name })) || []}
+            processes={inspectionProcesses?.map((p) => ({ id: p.id, name: p.name })) || []}
           />
         </Grid>
 

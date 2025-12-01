@@ -212,7 +212,7 @@ export function generateInspections(count: number, daysBack: number = 90): Inspe
         const inspectionTime = addHours(currentDate, hour - day * 24)
         inspectionTime.setMinutes(randomMinutes)
 
-        const inspectionProcesses: Array<'IQC' | 'PQC' | 'OQC' | 'H/G' | 'MMS' | 'CNC-OQC' | 'POSITION' | '외관' | 'TRI'> = [
+        const inspectionProcesses: string[] = [
           'IQC', 'PQC', 'OQC', 'H/G', 'MMS', 'CNC-OQC', 'POSITION', '외관', 'TRI'
         ]
         const randomProcess = inspectionProcesses[Math.floor(Math.random() * inspectionProcesses.length)]

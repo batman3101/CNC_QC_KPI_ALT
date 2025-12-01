@@ -21,7 +21,6 @@ import { Assignment } from '@mui/icons-material'
 
 // UI 테스트용 Mock 서비스
 import * as managementService from '@/ui_test/mockServices/mockManagementService'
-import { INSPECTION_PROCESSES } from '@/types/inspection'
 import type { InspectionProcess } from '@/types/inspection'
 
 interface InspectionSetupProps {
@@ -58,19 +57,29 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
     queryFn: managementService.getProductModels,
   })
 
+  // Fetch inspection processes
+  const { data: processes = [], isLoading: processesLoading } = useQuery({
+    queryKey: ['inspection-processes'],
+    queryFn: managementService.getInspectionProcesses,
+  })
+
   const selectedModelId = watch('modelId')
-  const selectedProcess = watch('inspectionProcess')
+  const selectedProcessId = watch('inspectionProcess')
 
   const selectedModel = models.find((m) => m.id === selectedModelId)
+  const selectedProcess = processes.find((p) => p.id === selectedProcessId)
 
   const onSubmit = (values: FormValues) => {
-    onStart({
-      modelId: values.modelId,
-      inspectionProcess: values.inspectionProcess as InspectionProcess,
-    })
+    const process = processes.find((p) => p.id === values.inspectionProcess)
+    if (process) {
+      onStart({
+        modelId: values.modelId,
+        inspectionProcess: process,
+      })
+    }
   }
 
-  const isLoading = modelsLoading
+  const isLoading = modelsLoading || processesLoading
 
   return (
     <Card>
@@ -122,9 +131,12 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
                     {...field}
                     label={`${t('inspection.selectProcess')} *`}
                   >
-                    {INSPECTION_PROCESSES.map((process) => (
-                      <MenuItem key={process} value={process}>
-                        {process}
+                    {processes.map((process) => (
+                      <MenuItem key={process.id} value={process.id}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <span>{process.name}</span>
+                          <Chip label={process.code} size="small" color="secondary" variant="outlined" />
+                        </Box>
                       </MenuItem>
                     ))}
                   </Select>
@@ -155,7 +167,7 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
                       {t('inspection.process')}:
                     </Typography>
                     <Typography variant="body2" fontWeight={500}>
-                      {selectedProcess}
+                      {selectedProcess.name}
                     </Typography>
                   </Box>
                 </Box>

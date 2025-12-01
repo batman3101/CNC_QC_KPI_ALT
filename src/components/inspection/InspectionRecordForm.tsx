@@ -210,7 +210,7 @@ export function InspectionRecordForm({
                 {t('inspection.process')}
               </Typography>
               <Typography variant="body1" fontWeight={500}>
-                {inspectionProcess}
+                {inspectionProcess.name}
               </Typography>
             </Box>
           </Box>
@@ -443,7 +443,7 @@ export function InspectionRecordForm({
                       {t('inspection.process')}
                     </Typography>
                     <Typography variant="body2" fontWeight={500}>
-                      {inspectionProcess}
+                      {inspectionProcess.name}
                     </Typography>
                   </Box>
                   <Box sx={{ p: 1.5, bgcolor: 'background.paper', borderRadius: 1 }}>

@@ -8,22 +8,7 @@ import { ReportList } from '@/components/reports/ReportList'
 import { ReportSummaryCard } from '@/components/reports/ReportSummaryCard'
 import type { ReportFilters } from '@/types/report'
 import * as reportService from '@/ui_test/mockServices/mockReportService'
-
-// Mock data for models and processes
-const mockModels = [
-  { id: 'model-001', name: 'BHB-002' },
-  { id: 'model-002', name: 'SHA-001' },
-  { id: 'model-003', name: 'FLC-003' },
-  { id: 'model-004', name: 'GAD-004' },
-  { id: 'model-005', name: 'CNE-005' },
-]
-
-const mockProcesses = [
-  { id: 'process-1', name: 'IQC' },
-  { id: 'process-2', name: 'PQC' },
-  { id: 'process-3', name: 'OQC' },
-  { id: 'process-4', name: 'FQC' },
-]
+import { getProductModels, getInspectionProcesses } from '@/ui_test/mockServices/mockManagementService'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -76,6 +61,18 @@ export function ReportsPage() {
     queryFn: () => reportService.getReportSummary(summaryFilters),
   })
 
+  // Fetch Product Models from Management
+  const { data: productModels } = useQuery({
+    queryKey: ['product-models'],
+    queryFn: getProductModels,
+  })
+
+  // Fetch Inspection Processes from Management
+  const { data: inspectionProcesses } = useQuery({
+    queryKey: ['inspection-processes'],
+    queryFn: getInspectionProcesses,
+  })
+
   return (
     <Box>
       <Box sx={{ mb: 4 }}>
@@ -98,7 +95,10 @@ export function ReportsPage() {
         <TabPanel value={tabValue} index={0}>
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, lg: 6 }}>
-              <ReportGenerator models={mockModels} processes={mockProcesses} />
+              <ReportGenerator
+                models={productModels?.map((m) => ({ id: m.id, name: m.name })) || []}
+                processes={inspectionProcesses?.map((p) => ({ id: p.id, name: p.name })) || []}
+              />
             </Grid>
             <Grid size={{ xs: 12, lg: 6 }}>
               <ReportList
