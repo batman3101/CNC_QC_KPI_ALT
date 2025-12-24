@@ -86,7 +86,7 @@ export function ModelDefectChart({ data }: ModelDefectChartProps) {
                           {t('dashboard.model')}
                         </span>
                         <span className="font-bold">
-                          {data.modelName} ({data.modelCode})
+                          {data.modelCode} - {data.modelName}
                         </span>
                       </div>
                       <div className="flex justify-between gap-4">

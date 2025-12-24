@@ -125,8 +125,8 @@ export function AnalyticsPage() {
           <AnalyticsFilters
             filters={filters}
             onChange={setFilters}
-            models={productModels?.map((m) => ({ id: m.id, name: m.name })) || []}
-            processes={inspectionProcesses?.map((p) => ({ id: p.id, name: p.name })) || []}
+            models={productModels?.map((m) => ({ id: m.id, name: m.name, code: m.code })) || []}
+            processes={inspectionProcesses?.map((p) => ({ id: p.id, name: p.name, code: p.code })) || []}
           />
         </Grid>
 

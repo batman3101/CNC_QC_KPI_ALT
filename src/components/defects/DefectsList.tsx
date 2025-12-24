@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
@@ -6,22 +6,13 @@ import {
   CardContent,
   Box,
   Typography,
-  TextField,
   Button,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Chip,
   IconButton,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  InputAdornment,
   Grid,
 } from '@mui/material'
 import {
@@ -30,21 +21,21 @@ import {
   CheckCircle,
   Schedule,
   PlayArrow,
-  Search as SearchIcon,
 } from '@mui/icons-material'
 import { useSnackbar } from 'notistack'
 import { DefectDetailDialog } from './DefectDetailDialog'
+import { DataTable, type ColumnDef } from '@/components/common/DataTable'
 import type { Database } from '@/types/database'
 
 // UI 테스트용 Mock 서비스
 import * as inspectionService from '@/ui_test/mockServices/mockInspectionService'
+import { getProductModels } from '@/ui_test/mockServices/mockManagementService'
 
 type Defect = Database['public']['Tables']['defects']['Row']
 
 export function DefectsList() {
   const { t } = useTranslation()
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [searchQuery, setSearchQuery] = useState('')
   const [selectedDefect, setSelectedDefect] = useState<Defect | null>(null)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
 
@@ -75,6 +66,18 @@ export function DefectsList() {
     queryFn: () => inspectionService.getDefects(),
   })
 
+  // Fetch product models for model code display
+  const { data: productModels = [] } = useQuery({
+    queryKey: ['product-models'],
+    queryFn: getProductModels,
+  })
+
+  // Helper function to get model code by model_id
+  const getModelCode = (modelId: string): string => {
+    const model = productModels.find((m) => m.id === modelId)
+    return model ? model.code : '-'
+  }
+
   // Update status mutation
   const updateStatusMutation = useMutation({
     mutationFn: ({
@@ -93,17 +96,94 @@ export function DefectsList() {
     },
   })
 
-  // Filter defects
-  const filteredDefects = defects.filter((defect) => {
-    const matchesStatus =
-      statusFilter === 'all' || defect.status === statusFilter
-    const matchesSearch =
-      searchQuery === '' ||
-      defect.defect_type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      defect.description.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filter defects by status
+  const filteredDefects = useMemo(() => {
+    if (statusFilter === 'all') return defects
+    return defects.filter((defect) => defect.status === statusFilter)
+  }, [defects, statusFilter])
 
-    return matchesStatus && matchesSearch
-  })
+  // Column definitions - 새로운 컬럼 순서
+  // 1. 등록일시 2. 모델 코드 3. 불량 유형 4. 설명 5. 상태 6. 작업
+  const columns: ColumnDef<Defect>[] = useMemo(
+    () => [
+      {
+        id: 'created_at',
+        header: t('defects.registeredDate'),
+        cell: (row) => (
+          <Typography variant="body2">
+            {new Date(row.created_at).toLocaleString('ko-KR', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </Typography>
+        ),
+      },
+      {
+        id: 'model_code',
+        header: t('management.modelCode'),
+        cell: (row) => (
+          <Chip
+            label={getModelCode(row.model_id)}
+            size="small"
+            color="primary"
+            variant="outlined"
+          />
+        ),
+      },
+      {
+        id: 'defect_type',
+        header: t('defects.defectType'),
+        cell: (row) => (
+          <Typography variant="body2" fontWeight={500}>
+            {row.defect_type}
+          </Typography>
+        ),
+      },
+      {
+        id: 'description',
+        header: t('defects.description'),
+        cell: (row) => (
+          <Typography
+            variant="body2"
+            sx={{
+              maxWidth: 300,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {row.description}
+          </Typography>
+        ),
+      },
+      {
+        id: 'status',
+        header: t('defects.status'),
+        cell: (row) => {
+          const config = statusConfig[row.status]
+          const Icon = config.icon
+          return (
+            <Chip
+              icon={<Icon />}
+              label={config.label}
+              color={config.color}
+              size="small"
+            />
+          )
+        },
+        filterType: 'select',
+        filterOptions: [
+          { label: t('defects.statusPending'), value: 'pending' },
+          { label: t('defects.statusInProgress'), value: 'in_progress' },
+          { label: t('defects.statusResolved'), value: 'resolved' },
+        ],
+      },
+    ],
+    [t, productModels]
+  )
 
   const handleViewDetail = (defect: Defect) => {
     setSelectedDefect(defect)
@@ -113,6 +193,56 @@ export function DefectsList() {
   const handleStatusChange = (defectId: string, newStatus: Defect['status']) => {
     updateStatusMutation.mutate({ id: defectId, status: newStatus })
   }
+
+  // Render actions for each row
+  const renderActions = (defect: Defect) => (
+    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+      <IconButton
+        size="small"
+        onClick={() => handleViewDetail(defect)}
+        color="primary"
+      >
+        <Visibility />
+      </IconButton>
+      {defect.status === 'pending' && (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => handleStatusChange(defect.id, 'in_progress')}
+          sx={{ whiteSpace: 'nowrap' }}
+        >
+          {t('defects.startAction')}
+        </Button>
+      )}
+      {defect.status === 'in_progress' && (
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={() => handleStatusChange(defect.id, 'resolved')}
+          sx={{ whiteSpace: 'nowrap' }}
+        >
+          {t('defects.completeAction')}
+        </Button>
+      )}
+    </Box>
+  )
+
+  // Toolbar with status filter
+  const toolbarActions = (
+    <FormControl size="small" sx={{ minWidth: 150 }}>
+      <InputLabel>{t('defects.filterByStatus')}</InputLabel>
+      <Select
+        value={statusFilter}
+        label={t('defects.filterByStatus')}
+        onChange={(e) => setStatusFilter(e.target.value)}
+      >
+        <MenuItem value="all">{t('common.all')}</MenuItem>
+        <MenuItem value="pending">{t('defects.statusPending')}</MenuItem>
+        <MenuItem value="in_progress">{t('defects.statusInProgress')}</MenuItem>
+        <MenuItem value="resolved">{t('defects.statusResolved')}</MenuItem>
+      </Select>
+    </FormControl>
+  )
 
   // Calculate counts
   const counts = {
@@ -127,7 +257,7 @@ export function DefectsList() {
       {/* Summary Cards */}
       <Grid container spacing={3} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card 
+          <Card
             elevation={3}
             sx={{
               transition: 'all 0.3s ease-in-out',
@@ -154,7 +284,7 @@ export function DefectsList() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card 
+          <Card
             elevation={3}
             sx={{
               transition: 'all 0.3s ease-in-out',
@@ -181,7 +311,7 @@ export function DefectsList() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card 
+          <Card
             elevation={3}
             sx={{
               transition: 'all 0.3s ease-in-out',
@@ -208,7 +338,7 @@ export function DefectsList() {
         </Grid>
 
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <Card 
+          <Card
             elevation={3}
             sx={{
               transition: 'all 0.3s ease-in-out',
@@ -236,149 +366,18 @@ export function DefectsList() {
       </Grid>
 
       {/* Defects Table */}
-      <Card 
-        elevation={3}
-        sx={{
-          transition: 'all 0.3s ease-in-out',
-          '&:hover': {
-            transform: 'translateY(-4px)',
-            boxShadow: 6,
-          },
-        }}
-      >
-        <CardContent>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-            <Typography variant="h6" fontWeight={600}>
-              {t('defects.listTitle')}
-            </Typography>
-          </Box>
-
-          {/* Filters */}
-          <Box sx={{ display: 'flex', gap: 2, mb: 3, flexDirection: { xs: 'column', sm: 'row' } }}>
-            <TextField
-              placeholder={t('defects.defectType')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              size="small"
-              fullWidth
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <FormControl size="small" sx={{ minWidth: 180 }}>
-              <InputLabel>{t('defects.filterByStatus')}</InputLabel>
-              <Select
-                value={statusFilter}
-                label={t('defects.filterByStatus')}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <MenuItem value="all">{t('defects.all')}</MenuItem>
-                <MenuItem value="pending">{t('defects.statusPending')}</MenuItem>
-                <MenuItem value="in_progress">{t('defects.statusInProgress')}</MenuItem>
-                <MenuItem value="resolved">{t('defects.statusResolved')}</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
-
-          {/* Table */}
-          {isLoading ? (
-            <Box sx={{ py: 8, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                {t('common.loading')}
-              </Typography>
-            </Box>
-          ) : filteredDefects.length === 0 ? (
-            <Box sx={{ py: 8, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                {searchQuery || statusFilter !== 'all'
-                  ? t('common.noData')
-                  : t('common.noData')}
-              </Typography>
-            </Box>
-          ) : (
-            <TableContainer component={Paper} elevation={2}>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>{t('defects.defectType')}</TableCell>
-                    <TableCell>{t('defects.description')}</TableCell>
-                    <TableCell>{t('defects.status')}</TableCell>
-                    <TableCell>{t('defects.registeredDate')}</TableCell>
-                    <TableCell align="right">{t('common.actions')}</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredDefects.map((defect) => {
-                    const config = statusConfig[defect.status]
-                    const Icon = config.icon
-
-                    return (
-                      <TableRow key={defect.id} hover>
-                        <TableCell>
-                          <Typography variant="body2" fontWeight={500}>
-                            {defect.defect_type}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ maxWidth: 400 }}>
-                          <Typography variant="body2" noWrap>
-                            {defect.description}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Chip
-                            icon={<Icon />}
-                            label={config.label}
-                            color={config.color}
-                            size="small"
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {new Date(defect.created_at).toLocaleDateString('ko-KR')}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">
-                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleViewDetail(defect)}
-                              color="primary"
-                            >
-                              <Visibility />
-                            </IconButton>
-                            {defect.status === 'pending' && (
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                onClick={() => handleStatusChange(defect.id, 'in_progress')}
-                              >
-                                {t('defects.startAction')}
-                              </Button>
-                            )}
-                            {defect.status === 'in_progress' && (
-                              <Button
-                                variant="outlined"
-                                size="small"
-                                onClick={() => handleStatusChange(defect.id, 'resolved')}
-                              >
-                                {t('defects.completeAction')}
-                              </Button>
-                            )}
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    )
-                  })}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </CardContent>
-      </Card>
+      <DataTable
+        data={filteredDefects}
+        columns={columns}
+        loading={isLoading}
+        title={t('defects.listTitle')}
+        getRowId={(row) => row.id}
+        renderActions={renderActions}
+        toolbarActions={toolbarActions}
+        searchPlaceholder={t('defects.defectType')}
+        pageSize={20}
+        enableFilters={true}
+      />
 
       {/* Detail Dialog */}
       <DefectDetailDialog

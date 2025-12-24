@@ -1,21 +1,11 @@
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  Card,
-  CardContent,
-  CardHeader,
   Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   Chip,
   IconButton,
   Typography,
-  Skeleton,
   Tooltip,
 } from '@mui/material'
 import {
@@ -27,6 +17,7 @@ import {
   CheckCircle,
   Error,
 } from '@mui/icons-material'
+import { DataTable, type ColumnDef } from '@/components/common/DataTable'
 import type { Report } from '@/types/report'
 import * as reportService from '@/ui_test/mockServices/mockReportService'
 
@@ -93,7 +84,7 @@ export function ReportList({ reports, isLoading }: ReportListProps) {
     }
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): 'success' | 'warning' | 'error' | 'default' => {
     switch (status) {
       case 'completed':
         return 'success'
@@ -106,146 +97,151 @@ export function ReportList({ reports, isLoading }: ReportListProps) {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
-
-  if (isLoading) {
-    return (
-      <Card elevation={3}>
-        <CardHeader title={t('reports.reportList')} />
-        <CardContent>
-          <Box sx={{ py: 2 }}>
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} height={60} sx={{ mb: 1 }} />
-            ))}
-          </Box>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (reports.length === 0) {
-    return (
-      <Card elevation={3}>
-        <CardHeader title={t('reports.reportList')} />
-        <CardContent>
-          <Box sx={{ py: 4, textAlign: 'center' }}>
-            <Typography variant="body2" color="text.secondary">
-              {t('reports.noReports')}
+  // Column definitions
+  const columns: ColumnDef<Report>[] = useMemo(
+    () => [
+      {
+        id: 'title',
+        header: t('reports.reportTitle'),
+        cell: (row) => (
+          <Typography variant="body2" fontWeight={500}>
+            {row.title}
+          </Typography>
+        ),
+      },
+      {
+        id: 'type',
+        header: t('reports.type'),
+        cell: (row) => (
+          <Chip
+            label={getReportTypeLabel(row.type)}
+            size="small"
+            variant="outlined"
+          />
+        ),
+        filterType: 'select',
+        filterOptions: [
+          { label: t('reports.daily'), value: 'daily' },
+          { label: t('reports.weekly'), value: 'weekly' },
+          { label: t('reports.monthly'), value: 'monthly' },
+          { label: t('reports.custom'), value: 'custom' },
+        ],
+      },
+      {
+        id: 'format',
+        header: t('reports.format'),
+        cell: (row) => (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            {row.format === 'pdf' ? (
+              <PictureAsPdf fontSize="small" color="error" />
+            ) : (
+              <TableChart fontSize="small" color="success" />
+            )}
+            <Typography variant="body2">
+              {row.format.toUpperCase()}
             </Typography>
           </Box>
-        </CardContent>
-      </Card>
-    )
-  }
+        ),
+        filterType: 'select',
+        filterOptions: [
+          { label: 'PDF', value: 'pdf' },
+          { label: 'Excel', value: 'excel' },
+        ],
+      },
+      {
+        id: 'date_from',
+        header: t('reports.dateRange'),
+        sortable: false,
+        cell: (row) => (
+          <Typography variant="body2">
+            {new Date(row.date_from).toLocaleDateString('ko-KR')} ~{' '}
+            {new Date(row.date_to).toLocaleDateString('ko-KR')}
+          </Typography>
+        ),
+        searchable: false,
+      },
+      {
+        id: 'status',
+        header: t('reports.status'),
+        cell: (row) => (
+          <Chip
+            icon={getStatusIcon(row.status)}
+            label={t(`reports.status_${row.status}`)}
+            color={getStatusColor(row.status)}
+            size="small"
+          />
+        ),
+        filterType: 'select',
+        filterOptions: [
+          { label: t('reports.status_completed'), value: 'completed' },
+          { label: t('reports.status_generating'), value: 'generating' },
+          { label: t('reports.status_failed'), value: 'failed' },
+        ],
+      },
+      {
+        id: 'created_at',
+        header: t('reports.createdAt'),
+        cell: (row) => (
+          <Typography variant="body2">
+            {new Date(row.created_at).toLocaleString('ko-KR', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </Typography>
+        ),
+        searchable: false,
+      },
+    ],
+    [t]
+  )
+
+  // Render actions for each row
+  const renderActions = (report: Report) => (
+    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+      <Tooltip title={t('reports.download')}>
+        <span>
+          <IconButton
+            size="small"
+            color="primary"
+            disabled={
+              report.status !== 'completed' ||
+              downloadMutation.isPending
+            }
+            onClick={() => downloadMutation.mutate(report.id)}
+          >
+            <Download fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+      <Tooltip title={t('common.delete')}>
+        <span>
+          <IconButton
+            size="small"
+            color="error"
+            disabled={deleteMutation.isPending}
+            onClick={() => deleteMutation.mutate(report.id)}
+          >
+            <Delete fontSize="small" />
+          </IconButton>
+        </span>
+      </Tooltip>
+    </Box>
+  )
 
   return (
-    <Card elevation={3}>
-      <CardHeader title={t('reports.reportList')} />
-      <CardContent>
-        <TableContainer component={Paper} elevation={2}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>{t('reports.reportTitle')}</TableCell>
-                <TableCell>{t('reports.type')}</TableCell>
-                <TableCell>{t('reports.format')}</TableCell>
-                <TableCell>{t('reports.dateRange')}</TableCell>
-                <TableCell>{t('reports.status')}</TableCell>
-                <TableCell>{t('reports.createdAt')}</TableCell>
-                <TableCell align="center">{t('common.actions')}</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {reports.map((report) => (
-                <TableRow key={report.id} hover>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight={500}>
-                      {report.title}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={getReportTypeLabel(report.type)}
-                      size="small"
-                      variant="outlined"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      {report.format === 'pdf' ? (
-                        <PictureAsPdf fontSize="small" color="error" />
-                      ) : (
-                        <TableChart fontSize="small" color="success" />
-                      )}
-                      <Typography variant="body2">
-                        {report.format.toUpperCase()}
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {new Date(report.date_from).toLocaleDateString('ko-KR')} ~{' '}
-                      {new Date(report.date_to).toLocaleDateString('ko-KR')}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      icon={getStatusIcon(report.status)}
-                      label={t(`reports.status_${report.status}`)}
-                      color={getStatusColor(report.status) as any}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {formatDate(report.created_at)}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
-                      <Tooltip title={t('reports.download')}>
-                        <span>
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            disabled={
-                              report.status !== 'completed' ||
-                              downloadMutation.isPending
-                            }
-                            onClick={() => downloadMutation.mutate(report.id)}
-                          >
-                            <Download fontSize="small" />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                      <Tooltip title={t('common.delete')}>
-                        <span>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            disabled={deleteMutation.isPending}
-                            onClick={() => deleteMutation.mutate(report.id)}
-                          >
-                            <Delete fontSize="small" />
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </CardContent>
-    </Card>
+    <DataTable
+      data={reports}
+      columns={columns}
+      loading={isLoading}
+      title={t('reports.reportList')}
+      getRowId={(row) => row.id}
+      renderActions={renderActions}
+      searchPlaceholder={t('reports.reportTitle')}
+      pageSize={20}
+      enableFilters={true}
+    />
   )
 }

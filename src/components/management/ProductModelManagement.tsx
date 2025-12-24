@@ -1,51 +1,42 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
   Button,
-  TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
   IconButton,
   Chip,
+  Typography,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogContentText,
   DialogActions,
-  InputAdornment,
 } from '@mui/material'
 import {
   Add,
   Edit,
   Delete,
-  Search as SearchIcon,
+  Upload,
 } from '@mui/icons-material'
 import { useSnackbar } from 'notistack'
 import { ProductModelDialog } from './ProductModelDialog'
+import { ExcelBulkImportDialog } from '@/components/excel-import'
+import { DataTable, type ColumnDef } from '@/components/common/DataTable'
 import type { Database } from '@/types/database'
 
 // UI 테스트용 Mock 서비스
 import * as managementService from '@/ui_test/mockServices/mockManagementService'
+import type { ProductModelImportData } from '@/types/excel-import'
 
 type ProductModel = Database['public']['Tables']['product_models']['Row']
 
 export function ProductModelManagement() {
   const { t } = useTranslation()
-  const [searchQuery, setSearchQuery] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingModel, setEditingModel] = useState<ProductModel | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
 
   const queryClient = useQueryClient()
   const { enqueueSnackbar } = useSnackbar()
@@ -55,6 +46,23 @@ export function ProductModelManagement() {
     queryKey: ['product-models'],
     queryFn: managementService.getProductModels,
   })
+
+  // Fetch existing codes for duplicate check
+  const { data: existingCodes = [] } = useQuery({
+    queryKey: ['product-model-codes'],
+    queryFn: managementService.getProductModelCodes,
+  })
+
+  // Bulk import handler
+  const handleBulkSave = async (
+    data: Array<Record<string, unknown>>,
+    onProgress: (current: number, total: number) => void
+  ) => {
+    return managementService.bulkCreateProductModels(
+      data as unknown as ProductModelImportData[],
+      onProgress
+    )
+  }
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -70,11 +78,36 @@ export function ProductModelManagement() {
     },
   })
 
-  // Filter models by search query
-  const filteredModels = models.filter(
-    (model) =>
-      model.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      model.code.toLowerCase().includes(searchQuery.toLowerCase())
+  // Column definitions - 모델 코드 기준으로 표시
+  const columns: ColumnDef<ProductModel>[] = useMemo(
+    () => [
+      {
+        id: 'code',
+        header: t('management.modelCode'),
+        cell: (row) => (
+          <Chip label={row.code} variant="outlined" size="small" color="primary" />
+        ),
+      },
+      {
+        id: 'name',
+        header: t('management.modelName'),
+        cell: (row) => (
+          <Typography variant="body2" fontWeight={500}>
+            {row.name}
+          </Typography>
+        ),
+      },
+      {
+        id: 'created_at',
+        header: t('defects.registeredDate'),
+        cell: (row) => (
+          <Typography variant="body2">
+            {new Date(row.created_at).toLocaleDateString('ko-KR')}
+          </Typography>
+        ),
+      },
+    ],
+    [t]
   )
 
   const handleAdd = () => {
@@ -98,105 +131,59 @@ export function ProductModelManagement() {
     }
   }
 
+  // Render actions for each row
+  const renderActions = (model: ProductModel) => (
+    <>
+      <IconButton
+        size="small"
+        onClick={() => handleEdit(model)}
+        color="primary"
+      >
+        <Edit />
+      </IconButton>
+      <IconButton
+        size="small"
+        onClick={() => handleDelete(model.id)}
+        color="error"
+      >
+        <Delete />
+      </IconButton>
+    </>
+  )
+
+  // Toolbar actions
+  const toolbarActions = (
+    <>
+      <Button
+        variant="outlined"
+        startIcon={<Upload />}
+        onClick={() => setImportDialogOpen(true)}
+      >
+        {t('bulkImport.import')}
+      </Button>
+      <Button
+        variant="contained"
+        startIcon={<Add />}
+        onClick={handleAdd}
+      >
+        {t('management.addProductModel')}
+      </Button>
+    </>
+  )
+
   return (
     <>
-      <Card>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-            <Typography variant="h6" fontWeight={600}>
-              {t('management.productModelList')}
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={handleAdd}
-            >
-              {t('management.addProductModel')}
-            </Button>
-          </Box>
-
-          {/* Search */}
-          <Box sx={{ mb: 3 }}>
-            <TextField
-              placeholder={t('common.search')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              size="small"
-              fullWidth
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Box>
-
-          {/* Table */}
-          {isLoading ? (
-            <Box sx={{ py: 8, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                {t('common.loading')}
-              </Typography>
-            </Box>
-          ) : filteredModels.length === 0 ? (
-            <Box sx={{ py: 8, textAlign: 'center' }}>
-              <Typography variant="body2" color="text.secondary">
-                {searchQuery ? t('common.noData') : t('common.noData')}
-              </Typography>
-            </Box>
-          ) : (
-            <TableContainer component={Paper} variant="outlined">
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>{t('management.modelName')}</TableCell>
-                    <TableCell>{t('management.modelCode')}</TableCell>
-                    <TableCell>{t('defects.registeredDate')}</TableCell>
-                    <TableCell align="right">{t('common.actions')}</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {filteredModels.map((model) => (
-                    <TableRow key={model.id} hover>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight={500}>
-                          {model.name}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip label={model.code} variant="outlined" size="small" />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">
-                          {new Date(model.created_at).toLocaleDateString('ko-KR')}
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right">
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEdit(model)}
-                          color="primary"
-                        >
-                          <Edit />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleDelete(model.id)}
-                          color="error"
-                        >
-                          <Delete />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </CardContent>
-      </Card>
+      <DataTable
+        data={models}
+        columns={columns}
+        loading={isLoading}
+        title={t('management.productModelList')}
+        getRowId={(row) => row.id}
+        renderActions={renderActions}
+        toolbarActions={toolbarActions}
+        pageSize={20}
+        enableFilters={false}
+      />
 
       {/* Add/Edit Dialog */}
       <ProductModelDialog
@@ -222,6 +209,19 @@ export function ProductModelManagement() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Bulk Import Dialog */}
+      <ExcelBulkImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        entityType="productModel"
+        existingCodes={existingCodes}
+        onBulkSave={handleBulkSave}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['product-models'] })
+          queryClient.invalidateQueries({ queryKey: ['product-model-codes'] })
+        }}
+      />
     </>
   )
 }

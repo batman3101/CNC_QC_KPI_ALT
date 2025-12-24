@@ -23,7 +23,8 @@
       "Bash(npm audit:*)",
       "Bash(npm uninstall:*)",
       "Bash(dir \"C:\\Work Drive\\APP\\CNC_QC_KPI\\public\\ALMUS TECH BLUE.png\")",
-      "Bash(dir \"C:\\Work Drive\\APP\\CNC_QC_KPI\\public\\A symbol BLUE-02.png\")"
+      "Bash(dir \"C:\\Work Drive\\APP\\CNC_QC_KPI\\public\\A symbol BLUE-02.png\")",
+      "Bash(dir /b \"C:\\\\Work Drive\\\\APP\\\\CNC_QC_KPI\\\\src\\\\components\\\\common\")"
     ],
     "deny": [],
     "ask": []

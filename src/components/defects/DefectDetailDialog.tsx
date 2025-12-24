@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
 import {
   Dialog,
   DialogTitle,
@@ -17,6 +18,7 @@ import {
   Image as ImageIcon,
 } from '@mui/icons-material'
 import type { Database } from '@/types/database'
+import { getProductModels } from '@/ui_test/mockServices/mockManagementService'
 
 type Defect = Database['public']['Tables']['defects']['Row']
 
@@ -35,7 +37,21 @@ export function DefectDetailDialog({
 }: DefectDetailDialogProps) {
   const { t } = useTranslation()
 
+  // Fetch product models for model code display
+  const { data: productModels = [] } = useQuery({
+    queryKey: ['product-models'],
+    queryFn: getProductModels,
+  })
+
+  // Helper function to get model info
+  const getModelInfo = (modelId: string): { code: string; name: string } => {
+    const model = productModels.find((m) => m.id === modelId)
+    return model ? { code: model.code, name: model.name } : { code: '-', name: '-' }
+  }
+
   if (!defect) return null
+
+  const modelInfo = getModelInfo(defect.model_id)
 
   const statusConfig = {
     pending: {
@@ -104,6 +120,27 @@ export function DefectDetailDialog({
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
             <Box>
               <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>
+                {t('defects.registeredDate')}
+              </Typography>
+              <Typography variant="body1">
+                {new Date(defect.created_at).toLocaleString('ko-KR')}
+              </Typography>
+            </Box>
+
+            <Box>
+              <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>
+                {t('management.modelCode')}
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Chip label={modelInfo.code} size="small" color="primary" variant="outlined" />
+                <Typography variant="body2" color="text.secondary">
+                  {modelInfo.name}
+                </Typography>
+              </Box>
+            </Box>
+
+            <Box>
+              <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>
                 {t('defects.defectType')}
               </Typography>
               <Typography variant="body1" fontWeight={500}>
@@ -117,15 +154,6 @@ export function DefectDetailDialog({
               </Typography>
               <Typography variant="body1">
                 {defect.description}
-              </Typography>
-            </Box>
-
-            <Box>
-              <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>
-                {t('defects.registeredDate')}
-              </Typography>
-              <Typography variant="body1">
-                {new Date(defect.created_at).toLocaleString('ko-KR')}
               </Typography>
             </Box>
 

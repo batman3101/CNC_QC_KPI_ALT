@@ -1,10 +1,5 @@
 import type { Database } from '@/types/database'
 import type { DefectType } from '@/types/inspection'
-import {
-  mockProductModels,
-  mockInspectionItems,
-  getItemsByModelId,
-} from '../mockData/managementMockData'
 import { MOCK_USERS } from './mockAuthService'
 import { MACHINES } from '../mockData/mockDataGenerator'
 
@@ -30,12 +25,42 @@ type DefectTypeUpdate = Database['public']['Tables']['defect_types']['Update']
 
 type User = Database['public']['Tables']['users']['Row']
 
+// ============= localStorage 키 =============
+const STORAGE_KEYS = {
+  PRODUCT_MODELS: 'cnc_qc_product_models',
+  INSPECTION_ITEMS: 'cnc_qc_inspection_items',
+  INSPECTION_PROCESSES: 'cnc_qc_inspection_processes',
+  DEFECT_TYPES_ROWS: 'cnc_qc_defect_types_rows',
+  DEFECT_TYPES: 'cnc_qc_defect_types',
+}
+
+// ============= localStorage 유틸리티 =============
+function loadFromStorage<T>(key: string, defaultValue: T): T {
+  try {
+    const stored = localStorage.getItem(key)
+    if (stored) {
+      return JSON.parse(stored) as T
+    }
+  } catch (error) {
+    console.error(`Failed to load ${key} from localStorage:`, error)
+  }
+  return defaultValue
+}
+
+function saveToStorage<T>(key: string, data: T): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(data))
+  } catch (error) {
+    console.error(`Failed to save ${key} to localStorage:`, error)
+  }
+}
+
 // Mock 검사 공정 데이터
 const mockInspectionProcesses: InspectionProcess[] = [
   {
     id: 'process-001',
     code: 'IQC',
-    name: '입고 검사 (IQC)',
+    name: '입고 검사',
     description: '원자재 및 부품 입고 시 검사',
     is_active: true,
     created_at: new Date().toISOString(),
@@ -43,7 +68,7 @@ const mockInspectionProcesses: InspectionProcess[] = [
   {
     id: 'process-002',
     code: 'PQC',
-    name: '공정 검사 (PQC)',
+    name: '공정 검사',
     description: '생산 공정 중 중간 검사',
     is_active: true,
     created_at: new Date().toISOString(),
@@ -51,7 +76,7 @@ const mockInspectionProcesses: InspectionProcess[] = [
   {
     id: 'process-003',
     code: 'OQC',
-    name: '출고 검사 (OQC)',
+    name: '출고 검사',
     description: '완제품 출고 전 최종 검사',
     is_active: true,
     created_at: new Date().toISOString(),
@@ -219,12 +244,12 @@ const mockDefectTypes: DefectType[] = [
   },
 ]
 
-// In-memory storage (simulates database)
-let productModelsData = [...mockProductModels]
-let inspectionItemsData = [...mockInspectionItems]
-let inspectionProcessesData = [...mockInspectionProcesses]
-let defectTypesRowsData = [...mockDefectTypesRows]
-let defectTypesData = [...mockDefectTypes]
+// In-memory storage with localStorage persistence
+let productModelsData: ProductModel[] = loadFromStorage(STORAGE_KEYS.PRODUCT_MODELS, [])
+let inspectionItemsData: InspectionItem[] = loadFromStorage(STORAGE_KEYS.INSPECTION_ITEMS, [])
+let inspectionProcessesData: InspectionProcess[] = loadFromStorage(STORAGE_KEYS.INSPECTION_PROCESSES, mockInspectionProcesses)
+let defectTypesRowsData: DefectTypeRow[] = loadFromStorage(STORAGE_KEYS.DEFECT_TYPES_ROWS, mockDefectTypesRows)
+let defectTypesData: DefectType[] = loadFromStorage(STORAGE_KEYS.DEFECT_TYPES, mockDefectTypes)
 
 // Helper function to simulate async delay
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
@@ -257,6 +282,7 @@ export async function createProductModel(
   }
 
   productModelsData.push(newModel)
+  saveToStorage(STORAGE_KEYS.PRODUCT_MODELS, productModelsData)
   return newModel
 }
 
@@ -276,6 +302,7 @@ export async function updateProductModel(
     ...data,
   }
 
+  saveToStorage(STORAGE_KEYS.PRODUCT_MODELS, productModelsData)
   return productModelsData[index]
 }
 
@@ -291,6 +318,7 @@ export async function deleteProductModel(id: string): Promise<void> {
   }
 
   productModelsData = productModelsData.filter((model) => model.id !== id)
+  saveToStorage(STORAGE_KEYS.PRODUCT_MODELS, productModelsData)
 }
 
 // ============= Inspection Items CRUD =============
@@ -337,6 +365,7 @@ export async function createInspectionItem(
   }
 
   inspectionItemsData.push(newItem)
+  saveToStorage(STORAGE_KEYS.INSPECTION_ITEMS, inspectionItemsData)
   return newItem
 }
 
@@ -356,12 +385,14 @@ export async function updateInspectionItem(
     ...data,
   }
 
+  saveToStorage(STORAGE_KEYS.INSPECTION_ITEMS, inspectionItemsData)
   return inspectionItemsData[index]
 }
 
 export async function deleteInspectionItem(id: string): Promise<void> {
   await delay(300)
   inspectionItemsData = inspectionItemsData.filter((item) => item.id !== id)
+  saveToStorage(STORAGE_KEYS.INSPECTION_ITEMS, inspectionItemsData)
 }
 
 // ============= Utility Functions =============
@@ -370,7 +401,7 @@ export async function getInspectionItemsByModelId(
   modelId: string
 ): Promise<InspectionItem[]> {
   await delay(200)
-  return getItemsByModelId(modelId)
+  return inspectionItemsData.filter((item) => item.model_id === modelId)
 }
 
 // ============= Defect Types =============
@@ -426,6 +457,7 @@ export async function createInspectionProcess(
   }
 
   inspectionProcessesData.push(newProcess)
+  saveToStorage(STORAGE_KEYS.INSPECTION_PROCESSES, inspectionProcessesData)
   return newProcess
 }
 
@@ -445,6 +477,7 @@ export async function updateInspectionProcess(
     ...data,
   }
 
+  saveToStorage(STORAGE_KEYS.INSPECTION_PROCESSES, inspectionProcessesData)
   return inspectionProcessesData[index]
 }
 
@@ -453,6 +486,7 @@ export async function deleteInspectionProcess(id: string): Promise<void> {
   inspectionProcessesData = inspectionProcessesData.filter(
     (process) => process.id !== id
   )
+  saveToStorage(STORAGE_KEYS.INSPECTION_PROCESSES, inspectionProcessesData)
 }
 
 // ============= Defect Types CRUD =============
@@ -495,6 +529,8 @@ export async function createDefectTypeRow(
     created_at: newType.created_at,
   })
 
+  saveToStorage(STORAGE_KEYS.DEFECT_TYPES_ROWS, defectTypesRowsData)
+  saveToStorage(STORAGE_KEYS.DEFECT_TYPES, defectTypesData)
   return newType
 }
 
@@ -524,6 +560,8 @@ export async function updateDefectTypeRow(
     }
   }
 
+  saveToStorage(STORAGE_KEYS.DEFECT_TYPES_ROWS, defectTypesRowsData)
+  saveToStorage(STORAGE_KEYS.DEFECT_TYPES, defectTypesData)
   return defectTypesRowsData[index]
 }
 
@@ -531,6 +569,8 @@ export async function deleteDefectTypeRow(id: string): Promise<void> {
   await delay(300)
   defectTypesRowsData = defectTypesRowsData.filter((type) => type.id !== id)
   defectTypesData = defectTypesData.filter((type) => type.id !== id)
+  saveToStorage(STORAGE_KEYS.DEFECT_TYPES_ROWS, defectTypesRowsData)
+  saveToStorage(STORAGE_KEYS.DEFECT_TYPES, defectTypesData)
 }
 
 // ============= Machines =============
@@ -551,4 +591,177 @@ export async function searchMachines(query: string): Promise<Machine[]> {
   if (!query) return MACHINES.slice(0, 50) // 빈 검색어면 처음 50개만
   const lowerQuery = query.toLowerCase()
   return MACHINES.filter((m) => m.name.toLowerCase().includes(lowerQuery)).slice(0, 50)
+}
+
+// ============= Bulk Import Functions =============
+
+export interface BulkSaveResult {
+  success: number
+  failed: number
+  errors: string[]
+}
+
+/**
+ * Bulk save product models
+ */
+export async function bulkCreateProductModels(
+  data: Array<{ code: string; name: string }>,
+  onProgress?: (current: number, total: number) => void
+): Promise<BulkSaveResult> {
+  const result: BulkSaveResult = { success: 0, failed: 0, errors: [] }
+
+  for (let i = 0; i < data.length; i++) {
+    try {
+      await createProductModel(data[i])
+      result.success++
+    } catch (error) {
+      result.failed++
+      result.errors.push(`Row ${i + 2}: ${(error as Error).message}`)
+    }
+    onProgress?.(i + 1, data.length)
+  }
+
+  return result
+}
+
+/**
+ * Bulk save inspection items
+ */
+export async function bulkCreateInspectionItems(
+  data: Array<{
+    model_code: string
+    name: string
+    data_type: 'numeric' | 'ok_ng'
+    standard_value?: number
+    tolerance_min?: number
+    tolerance_max?: number
+    unit?: string
+  }>,
+  onProgress?: (current: number, total: number) => void
+): Promise<BulkSaveResult> {
+  const result: BulkSaveResult = { success: 0, failed: 0, errors: [] }
+
+  // Get model code to ID mapping
+  const models = await getProductModels()
+  const modelCodeToId = new Map(models.map((m) => [m.code.toLowerCase(), m.id]))
+
+  for (let i = 0; i < data.length; i++) {
+    try {
+      const item = data[i]
+      const modelId = modelCodeToId.get(item.model_code.toLowerCase())
+
+      if (!modelId) {
+        throw new Error(`Model not found: ${item.model_code}`)
+      }
+
+      await createInspectionItem({
+        model_id: modelId,
+        name: item.name,
+        data_type: item.data_type,
+        standard_value: item.standard_value ?? 0,
+        tolerance_min: item.tolerance_min ?? 0,
+        tolerance_max: item.tolerance_max ?? 0,
+        unit: item.unit ?? 'mm',
+      })
+      result.success++
+    } catch (error) {
+      result.failed++
+      result.errors.push(`Row ${i + 2}: ${(error as Error).message}`)
+    }
+    onProgress?.(i + 1, data.length)
+  }
+
+  return result
+}
+
+/**
+ * Bulk save inspection processes
+ */
+export async function bulkCreateInspectionProcesses(
+  data: Array<{
+    code: string
+    name: string
+    description?: string
+    is_active?: boolean
+  }>,
+  onProgress?: (current: number, total: number) => void
+): Promise<BulkSaveResult> {
+  const result: BulkSaveResult = { success: 0, failed: 0, errors: [] }
+
+  for (let i = 0; i < data.length; i++) {
+    try {
+      await createInspectionProcess({
+        code: data[i].code,
+        name: data[i].name,
+        description: data[i].description,
+        is_active: data[i].is_active ?? true,
+      })
+      result.success++
+    } catch (error) {
+      result.failed++
+      result.errors.push(`Row ${i + 2}: ${(error as Error).message}`)
+    }
+    onProgress?.(i + 1, data.length)
+  }
+
+  return result
+}
+
+/**
+ * Bulk save defect types
+ */
+export async function bulkCreateDefectTypes(
+  data: Array<{
+    code: string
+    name: string
+    description?: string
+    severity: 'low' | 'medium' | 'high'
+    is_active?: boolean
+  }>,
+  onProgress?: (current: number, total: number) => void
+): Promise<BulkSaveResult> {
+  const result: BulkSaveResult = { success: 0, failed: 0, errors: [] }
+
+  for (let i = 0; i < data.length; i++) {
+    try {
+      await createDefectTypeRow({
+        code: data[i].code,
+        name: data[i].name,
+        description: data[i].description,
+        severity: data[i].severity,
+        is_active: data[i].is_active ?? true,
+      })
+      result.success++
+    } catch (error) {
+      result.failed++
+      result.errors.push(`Row ${i + 2}: ${(error as Error).message}`)
+    }
+    onProgress?.(i + 1, data.length)
+  }
+
+  return result
+}
+
+/**
+ * Get all product model codes (for duplicate check)
+ */
+export async function getProductModelCodes(): Promise<string[]> {
+  const models = await getProductModels()
+  return models.map((m) => m.code)
+}
+
+/**
+ * Get all inspection process codes (for duplicate check)
+ */
+export async function getInspectionProcessCodes(): Promise<string[]> {
+  const processes = await getInspectionProcesses()
+  return processes.map((p) => p.code)
+}
+
+/**
+ * Get all defect type codes (for duplicate check)
+ */
+export async function getDefectTypeCodes(): Promise<string[]> {
+  const types = await getDefectTypesRows()
+  return types.map((t) => t.code)
 }

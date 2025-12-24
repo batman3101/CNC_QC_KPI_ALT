@@ -21,8 +21,8 @@ import type { AnalyticsFilters as Filters } from '@/types/analytics'
 interface AnalyticsFiltersProps {
   filters: Filters
   onChange: (filters: Filters) => void
-  models?: Array<{ id: string; name: string }>
-  processes?: Array<{ id: string; name: string }>
+  models?: Array<{ id: string; name: string; code: string }>
+  processes?: Array<{ id: string; name: string; code: string }>
 }
 
 export function AnalyticsFilters({
@@ -105,12 +105,12 @@ export function AnalyticsFilters({
             </ButtonGroup>
           </Box>
 
-          {/* Model Filter */}
+          {/* Model Filter - 모델 코드 기준 */}
           <FormControl fullWidth>
-            <InputLabel>{t('dashboard.model')}</InputLabel>
+            <InputLabel>{t('management.modelCode')}</InputLabel>
             <Select
               value={filters.modelId || 'all'}
-              label={t('dashboard.model')}
+              label={t('management.modelCode')}
               onChange={(e) =>
                 onChange({
                   ...filters,
@@ -121,13 +121,13 @@ export function AnalyticsFilters({
               <MenuItem value="all">{t('analytics.allModels')}</MenuItem>
               {models.map((model) => (
                 <MenuItem key={model.id} value={model.id}>
-                  {model.name}
+                  {model.code} - {model.name}
                 </MenuItem>
               ))}
             </Select>
           </FormControl>
 
-          {/* Process Filter */}
+          {/* Process Filter - 공정 코드 기준 */}
           <FormControl fullWidth>
             <InputLabel>{t('inspection.process')}</InputLabel>
             <Select
@@ -143,7 +143,7 @@ export function AnalyticsFilters({
               <MenuItem value="all">{t('analytics.allProcesses')}</MenuItem>
               {processes.map((process) => (
                 <MenuItem key={process.id} value={process.id}>
-                  {process.name}
+                  {process.code} - {process.name}
                 </MenuItem>
               ))}
             </Select>

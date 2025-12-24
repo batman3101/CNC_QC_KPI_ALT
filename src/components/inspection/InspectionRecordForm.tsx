@@ -202,7 +202,7 @@ export function InspectionRecordForm({
                 {t('dashboard.model')}
               </Typography>
               <Typography variant="body1" fontWeight={500}>
-                {modelName} ({modelCode})
+                {modelCode} ({modelName})
               </Typography>
             </Box>
             <Box>
@@ -210,7 +210,7 @@ export function InspectionRecordForm({
                 {t('inspection.process')}
               </Typography>
               <Typography variant="body1" fontWeight={500}>
-                {inspectionProcess.name}
+                {inspectionProcess.code} ({inspectionProcess.name})
               </Typography>
             </Box>
           </Box>
@@ -236,48 +236,53 @@ export function InspectionRecordForm({
                       </MenuItem>
                     ))}
                   </Select>
-                  {errors.defectTypeId && (
-                    <FormHelperText>{errors.defectTypeId.message}</FormHelperText>
-                  )}
+                  <FormHelperText error={!!errors.defectTypeId}>
+                    {errors.defectTypeId?.message || t('inspection.defectTypeHelper')}
+                  </FormHelperText>
                 </FormControl>
               )}
             />
 
             {/* Machine Number - Searchable Dropdown */}
-            <Autocomplete
-              options={machines}
-              getOptionLabel={(option) => option.name}
-              value={selectedMachine}
-              onChange={(_event, newValue) => {
-                setSelectedMachine(newValue)
-                setValue('machineId', newValue?.id || null)
-              }}
-              inputValue={machineInputValue}
-              onInputChange={(_event, newInputValue) => {
-                setMachineInputValue(newInputValue)
-              }}
-              loading={machinesLoading}
-              filterOptions={(x) => x} // 서버에서 필터링하므로 클라이언트 필터 비활성화
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              noOptionsText={t('common.noData')}
-              loadingText={t('common.loading')}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label={`${t('inspection.machineNumber')} (${t('common.optional')})`}
-                  placeholder={t('inspection.machineNumberPlaceholder')}
-                  InputProps={{
-                    ...params.InputProps,
-                    endAdornment: (
-                      <>
-                        {machinesLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                        {params.InputProps.endAdornment}
-                      </>
-                    ),
-                  }}
-                />
-              )}
-            />
+            <Box>
+              <Autocomplete
+                options={machines}
+                getOptionLabel={(option) => option.name}
+                value={selectedMachine}
+                onChange={(_event, newValue) => {
+                  setSelectedMachine(newValue)
+                  setValue('machineId', newValue?.id || null)
+                }}
+                inputValue={machineInputValue}
+                onInputChange={(_event, newInputValue) => {
+                  setMachineInputValue(newInputValue)
+                }}
+                loading={machinesLoading}
+                filterOptions={(x) => x} // 서버에서 필터링하므로 클라이언트 필터 비활성화
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                noOptionsText={t('common.noData')}
+                loadingText={t('common.loading')}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label={`${t('inspection.machineNumber')} (${t('common.optional')})`}
+                    placeholder={t('inspection.machineNumberPlaceholder')}
+                    InputProps={{
+                      ...params.InputProps,
+                      endAdornment: (
+                        <>
+                          {machinesLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      ),
+                    }}
+                  />
+                )}
+              />
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                {t('inspection.machineNumberHelper')}
+              </Typography>
+            </Box>
 
             {/* Inspector Selection */}
             {canSelectInspector ? (
@@ -296,36 +301,56 @@ export function InspectionRecordForm({
                           </MenuItem>
                         ))}
                     </Select>
-                    {errors.inspectorId && (
-                      <FormHelperText>{errors.inspectorId.message}</FormHelperText>
-                    )}
+                    <FormHelperText error={!!errors.inspectorId}>
+                      {errors.inspectorId?.message || t('inspection.inspectorHelper')}
+                    </FormHelperText>
                   </FormControl>
                 )}
               />
             ) : (
-              <TextField
-                label={t('inspection.inspector')}
-                value={profile?.name || ''}
-                disabled
-                fullWidth
-              />
+              <Box>
+                <TextField
+                  label={t('inspection.inspector')}
+                  value={profile?.name || ''}
+                  disabled
+                  fullWidth
+                />
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                  {t('inspection.inspectorHelper')}
+                </Typography>
+              </Box>
             )}
+
+            {/* Quantity Input Guide */}
+            <Alert severity="info" sx={{ py: 1 }}>
+              <Typography variant="caption" fontWeight={500}>
+                {t('inspection.quantityInputGuide')}
+              </Typography>
+            </Alert>
 
             {/* Inspection Quantity */}
             <Controller
               name="inspectionQuantity"
               control={control}
               render={({ field }) => (
-                <TextField
-                  {...field}
-                  type="number"
-                  label={`${t('inspection.inspectionQuantity')} *`}
-                  fullWidth
-                  error={!!errors.inspectionQuantity}
-                  helperText={errors.inspectionQuantity?.message}
-                  inputProps={{ min: 1 }}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                />
+                <Box>
+                  <TextField
+                    {...field}
+                    type="number"
+                    label={`${t('inspection.inspectionQuantity')} *`}
+                    fullWidth
+                    error={!!errors.inspectionQuantity}
+                    inputProps={{ min: 1 }}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                  <Typography
+                    variant="caption"
+                    color={errors.inspectionQuantity ? 'error' : 'text.secondary'}
+                    sx={{ mt: 0.5, display: 'block' }}
+                  >
+                    {errors.inspectionQuantity?.message || t('inspection.inspectionQuantityHelper')}
+                  </Typography>
+                </Box>
               )}
             />
 
@@ -334,16 +359,24 @@ export function InspectionRecordForm({
               name="defectQuantity"
               control={control}
               render={({ field }) => (
-                <TextField
-                  {...field}
-                  type="number"
-                  label={`${t('inspection.defectQuantity')} *`}
-                  fullWidth
-                  error={!!errors.defectQuantity}
-                  helperText={errors.defectQuantity?.message}
-                  inputProps={{ min: 0 }}
-                  onChange={(e) => field.onChange(Number(e.target.value))}
-                />
+                <Box>
+                  <TextField
+                    {...field}
+                    type="number"
+                    label={`${t('inspection.defectQuantity')} *`}
+                    fullWidth
+                    error={!!errors.defectQuantity}
+                    inputProps={{ min: 0 }}
+                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  />
+                  <Typography
+                    variant="caption"
+                    color={errors.defectQuantity ? 'error' : 'text.secondary'}
+                    sx={{ mt: 0.5, display: 'block' }}
+                  >
+                    {errors.defectQuantity?.message || t('inspection.defectQuantityHelper')}
+                  </Typography>
+                </Box>
               )}
             />
 

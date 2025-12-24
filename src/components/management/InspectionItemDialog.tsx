@@ -243,7 +243,7 @@ export function InspectionItemDialog({
                     <SelectContent>
                       {models.map((model) => (
                         <SelectItem key={model.id} value={model.id}>
-                          {model.name} ({model.code})
+                          {model.code} - {model.name}
                         </SelectItem>
                       ))}
                     </SelectContent>

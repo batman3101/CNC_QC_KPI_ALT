@@ -8,6 +8,7 @@ import {
   Warning as WarningIcon,
   TrendingUp as TrendingUpIcon,
   Description as DescriptionIcon,
+  People as PeopleIcon,
 } from '@mui/icons-material'
 
 interface SidebarProps {
@@ -58,6 +59,12 @@ const getNavItems = (): NavItem[] => [
     titleKey: 'nav.management',
     href: '/management',
     icon: SettingsIcon,
+    roles: ['admin', 'manager'],
+  },
+  {
+    titleKey: 'nav.userManagement',
+    href: '/users',
+    icon: PeopleIcon,
     roles: ['admin', 'manager'],
   },
 ]

@@ -1,32 +1,29 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Plus, Pencil, Trash2, Search } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+  Button,
+  IconButton,
+  Chip,
+  Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+} from '@mui/material'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
-import { useToast } from '@/hooks/use-toast'
+  Add,
+  Edit,
+  Delete,
+  Upload,
+} from '@mui/icons-material'
+import { useSnackbar } from 'notistack'
 import { DefectTypeDialog } from './DefectTypeDialog'
+import { ExcelBulkImportDialog } from '@/components/excel-import'
+import { DataTable, type ColumnDef } from '@/components/common/DataTable'
 import type { Database } from '@/types/database'
+import type { DefectTypeImportData } from '@/types/excel-import'
 
 // UI 테스트용 Mock 서비스
 import * as managementService from '@/ui_test/mockServices/mockManagementService'
@@ -35,19 +32,25 @@ type DefectType = Database['public']['Tables']['defect_types']['Row']
 
 export function DefectTypeManagement() {
   const { t } = useTranslation()
-  const [searchQuery, setSearchQuery] = useState('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingType, setEditingType] = useState<DefectType | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
 
   const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const { enqueueSnackbar } = useSnackbar()
 
   // Fetch defect types
   const { data: types = [], isLoading } = useQuery({
     queryKey: ['defect-types-rows'],
     queryFn: managementService.getDefectTypesRows,
+  })
+
+  // Fetch existing codes for duplicate check
+  const { data: existingCodes = [] } = useQuery({
+    queryKey: ['defect-type-codes'],
+    queryFn: managementService.getDefectTypeCodes,
   })
 
   // Delete mutation
@@ -56,27 +59,107 @@ export function DefectTypeManagement() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['defect-types-rows'] })
       queryClient.invalidateQueries({ queryKey: ['defect-types'] })
-      toast({
-        title: t('management.deleteDefectType'),
-        description: t('management.defectTypeDeleted'),
-      })
+      enqueueSnackbar(t('management.defectTypeDeleted'), { variant: 'success' })
       setDeleteDialogOpen(false)
       setDeletingId(null)
     },
     onError: (error: Error) => {
-      toast({
-        title: t('common.error'),
-        description: error.message,
-        variant: 'destructive',
-      })
+      enqueueSnackbar(error.message, { variant: 'error' })
     },
   })
 
-  // Filter types by search query
-  const filteredTypes = types.filter(
-    (type) =>
-      type.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      type.code.toLowerCase().includes(searchQuery.toLowerCase())
+  // Bulk import handler
+  const handleBulkSave = async (
+    data: Array<Record<string, unknown>>,
+    onProgress: (current: number, total: number) => void
+  ) => {
+    return managementService.bulkCreateDefectTypes(
+      data as unknown as DefectTypeImportData[],
+      onProgress
+    )
+  }
+
+  // Get severity chip color
+  const getSeverityColor = (severity: 'low' | 'medium' | 'high') => {
+    const colors: Record<string, 'success' | 'warning' | 'error'> = {
+      low: 'success',
+      medium: 'warning',
+      high: 'error',
+    }
+    return colors[severity]
+  }
+
+  // Column definitions
+  const columns: ColumnDef<DefectType>[] = useMemo(
+    () => [
+      {
+        id: 'code',
+        header: t('management.defectCode'),
+        cell: (row) => (
+          <Chip label={row.code} variant="outlined" size="small" />
+        ),
+      },
+      {
+        id: 'name',
+        header: t('management.defectName'),
+        cell: (row) => (
+          <Typography variant="body2" fontWeight={500}>
+            {row.name}
+          </Typography>
+        ),
+      },
+      {
+        id: 'description',
+        header: t('management.description'),
+        cell: (row) => (
+          <Typography
+            variant="body2"
+            sx={{
+              maxWidth: 250,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {row.description || '-'}
+          </Typography>
+        ),
+      },
+      {
+        id: 'severity',
+        header: t('management.severity'),
+        cell: (row) => (
+          <Chip
+            label={t(`management.severityLevel.${row.severity}`)}
+            size="small"
+            color={getSeverityColor(row.severity)}
+          />
+        ),
+        filterType: 'select',
+        filterOptions: [
+          { label: t('management.severityLevel.low'), value: 'low' },
+          { label: t('management.severityLevel.medium'), value: 'medium' },
+          { label: t('management.severityLevel.high'), value: 'high' },
+        ],
+      },
+      {
+        id: 'is_active',
+        header: t('management.status'),
+        cell: (row) => (
+          <Chip
+            label={row.is_active ? t('management.active') : t('management.inactive')}
+            size="small"
+            color={row.is_active ? 'success' : 'default'}
+          />
+        ),
+        filterType: 'select',
+        filterOptions: [
+          { label: t('management.active'), value: 'true' },
+          { label: t('management.inactive'), value: 'false' },
+        ],
+      },
+    ],
+    [t]
   )
 
   const handleAddClick = () => {
@@ -105,104 +188,60 @@ export function DefectTypeManagement() {
     setEditingType(null)
   }
 
-  const getSeverityBadge = (severity: 'low' | 'medium' | 'high') => {
-    const variants = {
-      low: 'secondary',
-      medium: 'default',
-      high: 'destructive',
-    } as const
+  // Render actions for each row
+  const renderActions = (type: DefectType) => (
+    <>
+      <IconButton
+        size="small"
+        onClick={() => handleEditClick(type)}
+        color="primary"
+      >
+        <Edit />
+      </IconButton>
+      <IconButton
+        size="small"
+        onClick={() => handleDeleteClick(type.id)}
+        color="error"
+      >
+        <Delete />
+      </IconButton>
+    </>
+  )
 
-    return <Badge variant={variants[severity]}>{t(`management.severity.${severity}`)}</Badge>
-  }
+  // Toolbar actions
+  const toolbarActions = (
+    <>
+      <Button
+        variant="outlined"
+        startIcon={<Upload />}
+        onClick={() => setImportDialogOpen(true)}
+      >
+        {t('bulkImport.import')}
+      </Button>
+      <Button
+        variant="contained"
+        startIcon={<Add />}
+        onClick={handleAddClick}
+      >
+        {t('management.addDefectType')}
+      </Button>
+    </>
+  )
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>{t('management.defectTypes')}</CardTitle>
-            <Button onClick={handleAddClick}>
-              <Plus className="mr-2 h-4 w-4" />
-              {t('management.addDefectType')}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-4">
-            <div className="relative">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={t('management.searchByNameOrCode')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-          </div>
-
-          {isLoading ? (
-            <div className="flex justify-center py-8">
-              <div className="text-muted-foreground">{t('common.loading')}</div>
-            </div>
-          ) : filteredTypes.length === 0 ? (
-            <div className="flex justify-center py-8">
-              <div className="text-muted-foreground">{t('common.noData')}</div>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('management.defectCode')}</TableHead>
-                    <TableHead>{t('management.defectName')}</TableHead>
-                    <TableHead>{t('management.description')}</TableHead>
-                    <TableHead>{t('management.severity')}</TableHead>
-                    <TableHead>{t('management.status')}</TableHead>
-                    <TableHead className="text-right">{t('common.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTypes.map((type) => (
-                    <TableRow key={type.id}>
-                      <TableCell className="font-medium">{type.code}</TableCell>
-                      <TableCell>{type.name}</TableCell>
-                      <TableCell className="max-w-md truncate">
-                        {type.description || '-'}
-                      </TableCell>
-                      <TableCell>{getSeverityBadge(type.severity)}</TableCell>
-                      <TableCell>
-                        {type.is_active ? (
-                          <Badge variant="default">{t('management.active')}</Badge>
-                        ) : (
-                          <Badge variant="secondary">{t('management.inactive')}</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEditClick(type)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDeleteClick(type.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+    <>
+      <DataTable
+        data={types}
+        columns={columns}
+        loading={isLoading}
+        title={t('management.defectTypes')}
+        getRowId={(row) => row.id}
+        renderActions={renderActions}
+        toolbarActions={toolbarActions}
+        searchPlaceholder={t('management.searchByNameOrCode')}
+        pageSize={20}
+        enableFilters={true}
+      />
 
       <DefectTypeDialog
         open={dialogOpen}
@@ -211,22 +250,37 @@ export function DefectTypeManagement() {
         editingType={editingType}
       />
 
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('management.deleteDefectType')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('management.deleteDefectTypeConfirm')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmDelete}>
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>{t('management.deleteDefectType')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {t('management.deleteDefectTypeConfirm')}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={handleConfirmDelete} color="error" variant="contained">
+            {t('common.delete')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk Import Dialog */}
+      <ExcelBulkImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        entityType="defectType"
+        existingCodes={existingCodes}
+        onBulkSave={handleBulkSave}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['defect-types-rows'] })
+          queryClient.invalidateQueries({ queryKey: ['defect-types'] })
+          queryClient.invalidateQueries({ queryKey: ['defect-type-codes'] })
+        }}
+      />
+    </>
   )
 }

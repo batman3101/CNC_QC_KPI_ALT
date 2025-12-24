@@ -236,6 +236,7 @@ export interface Database {
         Row: {
           id: string
           inspection_id: string
+          model_id: string
           defect_type: string
           description: string
           photo_url: string | null
@@ -245,6 +246,7 @@ export interface Database {
         Insert: {
           id?: string
           inspection_id: string
+          model_id: string
           defect_type: string
           description: string
           photo_url?: string | null
@@ -254,6 +256,7 @@ export interface Database {
         Update: {
           id?: string
           inspection_id?: string
+          model_id?: string
           defect_type?: string
           description?: string
           photo_url?: string | null

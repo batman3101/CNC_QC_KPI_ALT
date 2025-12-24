@@ -9,13 +9,10 @@ import {
   Button,
   Box,
   Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  FormHelperText,
   Chip,
   Paper,
+  Autocomplete,
+  TextField,
 } from '@mui/material'
 import { Assignment } from '@mui/icons-material'
 
@@ -93,57 +90,87 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
 
         <form onSubmit={handleSubmit(onSubmit)}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Product Model Selection */}
+            {/* Product Model Selection - 모델 코드 기준 */}
             <Controller
               name="modelId"
               control={control}
               render={({ field }) => (
-                <FormControl fullWidth error={!!errors.modelId} disabled={isLoading}>
-                  <InputLabel>{t('inspection.selectModel')} *</InputLabel>
-                  <Select
-                    {...field}
-                    label={`${t('inspection.selectModel')} *`}
-                  >
-                    {models.map((model) => (
-                      <MenuItem key={model.id} value={model.id}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span>{model.name}</span>
-                          <Chip label={model.code} size="small" color="primary" variant="outlined" />
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {errors.modelId && (
-                    <FormHelperText>{errors.modelId.message}</FormHelperText>
+                <Autocomplete
+                  options={models}
+                  getOptionLabel={(option) => `${option.code} - ${option.name}`}
+                  value={models.find((m) => m.id === field.value) || null}
+                  onChange={(_, newValue) => {
+                    field.onChange(newValue?.id || '')
+                  }}
+                  disabled={isLoading}
+                  filterOptions={(options, { inputValue }) => {
+                    const filterValue = inputValue.toLowerCase()
+                    return options.filter(
+                      (option) =>
+                        option.code.toLowerCase().includes(filterValue) ||
+                        option.name.toLowerCase().includes(filterValue)
+                    )
+                  }}
+                  renderOption={(props, option) => (
+                    <Box component="li" {...props} key={option.id}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Chip label={option.code} size="small" color="primary" variant="outlined" />
+                        <span>{option.name}</span>
+                      </Box>
+                    </Box>
                   )}
-                </FormControl>
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={`${t('inspection.selectModel')} *`}
+                      error={!!errors.modelId}
+                      helperText={errors.modelId?.message}
+                    />
+                  )}
+                  noOptionsText={t('common.noData')}
+                />
               )}
             />
 
-            {/* Inspection Process Selection */}
+            {/* Inspection Process Selection - 공정 코드 기준 */}
             <Controller
               name="inspectionProcess"
               control={control}
               render={({ field }) => (
-                <FormControl fullWidth error={!!errors.inspectionProcess} disabled={isLoading}>
-                  <InputLabel>{t('inspection.selectProcess')} *</InputLabel>
-                  <Select
-                    {...field}
-                    label={`${t('inspection.selectProcess')} *`}
-                  >
-                    {processes.map((process) => (
-                      <MenuItem key={process.id} value={process.id}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <span>{process.name}</span>
-                          <Chip label={process.code} size="small" color="secondary" variant="outlined" />
-                        </Box>
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  {errors.inspectionProcess && (
-                    <FormHelperText>{errors.inspectionProcess.message}</FormHelperText>
+                <Autocomplete
+                  options={processes}
+                  getOptionLabel={(option) => `${option.code} - ${option.name}`}
+                  value={processes.find((p) => p.id === field.value) || null}
+                  onChange={(_, newValue) => {
+                    field.onChange(newValue?.id || '')
+                  }}
+                  disabled={isLoading}
+                  filterOptions={(options, { inputValue }) => {
+                    const filterValue = inputValue.toLowerCase()
+                    return options.filter(
+                      (option) =>
+                        option.code.toLowerCase().includes(filterValue) ||
+                        option.name.toLowerCase().includes(filterValue)
+                    )
+                  }}
+                  renderOption={(props, option) => (
+                    <Box component="li" {...props} key={option.id}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Chip label={option.code} size="small" color="secondary" variant="outlined" />
+                        <span>{option.name}</span>
+                      </Box>
+                    </Box>
                   )}
-                </FormControl>
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label={`${t('inspection.selectProcess')} *`}
+                      error={!!errors.inspectionProcess}
+                      helperText={errors.inspectionProcess?.message}
+                    />
+                  )}
+                  noOptionsText={t('common.noData')}
+                />
               )}
             />
 
@@ -159,7 +186,7 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
                       {t('dashboard.model')}:
                     </Typography>
                     <Typography variant="body2" fontWeight={500}>
-                      {selectedModel.name}
+                      {selectedModel.code} - {selectedModel.name}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -167,7 +194,7 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
                       {t('inspection.process')}:
                     </Typography>
                     <Typography variant="body2" fontWeight={500}>
-                      {selectedProcess.name}
+                      {selectedProcess.code} - {selectedProcess.name}
                     </Typography>
                   </Box>
                 </Box>

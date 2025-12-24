@@ -151,13 +151,22 @@ export function DefectTypeDialog({
   })
 
   const onSubmit = (values: FormValues) => {
+    // 명시적으로 모든 필드를 포함하여 업데이트 시 누락 방지
+    const defectTypeData = {
+      code: values.code,
+      name: values.name,
+      description: values.description || null,
+      severity: values.severity,
+      is_active: values.is_active,
+    }
+
     if (isEditing && editingType) {
       updateMutation.mutate({
         id: editingType.id,
-        ...values,
+        ...defectTypeData,
       })
     } else {
-      createMutation.mutate(values)
+      createMutation.mutate(defectTypeData)
     }
   }
 
@@ -243,9 +252,9 @@ export function DefectTypeDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="low">{t('management.severity.low')}</SelectItem>
-                      <SelectItem value="medium">{t('management.severity.medium')}</SelectItem>
-                      <SelectItem value="high">{t('management.severity.high')}</SelectItem>
+                      <SelectItem value="low">{t('management.severityLevel.low')}</SelectItem>
+                      <SelectItem value="medium">{t('management.severityLevel.medium')}</SelectItem>
+                      <SelectItem value="high">{t('management.severityLevel.high')}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormDescription>

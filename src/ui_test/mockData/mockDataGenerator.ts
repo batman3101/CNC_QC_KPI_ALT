@@ -11,12 +11,12 @@ type Inspection = Database['public']['Tables']['inspections']['Row']
 type Defect = Database['public']['Tables']['defects']['Row']
 
 // 설비 목록 생성 함수 (CNC-001 ~ CNC-800)
-function generateMachines(count: number) {
+function generateCNCMachines(count: number) {
   const machines = []
   for (let i = 1; i <= count; i++) {
     const machineNumber = String(i).padStart(3, '0')
     machines.push({
-      id: `machine-${machineNumber}`,
+      id: `machine-cnc-${machineNumber}`,
       name: `CNC-${machineNumber}`,
       model: `CNC Machine ${machineNumber}`,
     })
@@ -24,21 +24,40 @@ function generateMachines(count: number) {
   return machines
 }
 
-// 설비 목록 (800개: CNC-001 ~ CNC-800)
-export const MACHINES = generateMachines(800)
+// TRI 설비 목록 생성 함수 (TRI-001, TRI-002)
+function generateTRIMachines(count: number) {
+  const machines = []
+  for (let i = 1; i <= count; i++) {
+    const machineNumber = String(i).padStart(3, '0')
+    machines.push({
+      id: `machine-tri-${machineNumber}`,
+      name: `TRI-${machineNumber}`,
+      model: `TRI Machine ${machineNumber}`,
+    })
+  }
+  return machines
+}
 
-// 레거시 설비 목록 (기존 10개 - 분석용)
+// 설비 목록 (CNC-001 ~ CNC-800 + TRI-001 ~ TRI-002)
+export const MACHINES = [
+  ...generateCNCMachines(800),
+  ...generateTRIMachines(2),
+]
+
+// 레거시 설비 목록 (기존 10개 CNC + 2개 TRI - 분석용)
 export const LEGACY_MACHINES = [
-  { id: 'machine-001', name: 'CNC-001', model: 'Haas VF-2' },
-  { id: 'machine-002', name: 'CNC-002', model: 'DMG Mori NLX 2500' },
-  { id: 'machine-003', name: 'CNC-003', model: 'Mazak Integrex i-200' },
-  { id: 'machine-004', name: 'CNC-004', model: 'Okuma LB3000' },
-  { id: 'machine-005', name: 'CNC-005', model: 'DMG Mori NTX 1000' },
-  { id: 'machine-006', name: 'CNC-006', model: 'Brother S1000' },
-  { id: 'machine-007', name: 'CNC-007', model: 'Doosan DNM 400' },
-  { id: 'machine-008', name: 'CNC-008', model: 'Studer S31' },
-  { id: 'machine-009', name: 'CNC-009', model: 'Okamoto ACC-52' },
-  { id: 'machine-010', name: 'CNC-010', model: 'Sodick AQ360L' },
+  { id: 'machine-cnc-001', name: 'CNC-001', model: 'Haas VF-2' },
+  { id: 'machine-cnc-002', name: 'CNC-002', model: 'DMG Mori NLX 2500' },
+  { id: 'machine-cnc-003', name: 'CNC-003', model: 'Mazak Integrex i-200' },
+  { id: 'machine-cnc-004', name: 'CNC-004', model: 'Okuma LB3000' },
+  { id: 'machine-cnc-005', name: 'CNC-005', model: 'DMG Mori NTX 1000' },
+  { id: 'machine-cnc-006', name: 'CNC-006', model: 'Brother S1000' },
+  { id: 'machine-cnc-007', name: 'CNC-007', model: 'Doosan DNM 400' },
+  { id: 'machine-cnc-008', name: 'CNC-008', model: 'Studer S31' },
+  { id: 'machine-cnc-009', name: 'CNC-009', model: 'Okamoto ACC-52' },
+  { id: 'machine-cnc-010', name: 'CNC-010', model: 'Sodick AQ360L' },
+  { id: 'machine-tri-001', name: 'TRI-001', model: 'TRI AOI System 1' },
+  { id: 'machine-tri-002', name: 'TRI-002', model: 'TRI AOI System 2' },
 ]
 
 // 제품 모델 목록 (15개)
@@ -166,16 +185,18 @@ function getWeekdayMultiplier(date: Date): number {
 
 // 설비별 불량률 (일부 설비는 불량률이 높음)
 const MACHINE_DEFECT_RATES = {
-  'machine-001': 0.04, // 4%
-  'machine-002': 0.03, // 3%
-  'machine-003': 0.02, // 2% - 가장 좋음
-  'machine-004': 0.035, // 3.5%
-  'machine-005': 0.045, // 4.5%
-  'machine-006': 0.05, // 5% - 노후 설비
-  'machine-007': 0.04, // 4%
-  'machine-008': 0.03, // 3%
-  'machine-009': 0.055, // 5.5% - 가장 나쁨
-  'machine-010': 0.025, // 2.5%
+  'machine-cnc-001': 0.04, // 4%
+  'machine-cnc-002': 0.03, // 3%
+  'machine-cnc-003': 0.02, // 2% - 가장 좋음
+  'machine-cnc-004': 0.035, // 3.5%
+  'machine-cnc-005': 0.045, // 4.5%
+  'machine-cnc-006': 0.05, // 5% - 노후 설비
+  'machine-cnc-007': 0.04, // 4%
+  'machine-cnc-008': 0.03, // 3%
+  'machine-cnc-009': 0.055, // 5.5% - 가장 나쁨
+  'machine-cnc-010': 0.025, // 2.5%
+  'machine-tri-001': 0.02, // 2% - TRI AOI
+  'machine-tri-002': 0.025, // 2.5% - TRI AOI
 }
 
 // 검사 데이터 생성
@@ -275,6 +296,7 @@ export function generateDefects(inspections: Inspection[]): Defect[] {
     defects.push({
       id: `defect-${String(index + 1).padStart(6, '0')}`,
       inspection_id: inspection.id,
+      model_id: inspection.model_id,  // 검사에서 모델 ID 가져옴
       defect_type: defectType.type,
       description,
       photo_url: null,
@@ -328,7 +350,7 @@ export function generateEdgeCases(): Inspection[] {
     edgeCases.push({
       id: `edge-consecutive-${i}`,
       user_id: INSPECTORS[0].id,
-      machine_id: 'machine-006', // 노후 설비
+      machine_id: 'machine-cnc-006', // 노후 설비
       model_id: PRODUCT_MODELS[0].id,
       inspection_process: 'CNC-OQC',
       defect_type: weightedRandom(DEFECT_TYPES).type,
@@ -360,7 +382,7 @@ export function generateEdgeCases(): Inspection[] {
     edgeCases.push({
       id: `edge-perfect-${i}`,
       user_id: INSPECTORS[2].id,
-      machine_id: 'machine-003', // 최고 성능 설비
+      machine_id: 'machine-cnc-003', // 최고 성능 설비
       model_id: PRODUCT_MODELS[2].id,
       inspection_process: 'PQC',
       defect_type: null,

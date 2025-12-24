@@ -13,6 +13,7 @@ import { DefectsPage } from '@/pages/DefectsPage'
 import { AnalyticsPage } from '@/pages/AnalyticsPage'
 import { ReportsPage } from '@/pages/ReportsPage'
 import { ManagementPage } from '@/pages/ManagementPage'
+import { UserManagementPage } from '@/pages/UserManagementPage'
 import { useAuthStore } from '@/stores/authStore'
 import '@/i18n/config'
 
@@ -71,6 +72,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['admin', 'manager']}>
               <ManagementPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager']}>
+              <UserManagementPage />
             </ProtectedRoute>
           }
         />

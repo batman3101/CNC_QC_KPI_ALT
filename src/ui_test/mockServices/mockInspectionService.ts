@@ -170,6 +170,7 @@ export async function createDefect(data: DefectInsert): Promise<Defect> {
   const newDefect: Defect = {
     id: `defect-${Date.now()}`,
     inspection_id: data.inspection_id,
+    model_id: data.model_id,
     defect_type: data.defect_type,
     description: data.description,
     photo_url: data.photo_url || null,
@@ -282,6 +283,7 @@ export async function createInspectionRecord(
     const defect: Defect = {
       id: `defect-${Date.now()}`,
       inspection_id: newInspection.id,
+      model_id: data.model_id,  // 모델 ID 포함
       defect_type: data.defect_type_id,
       description: `검사 공정 ${processCode}에서 ${data.defect_quantity}개 불량 발생`,
       photo_url: data.photo_url || null,

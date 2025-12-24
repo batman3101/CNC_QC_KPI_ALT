@@ -138,13 +138,21 @@ export function InspectionProcessDialog({
   })
 
   const onSubmit = (values: FormValues) => {
+    // 명시적으로 모든 필드를 포함하여 업데이트 시 누락 방지
+    const processData = {
+      code: values.code,
+      name: values.name,
+      description: values.description || null,
+      is_active: values.is_active,
+    }
+
     if (isEditing && editingProcess) {
       updateMutation.mutate({
         id: editingProcess.id,
-        ...values,
+        ...processData,
       })
     } else {
-      createMutation.mutate(values)
+      createMutation.mutate(processData)
     }
   }
 

@@ -1,56 +1,52 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Plus, Pencil, Trash2, Search } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import {
+  Button,
+  IconButton,
+  Chip,
+  Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  FormControl,
+  InputLabel,
   Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  MenuItem,
+  Box,
+} from '@mui/material'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
-import { Badge } from '@/components/ui/badge'
-import { useToast } from '@/hooks/use-toast'
+  Add,
+  Edit,
+  Delete,
+  Upload,
+} from '@mui/icons-material'
+import { useSnackbar } from 'notistack'
 import { InspectionItemDialog } from './InspectionItemDialog'
+import { ExcelBulkImportDialog } from '@/components/excel-import'
+import { DataTable, type ColumnDef } from '@/components/common/DataTable'
 import type { Database } from '@/types/database'
+import type { InspectionItemImportData } from '@/types/excel-import'
 
 // UI 테스트용 Mock 서비스
 import * as managementService from '@/ui_test/mockServices/mockManagementService'
 
+type ProductModel = Database['public']['Tables']['product_models']['Row']
 type InspectionItem = Database['public']['Tables']['inspection_items']['Row']
 
 export function InspectionItemManagement() {
   const { t } = useTranslation()
-  const [searchQuery, setSearchQuery] = useState('')
   const [selectedModelId, setSelectedModelId] = useState<string>('all')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<InspectionItem | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
 
   const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const { enqueueSnackbar } = useSnackbar()
 
   // Fetch product models for filter
   const { data: models = [] } = useQuery({
@@ -72,32 +68,111 @@ export function InspectionItemManagement() {
     mutationFn: managementService.deleteInspectionItem,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inspection-items'] })
-      toast({
-        title: t('management.deleteInspectionItem'),
-        description: t('management.inspectionItemDeleted'),
-      })
+      enqueueSnackbar(t('management.inspectionItemDeleted'), { variant: 'success' })
       setDeleteDialogOpen(false)
       setDeletingId(null)
     },
     onError: (error: Error) => {
-      toast({
-        title: t('common.error'),
-        description: error.message,
-        variant: 'destructive',
-      })
+      enqueueSnackbar(error.message, { variant: 'error' })
     },
   })
 
-  // Filter items by search query
-  const filteredItems = items.filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
-
-  // Get model name by ID
-  const getModelName = (modelId: string) => {
-    const model = models.find((m) => m.id === modelId)
-    return model?.name || modelId
+  // Bulk import handler
+  const handleBulkSave = async (
+    data: Array<Record<string, unknown>>,
+    onProgress: (current: number, total: number) => void
+  ) => {
+    return managementService.bulkCreateInspectionItems(
+      data as unknown as InspectionItemImportData[],
+      onProgress
+    )
   }
+
+  // Get model code by ID
+  const getModelCode = (modelId: string) => {
+    const model = models.find((m) => m.id === modelId)
+    return model?.code || modelId
+  }
+
+  // Column definitions
+  const columns: ColumnDef<InspectionItem>[] = useMemo(
+    () => [
+      {
+        id: 'model_id',
+        header: t('management.modelCode'),
+        cell: (row) => (
+          <Chip
+            label={getModelCode(row.model_id)}
+            size="small"
+            color="primary"
+            variant="outlined"
+          />
+        ),
+        searchable: false,
+      },
+      {
+        id: 'name',
+        header: t('management.itemName'),
+        cell: (row) => (
+          <Typography variant="body2" fontWeight={500}>
+            {row.name}
+          </Typography>
+        ),
+      },
+      {
+        id: 'data_type',
+        header: t('management.dataType'),
+        cell: (row) => (
+          <Chip
+            label={row.data_type === 'numeric' ? t('management.dataTypeNumeric') : t('management.dataTypeOkNg')}
+            size="small"
+            color={row.data_type === 'numeric' ? 'primary' : 'default'}
+            variant="outlined"
+          />
+        ),
+        filterType: 'select',
+        filterOptions: [
+          { label: t('management.dataTypeNumeric'), value: 'numeric' },
+          { label: t('management.dataTypeOkNg'), value: 'ok_ng' },
+        ],
+      },
+      {
+        id: 'standard_value',
+        header: t('management.standardValue'),
+        align: 'right',
+        cell: (row) => (
+          <Typography variant="body2">
+            {row.data_type === 'numeric' ? row.standard_value.toFixed(2) : '-'}
+          </Typography>
+        ),
+        searchable: false,
+      },
+      {
+        id: 'tolerance',
+        header: t('management.tolerance'),
+        align: 'right',
+        sortable: false,
+        cell: (row) => (
+          <Typography variant="body2">
+            {row.data_type === 'numeric'
+              ? `±${((row.tolerance_max - row.standard_value) || 0).toFixed(2)}`
+              : '-'}
+          </Typography>
+        ),
+        searchable: false,
+      },
+      {
+        id: 'unit',
+        header: t('management.unit'),
+        cell: (row) => (
+          <Typography variant="body2">
+            {row.unit || '-'}
+          </Typography>
+        ),
+      },
+    ],
+    [t, models]
+  )
 
   const handleAdd = () => {
     setEditingItem(null)
@@ -120,125 +195,74 @@ export function InspectionItemManagement() {
     }
   }
 
+  // Render actions for each row
+  const renderActions = (item: InspectionItem) => (
+    <>
+      <IconButton
+        size="small"
+        onClick={() => handleEdit(item)}
+        color="primary"
+      >
+        <Edit />
+      </IconButton>
+      <IconButton
+        size="small"
+        onClick={() => handleDelete(item.id)}
+        color="error"
+      >
+        <Delete />
+      </IconButton>
+    </>
+  )
+
+  // Toolbar actions with model filter - 모델 코드 기준
+  const toolbarActions = (
+    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+      <FormControl size="small" sx={{ minWidth: 180 }}>
+        <InputLabel>{t('management.modelCode')}</InputLabel>
+        <Select
+          value={selectedModelId}
+          onChange={(e) => setSelectedModelId(e.target.value)}
+          label={t('management.modelCode')}
+        >
+          <MenuItem value="all">{t('common.all')}</MenuItem>
+          {models.map((model) => (
+            <MenuItem key={model.id} value={model.id}>
+              {model.code} - {model.name}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      <Button
+        variant="outlined"
+        startIcon={<Upload />}
+        onClick={() => setImportDialogOpen(true)}
+      >
+        {t('bulkImport.import')}
+      </Button>
+      <Button
+        variant="contained"
+        startIcon={<Add />}
+        onClick={handleAdd}
+      >
+        {t('management.addInspectionItem')}
+      </Button>
+    </Box>
+  )
+
   return (
     <>
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>{t('management.inspectionItemList')}</CardTitle>
-            <Button onClick={handleAdd}>
-              <Plus className="mr-2 h-4 w-4" />
-              {t('management.addInspectionItem')}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {/* Filters */}
-          <div className="mb-4 flex flex-col gap-2 sm:flex-row">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={t('common.search')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
-            </div>
-            <Select value={selectedModelId} onValueChange={setSelectedModelId}>
-              <SelectTrigger className="w-full sm:w-[200px]">
-                <SelectValue placeholder={t('management.model')} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t('defects.all')}</SelectItem>
-                {models.map((model) => (
-                  <SelectItem key={model.id} value={model.id}>
-                    {model.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Table */}
-          {isLoading ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              {t('common.loading')}
-            </div>
-          ) : filteredItems.length === 0 ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              {searchQuery || selectedModelId !== 'all'
-                ? t('common.noData')
-                : t('common.noData')}
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>{t('management.model')}</TableHead>
-                    <TableHead>{t('management.itemName')}</TableHead>
-                    <TableHead>{t('management.dataType')}</TableHead>
-                    <TableHead>{t('management.standardValue')}</TableHead>
-                    <TableHead>{t('management.tolerance')}</TableHead>
-                    <TableHead>{t('management.unit')}</TableHead>
-                    <TableHead className="text-right">{t('common.actions')}</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredItems.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {getModelName(item.model_id)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant={
-                            item.data_type === 'numeric' ? 'default' : 'outline'
-                          }
-                        >
-                          {item.data_type === 'numeric' ? t('management.dataTypeNumeric') : t('management.dataTypeOkNg')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {item.data_type === 'numeric'
-                          ? item.standard_value.toFixed(2)
-                          : '-'}
-                      </TableCell>
-                      <TableCell>
-                        {item.data_type === 'numeric'
-                          ? `±${((item.tolerance_max - item.standard_value) || 0).toFixed(2)}`
-                          : '-'}
-                      </TableCell>
-                      <TableCell>{item.unit || '-'}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(item)}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDelete(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <DataTable
+        data={items}
+        columns={columns}
+        loading={isLoading}
+        title={t('management.inspectionItemList')}
+        getRowId={(row) => row.id}
+        renderActions={renderActions}
+        toolbarActions={toolbarActions}
+        pageSize={20}
+        enableFilters={true}
+      />
 
       {/* Add/Edit Dialog */}
       <InspectionItemDialog
@@ -249,25 +273,34 @@ export function InspectionItemManagement() {
       />
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t('management.deleteInspectionItem')}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t('management.deleteInspectionItemConfirm')}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {t('common.delete')}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>{t('management.deleteInspectionItem')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {t('management.deleteInspectionItemConfirm')}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>
+            {t('common.cancel')}
+          </Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">
+            {t('common.delete')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk Import Dialog */}
+      <ExcelBulkImportDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        entityType="inspectionItem"
+        existingModels={models as ProductModel[]}
+        onBulkSave={handleBulkSave}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['inspection-items'] })
+        }}
+      />
     </>
   )
 }

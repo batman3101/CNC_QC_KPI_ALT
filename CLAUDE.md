@@ -107,7 +107,7 @@ export const USE_MOCK_MODE = true  // true = Mock, false = Supabase
 - No Supabase connection needed
 - Uses mock services in `src/ui_test/mockServices/`
 - Perfect for frontend development/testing
-- Test accounts: admin@test.com, manager@test.com, inspector@test.com (all password: test123)
+- Test accounts: admin@test.com, manager@test.com, inspector@test.com (all password: password123)
 
 **Real Mode**:
 - Requires Supabase connection
@@ -278,9 +278,9 @@ import { supabase } from '@/lib/supabase'
 When `USE_MOCK_MODE = true`:
 
 ```
-Admin: admin@test.com / test123
-Manager: manager@test.com / test123
-Inspector: inspector@test.com / test123
+Admin: admin@test.com / password123
+Manager: manager@test.com / password123
+Inspector: inspector@test.com / password123
 ```
 
 Check browser console (F12) on login page for full list of test accounts.

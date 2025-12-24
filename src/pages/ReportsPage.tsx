@@ -96,8 +96,8 @@ export function ReportsPage() {
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, lg: 6 }}>
               <ReportGenerator
-                models={productModels?.map((m) => ({ id: m.id, name: m.name })) || []}
-                processes={inspectionProcesses?.map((p) => ({ id: p.id, name: p.name })) || []}
+                models={productModels?.map((m) => ({ id: m.id, name: m.name, code: m.code })) || []}
+                processes={inspectionProcesses?.map((p) => ({ id: p.id, name: p.name, code: p.code })) || []}
               />
             </Grid>
             <Grid size={{ xs: 12, lg: 6 }}>

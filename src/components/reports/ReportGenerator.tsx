@@ -32,8 +32,8 @@ import type { ReportType, ReportFormat, ReportFilters } from '@/types/report'
 import * as reportService from '@/ui_test/mockServices/mockReportService'
 
 interface ReportGeneratorProps {
-  models: { id: string; name: string }[]
-  processes: { id: string; name: string }[]
+  models: { id: string; name: string; code: string }[]
+  processes: { id: string; name: string; code: string }[]
 }
 
 export function ReportGenerator({ models, processes }: ReportGeneratorProps) {
@@ -192,20 +192,20 @@ export function ReportGenerator({ models, processes }: ReportGeneratorProps) {
             </Grid>
           </LocalizationProvider>
 
-          {/* Model and Process Filters */}
+          {/* Model and Process Filters - 코드 기준 */}
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
-                <InputLabel>{t('reports.model')}</InputLabel>
+                <InputLabel>{t('management.modelCode')}</InputLabel>
                 <Select
                   value={modelId}
                   onChange={(e: SelectChangeEvent) => setModelId(e.target.value)}
-                  label={t('reports.model')}
+                  label={t('management.modelCode')}
                 >
                   <MenuItem value="">{t('reports.allModels')}</MenuItem>
                   {models.map((model) => (
                     <MenuItem key={model.id} value={model.id}>
-                      {model.name}
+                      {model.code} - {model.name}
                     </MenuItem>
                   ))}
                 </Select>
@@ -222,7 +222,7 @@ export function ReportGenerator({ models, processes }: ReportGeneratorProps) {
                   <MenuItem value="">{t('reports.allProcesses')}</MenuItem>
                   {processes.map((process) => (
                     <MenuItem key={process.id} value={process.id}>
-                      {process.name}
+                      {process.code} - {process.name}
                     </MenuItem>
                   ))}
                 </Select>
