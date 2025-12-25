@@ -21,6 +21,9 @@ import { DataTable, type ColumnDef } from '@/components/common/DataTable'
 import type { Report } from '@/types/report'
 import * as reportService from '@/ui_test/mockServices/mockReportService'
 
+// 날짜 유틸리티
+import { formatVietnamDate, formatVietnamDateTime } from '@/lib/dateUtils'
+
 interface ReportListProps {
   reports: Report[]
   isLoading: boolean
@@ -154,8 +157,8 @@ export function ReportList({ reports, isLoading }: ReportListProps) {
         sortable: false,
         cell: (row) => (
           <Typography variant="body2">
-            {new Date(row.date_from).toLocaleDateString('ko-KR')} ~{' '}
-            {new Date(row.date_to).toLocaleDateString('ko-KR')}
+            {formatVietnamDate(row.date_from)} ~{' '}
+            {formatVietnamDate(row.date_to)}
           </Typography>
         ),
         searchable: false,
@@ -183,13 +186,7 @@ export function ReportList({ reports, isLoading }: ReportListProps) {
         header: t('reports.createdAt'),
         cell: (row) => (
           <Typography variant="body2">
-            {new Date(row.created_at).toLocaleString('ko-KR', {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+            {formatVietnamDateTime(row.created_at)}
           </Typography>
         ),
         searchable: false,

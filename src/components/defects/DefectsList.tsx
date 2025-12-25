@@ -31,6 +31,9 @@ import type { Database } from '@/types/database'
 import * as inspectionService from '@/ui_test/mockServices/mockInspectionService'
 import { getProductModels } from '@/ui_test/mockServices/mockManagementService'
 
+// 날짜 유틸리티
+import { formatVietnamDateTime } from '@/lib/dateUtils'
+
 type Defect = Database['public']['Tables']['defects']['Row']
 
 export function DefectsList() {
@@ -80,15 +83,35 @@ export function DefectsList() {
 
   // Update status mutation
   const updateStatusMutation = useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       id,
       status,
     }: {
       id: string
       status: 'pending' | 'in_progress' | 'resolved'
-    }) => inspectionService.updateDefectStatus(id, status),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['defects'] })
+    }) => {
+      const result = await inspectionService.updateDefectStatus(id, status)
+      return result
+    },
+    onSuccess: (updatedDefect) => {
+      // 캐시 데이터를 직접 업데이트하여 즉시 UI에 반영
+      queryClient.setQueryData<Defect[]>(['defects'], (oldData) => {
+        if (!oldData) return oldData
+        return oldData.map((defect) =>
+          defect.id === updatedDefect.id
+            ? { ...defect, status: updatedDefect.status }
+            : defect
+        )
+      })
+      // 대시보드의 불량 데이터도 업데이트
+      queryClient.setQueryData<Defect[]>(['dashboard-defects'], (oldData) => {
+        if (!oldData) return oldData
+        return oldData.map((defect) =>
+          defect.id === updatedDefect.id
+            ? { ...defect, status: updatedDefect.status }
+            : defect
+        )
+      })
       enqueueSnackbar(t('defects.statusChanged'), { variant: 'success' })
     },
     onError: (error: Error) => {
@@ -111,13 +134,7 @@ export function DefectsList() {
         header: t('defects.registeredDate'),
         cell: (row) => (
           <Typography variant="body2">
-            {new Date(row.created_at).toLocaleString('ko-KR', {
-              year: 'numeric',
-              month: '2-digit',
-              day: '2-digit',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+            {formatVietnamDateTime(row.created_at)}
           </Typography>
         ),
       },
@@ -199,7 +216,10 @@ export function DefectsList() {
     <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
       <IconButton
         size="small"
-        onClick={() => handleViewDetail(defect)}
+        onClick={(e) => {
+          e.stopPropagation()
+          handleViewDetail(defect)
+        }}
         color="primary"
       >
         <Visibility />
@@ -208,7 +228,10 @@ export function DefectsList() {
         <Button
           variant="outlined"
           size="small"
-          onClick={() => handleStatusChange(defect.id, 'in_progress')}
+          onClick={(e) => {
+            e.stopPropagation()
+            handleStatusChange(defect.id, 'in_progress')
+          }}
           sx={{ whiteSpace: 'nowrap' }}
         >
           {t('defects.startAction')}
@@ -218,7 +241,10 @@ export function DefectsList() {
         <Button
           variant="outlined"
           size="small"
-          onClick={() => handleStatusChange(defect.id, 'resolved')}
+          onClick={(e) => {
+            e.stopPropagation()
+            handleStatusChange(defect.id, 'resolved')
+          }}
           sx={{ whiteSpace: 'nowrap' }}
         >
           {t('defects.completeAction')}

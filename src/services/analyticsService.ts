@@ -65,13 +65,51 @@ export async function getKPISummary(
   const defectRate = totalCount > 0 ? (defects / totalCount) * 100 : 0
   const fpy = 100 - defectRate
 
+  // Calculate average resolution time (mock data for now)
+  // TODO: Add actual defect resolution time tracking
+  const avgResolutionTime = 2.5
+
+  // Get top 3 inspectors by defect count found
+  const inspectorDefects: Record<string, { name: string; count: number; defects: number }> = {}
+  if (inspectors) {
+    for (const inspector of inspectors as Array<{ user_id: string }>) {
+      if (inspector.user_id) {
+        if (!inspectorDefects[inspector.user_id]) {
+          inspectorDefects[inspector.user_id] = { name: inspector.user_id, count: 0, defects: 0 }
+        }
+        inspectorDefects[inspector.user_id].count++
+      }
+    }
+  }
+
+  // Get defects by inspector from the filtered inspections
+  if (inspections) {
+    for (const inspection of inspections as Array<{ status: string; user_id?: string }>) {
+      if (inspection.status === 'fail' && inspection.user_id && inspectorDefects[inspection.user_id]) {
+        inspectorDefects[inspection.user_id].defects++
+      }
+    }
+  }
+
+  const topInspectors = Object.entries(inspectorDefects)
+    .sort((a, b) => b[1].defects - a[1].defects)
+    .slice(0, 3)
+    .map(([_id, stats], index) => ({
+      rank: index + 1,
+      name: stats.name,
+      inspectionCount: stats.count,
+      defectCount: stats.defects,
+    }))
+
   return {
     totalInspections: totalCount,
     totalDefects: defects,
     overallDefectRate: defectRate,
     fpy,
     avgInspectionTime,
+    avgResolutionTime,
     activeInspectors: uniqueInspectors,
+    topInspectors,
   }
 }
 

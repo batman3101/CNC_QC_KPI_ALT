@@ -31,6 +31,9 @@ import {
 import * as inspectionService from '@/ui_test/mockServices/mockInspectionService'
 import { getMachines, getProductModels } from '@/ui_test/mockServices/mockManagementService'
 
+// 날짜 유틸리티
+import { getBusinessDate, formatVietnamDateTime, getTodayBusinessDate } from '@/lib/dateUtils'
+
 export function DashboardPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
@@ -73,23 +76,32 @@ export function DashboardPage() {
     return model?.code || modelId
   }
 
-  // Calculate stats from mock data
-  const todayInspections = inspections.length
-  const passedInspections = inspections.filter((i) => i.status === 'pass').length
-  const failedInspections = inspections.filter((i) => i.status === 'fail').length
+  // Get today's business date
+  const todayBusinessDate = getTodayBusinessDate()
+
+  // Filter inspections for today's business day (08:00 ~ next day 07:59)
+  const todayInspectionsList = inspections.filter((inspection) => {
+    const inspectionBusinessDate = getBusinessDate(new Date(inspection.created_at))
+    return inspectionBusinessDate === todayBusinessDate
+  })
+
+  // Calculate stats from today's business day data
+  const todayInspectionsCount = todayInspectionsList.length
+  const passedInspections = todayInspectionsList.filter((i) => i.status === 'pass').length
+  const failedInspections = todayInspectionsList.filter((i) => i.status === 'fail').length
   const passRate =
-    todayInspections > 0
-      ? ((passedInspections / todayInspections) * 100).toFixed(1)
+    todayInspectionsCount > 0
+      ? ((passedInspections / todayInspectionsCount) * 100).toFixed(1)
       : '0.0'
   const defectRate =
-    todayInspections > 0
-      ? ((failedInspections / todayInspections) * 100).toFixed(1)
+    todayInspectionsCount > 0
+      ? ((failedInspections / todayInspectionsCount) * 100).toFixed(1)
       : '0.0'
 
   const stats = [
     {
       title: t('dashboard.todayInspections'),
-      value: todayInspections.toString(),
+      value: todayInspectionsCount.toString(),
       subtitle: t('dashboard.todayBasis'),
       icon: BarChart,
       color: 'text.secondary',
@@ -117,8 +129,11 @@ export function DashboardPage() {
     },
   ]
 
-  // Get recent 10 inspections
-  const recentInspections = inspections.slice(0, 10)
+  // Get recent 10 inspections (from today's business day first, then others)
+  const recentInspections = [
+    ...todayInspectionsList.slice(0, 10),
+    ...inspections.filter(i => !todayInspectionsList.includes(i)).slice(0, 10 - todayInspectionsList.length)
+  ].slice(0, 10)
 
   // Get recent defects (최근 5개)
   const recentDefects = allDefects.slice(0, 5)
@@ -272,7 +287,7 @@ export function DashboardPage() {
                           </TableCell>
                           <TableCell>
                             <Typography variant="body2">
-                              {new Date(inspection.created_at).toLocaleString()}
+                              {formatVietnamDateTime(inspection.created_at)}
                             </Typography>
                           </TableCell>
                         </TableRow>
@@ -379,7 +394,7 @@ export function DashboardPage() {
                         {defect.description}
                       </Typography>
                       <Typography variant="caption" color="text.disabled">
-                        {new Date(defect.created_at).toLocaleString('ko-KR')}
+                        {formatVietnamDateTime(defect.created_at)}
                       </Typography>
                     </Box>
                   ))}

@@ -25,6 +25,9 @@ import { useAuthStore } from '@/stores/authStore'
 import type { Database } from '@/types/database'
 import * as userService from '@/ui_test/mockServices/mockUserService'
 
+// 날짜 유틸리티
+import { formatVietnamDate } from '@/lib/dateUtils'
+
 type User = Database['public']['Tables']['users']['Row']
 
 export function UserList() {
@@ -149,7 +152,7 @@ export function UserList() {
         header: t('common.createdAt'),
         cell: (row) => (
           <Typography variant="body2">
-            {new Date(row.created_at).toLocaleDateString('ko-KR')}
+            {formatVietnamDate(row.created_at)}
           </Typography>
         ),
         searchable: false,

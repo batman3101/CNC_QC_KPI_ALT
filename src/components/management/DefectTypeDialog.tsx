@@ -150,23 +150,29 @@ export function DefectTypeDialog({
     },
   })
 
-  const onSubmit = (values: FormValues) => {
+  const onSubmit = async (values: FormValues) => {
+    console.log('Form submitted with values:', values)
+
     // 명시적으로 모든 필드를 포함하여 업데이트 시 누락 방지
     const defectTypeData = {
       code: values.code,
       name: values.name,
       description: values.description || null,
-      severity: values.severity,
+      severity: values.severity as 'low' | 'medium' | 'high',
       is_active: values.is_active,
     }
 
-    if (isEditing && editingType) {
-      updateMutation.mutate({
-        id: editingType.id,
-        ...defectTypeData,
-      })
-    } else {
-      createMutation.mutate(defectTypeData)
+    try {
+      if (isEditing && editingType) {
+        await updateMutation.mutateAsync({
+          id: editingType.id,
+          ...defectTypeData,
+        })
+      } else {
+        await createMutation.mutateAsync(defectTypeData)
+      }
+    } catch (error) {
+      console.error('Mutation error:', error)
     }
   }
 
@@ -189,7 +195,14 @@ export function DefectTypeDialog({
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              form.handleSubmit(onSubmit)(e)
+            }}
+            className="space-y-4"
+          >
             <FormField
               control={form.control}
               name="code"

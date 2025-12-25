@@ -49,13 +49,22 @@ export interface InspectionTimeTrend {
   maxTime: number
 }
 
+export interface TopInspector {
+  rank: number
+  name: string
+  inspectionCount: number
+  defectCount: number // 불량 발견 건수
+}
+
 export interface KPISummary {
   totalInspections: number
   totalDefects: number
   overallDefectRate: number
   fpy: number // First Pass Yield
   avgInspectionTime: number
+  avgResolutionTime: number // 불량 조치 완료 시간 (시간 단위)
   activeInspectors: number
+  topInspectors: TopInspector[]
 }
 
 export interface HourlyDistribution {

@@ -28,6 +28,9 @@ import type { Database } from '@/types/database'
 import * as managementService from '@/ui_test/mockServices/mockManagementService'
 import type { ProductModelImportData } from '@/types/excel-import'
 
+// 날짜 유틸리티
+import { formatVietnamDate } from '@/lib/dateUtils'
+
 type ProductModel = Database['public']['Tables']['product_models']['Row']
 
 export function ProductModelManagement() {
@@ -102,7 +105,7 @@ export function ProductModelManagement() {
         header: t('defects.registeredDate'),
         cell: (row) => (
           <Typography variant="body2">
-            {new Date(row.created_at).toLocaleDateString('ko-KR')}
+            {formatVietnamDate(row.created_at)}
           </Typography>
         ),
       },

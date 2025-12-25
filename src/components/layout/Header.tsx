@@ -1,5 +1,5 @@
-import { AppBar, Toolbar, IconButton, Typography, Menu, MenuItem, Box, ListItemIcon, ListItemText, Divider } from '@mui/material'
-import { Menu as MenuIcon, Person, Logout, Language, Brightness4, Brightness7 } from '@mui/icons-material'
+import { AppBar, Toolbar, IconButton, Typography, Menu, MenuItem, Box, ListItemIcon, ListItemText, Divider, Button } from '@mui/material'
+import { Menu as MenuIcon, Person, Logout, Brightness4, Brightness7 } from '@mui/icons-material'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
@@ -15,15 +15,14 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
   const { t, i18n } = useTranslation()
   const { signOut } = useAuth()
   const { mode, toggleTheme } = useThemeMode()
-  const [languageAnchorEl, setLanguageAnchorEl] = useState<null | HTMLElement>(null)
   const [userAnchorEl, setUserAnchorEl] = useState<null | HTMLElement>(null)
 
-  const changeLanguage = (lng: string) => {
-    i18n.changeLanguage(lng)
-    setLanguageAnchorEl(null)
+  const toggleLanguage = () => {
+    const newLang = i18n.language === 'ko' ? 'vi' : 'ko'
+    i18n.changeLanguage(newLang)
   }
 
-  const currentLanguage = i18n.language === 'vi' ? 'Tiếng Việt' : '한국어'
+  const currentLanguageShort = i18n.language === 'vi' ? 'VI' : 'KO'
 
   const handleUserMenuClose = () => {
     setUserAnchorEl(null)
@@ -86,36 +85,29 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
             {mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
           </IconButton>
 
-          {/* Language Switcher */}
-          <IconButton
-            color="inherit"
-            onClick={(e) => setLanguageAnchorEl(e.currentTarget)}
-          >
-            <Language />
-            <Typography variant="body2" sx={{ ml: 1, display: { xs: 'none', sm: 'block' } }}>
-              {currentLanguage}
-            </Typography>
-          </IconButton>
-          <Menu
-            anchorEl={languageAnchorEl}
-            open={Boolean(languageAnchorEl)}
-            onClose={() => setLanguageAnchorEl(null)}
-            anchorOrigin={{
-              vertical: 'bottom',
-              horizontal: 'right',
-            }}
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
+          {/* Language Toggle */}
+          <Button
+            onClick={toggleLanguage}
+            variant="outlined"
+            size="small"
+            sx={{
+              minWidth: 'auto',
+              px: 1.5,
+              py: 0.5,
+              borderRadius: 1,
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              textTransform: 'none',
+              color: mode === 'dark' ? 'white' : 'black',
+              borderColor: mode === 'dark' ? 'white' : 'black',
+              '&:hover': {
+                borderColor: mode === 'dark' ? 'white' : 'black',
+                backgroundColor: mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+              },
             }}
           >
-            <MenuItem onClick={() => changeLanguage('ko')}>
-              한국어 (Korean)
-            </MenuItem>
-            <MenuItem onClick={() => changeLanguage('vi')}>
-              Tiếng Việt (Vietnamese)
-            </MenuItem>
-          </Menu>
+            {currentLanguageShort}
+          </Button>
 
           {/* User Menu */}
           <IconButton

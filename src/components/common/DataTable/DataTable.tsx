@@ -357,7 +357,7 @@ export function DataTable<T>({
                       </TableCell>
                     ))}
                     {renderActions && (
-                      <TableCell align="right" sx={{ width: 120, fontWeight: 600 }}>
+                      <TableCell align="right" sx={{ width: 180, minWidth: 180, fontWeight: 600 }}>
                         {t('common.actions')}
                       </TableCell>
                     )}
@@ -374,7 +374,7 @@ export function DataTable<T>({
                         </TableCell>
                       ))}
                       {renderActions && (
-                        <TableCell align="right">{renderActions(row)}</TableCell>
+                        <TableCell align="right" sx={{ width: 180, minWidth: 180 }}>{renderActions(row)}</TableCell>
                       )}
                     </TableRow>
                   ))}

@@ -2,6 +2,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import ExcelJS from 'exceljs'
 import type { ReportSummary, ReportFilters } from '@/types/report'
+import { formatVietnamDate, formatVietnamDateTime } from '@/lib/dateUtils'
 
 // Extend jsPDF type to include autoTable
 declare module 'jspdf' {
@@ -32,8 +33,8 @@ export const generatePDFReport = async (
 
   // Date Range
   doc.setFontSize(10)
-  const dateFrom = filters.dateRange.from.toLocaleDateString('ko-KR')
-  const dateTo = filters.dateRange.to.toLocaleDateString('ko-KR')
+  const dateFrom = formatVietnamDate(filters.dateRange.from)
+  const dateTo = formatVietnamDate(filters.dateRange.to)
   doc.text(`Period: ${dateFrom} ~ ${dateTo}`, 14, 30)
 
   // Summary Statistics
@@ -126,7 +127,7 @@ export const generatePDFReport = async (
     doc.setPage(i)
     doc.setFontSize(8)
     doc.text(
-      `Generated on ${new Date().toLocaleString('ko-KR')}`,
+      `Generated on ${formatVietnamDateTime(new Date())}`,
       14,
       doc.internal.pageSize.height - 10
     )
@@ -156,7 +157,7 @@ export const generateExcelReport = async (
 
   summarySheet.addRow([reportTitle])
   summarySheet.addRow([])
-  summarySheet.addRow(['Period', `${filters.dateRange.from.toLocaleDateString('ko-KR')} ~ ${filters.dateRange.to.toLocaleDateString('ko-KR')}`])
+  summarySheet.addRow(['Period', `${formatVietnamDate(filters.dateRange.from)} ~ ${formatVietnamDate(filters.dateRange.to)}`])
   summarySheet.addRow([])
   summarySheet.addRow(['Summary Statistics'])
   summarySheet.addRow(['Metric', 'Value'])

@@ -16,7 +16,13 @@ export const mockKPISummary: KPISummary = {
   overallDefectRate: 3.37,
   fpy: 96.63,
   avgInspectionTime: 4.2,
+  avgResolutionTime: 2.5, // 평균 불량 조치 시간 (시간)
   activeInspectors: 8,
+  topInspectors: [
+    { rank: 1, name: '이영희', inspectionCount: 312, defectCount: 15 },
+    { rank: 2, name: '김철수', inspectionCount: 287, defectCount: 12 },
+    { rank: 3, name: '박민수', inspectionCount: 245, defectCount: 10 },
+  ],
 }
 
 // Defect Rate Trend Mock Data (Last 30 days)

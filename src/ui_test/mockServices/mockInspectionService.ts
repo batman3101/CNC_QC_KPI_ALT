@@ -41,16 +41,19 @@ export async function getMachineById(id: string): Promise<Machine | null> {
 
 export async function getInspections(userId?: string): Promise<Inspection[]> {
   await delay(300)
-  let data = inspectionsData
+  let data = [...inspectionsData] // 새 배열로 복사
 
   if (userId) {
     data = data.filter((inspection) => inspection.user_id === userId)
   }
 
-  return data.sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )
+  // 새 배열과 새 객체로 반환하여 React Query가 변경을 감지하도록 함
+  return data
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+    .map((inspection) => ({ ...inspection }))
 }
 
 export async function getInspectionById(
@@ -155,13 +158,18 @@ export async function getDefects(inspectionId?: string): Promise<Defect[]> {
   await delay(300)
 
   if (inspectionId) {
-    return defectsData.filter((defect) => defect.inspection_id === inspectionId)
+    return defectsData
+      .filter((defect) => defect.inspection_id === inspectionId)
+      .map((defect) => ({ ...defect })) // 새 객체로 복사
   }
 
-  return defectsData.sort(
-    (a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-  )
+  // 새 배열과 새 객체로 반환하여 React Query가 변경을 감지하도록 함
+  return [...defectsData]
+    .sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    )
+    .map((defect) => ({ ...defect })) // 새 객체로 복사
 }
 
 export async function createDefect(data: DefectInsert): Promise<Defect> {
@@ -189,6 +197,7 @@ export async function updateDefectStatus(
   await delay(300)
 
   const index = defectsData.findIndex((defect) => defect.id === id)
+
   if (index === -1) {
     throw new Error('Defect not found')
   }
@@ -198,7 +207,7 @@ export async function updateDefectStatus(
     status,
   }
 
-  return defectsData[index]
+  return { ...defectsData[index] }
 }
 
 // ============= Utility Functions =============
