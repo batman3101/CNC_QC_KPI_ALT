@@ -18,7 +18,7 @@ import {
   Image as ImageIcon,
 } from '@mui/icons-material'
 import type { Database } from '@/types/database'
-import { getProductModels } from '@/ui_test/mockServices/mockManagementService'
+import { getProductModels } from '@/services/managementService'
 
 type Defect = Database['public']['Tables']['defects']['Row']
 

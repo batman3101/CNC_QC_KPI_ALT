@@ -19,7 +19,7 @@ import {
 } from '@mui/icons-material'
 import { DataTable, type ColumnDef } from '@/components/common/DataTable'
 import type { Report } from '@/types/report'
-import * as reportService from '@/ui_test/mockServices/mockReportService'
+import * as reportService from '@/services/reportService'
 
 // 날짜 유틸리티
 import { formatVietnamDate, formatVietnamDateTime } from '@/lib/dateUtils'
@@ -192,6 +192,7 @@ export function ReportList({ reports, isLoading }: ReportListProps) {
         searchable: false,
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [t]
   )
 

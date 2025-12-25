@@ -16,8 +16,8 @@ import {
 } from '@mui/material'
 import { Assignment } from '@mui/icons-material'
 
-// UI 테스트용 Mock 서비스
-import * as managementService from '@/ui_test/mockServices/mockManagementService'
+// Supabase 서비스
+import * as managementService from '@/services/managementService'
 import type { InspectionProcess } from '@/types/inspection'
 
 interface InspectionSetupProps {

@@ -27,9 +27,9 @@ import { DefectDetailDialog } from './DefectDetailDialog'
 import { DataTable, type ColumnDef } from '@/components/common/DataTable'
 import type { Database } from '@/types/database'
 
-// UI 테스트용 Mock 서비스
-import * as inspectionService from '@/ui_test/mockServices/mockInspectionService'
-import { getProductModels } from '@/ui_test/mockServices/mockManagementService'
+// Supabase 서비스
+import * as inspectionService from '@/services/inspectionService'
+import { getProductModels } from '@/services/managementService'
 
 // 날짜 유틸리티
 import { formatVietnamDateTime } from '@/lib/dateUtils'
@@ -90,7 +90,7 @@ export function DefectsList() {
       id: string
       status: 'pending' | 'in_progress' | 'resolved'
     }) => {
-      const result = await inspectionService.updateDefectStatus(id, status)
+      const result = await inspectionService.updateDefect(id, { status })
       return result
     },
     onSuccess: (updatedDefect) => {
@@ -199,6 +199,7 @@ export function DefectsList() {
         ],
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [t, productModels]
   )
 

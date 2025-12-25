@@ -30,8 +30,8 @@ import { DataTable, type ColumnDef } from '@/components/common/DataTable'
 import type { Database } from '@/types/database'
 import type { InspectionItemImportData } from '@/types/excel-import'
 
-// UI 테스트용 Mock 서비스
-import * as managementService from '@/ui_test/mockServices/mockManagementService'
+// Supabase 서비스
+import * as managementService from '@/services/managementService'
 
 type ProductModel = Database['public']['Tables']['product_models']['Row']
 type InspectionItem = Database['public']['Tables']['inspection_items']['Row']
@@ -171,6 +171,7 @@ export function InspectionItemManagement() {
         ),
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [t, models]
   )
 

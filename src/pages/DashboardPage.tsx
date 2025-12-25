@@ -27,9 +27,9 @@ import {
   ArrowForward,
 } from '@mui/icons-material'
 
-// UI 테스트용 Mock 서비스
-import * as inspectionService from '@/ui_test/mockServices/mockInspectionService'
-import { getMachines, getProductModels } from '@/ui_test/mockServices/mockManagementService'
+// Supabase 서비스
+import * as inspectionService from '@/services/inspectionService'
+import { getMachines, getProductModels } from '@/services/managementService'
 
 // 날짜 유틸리티
 import { getBusinessDate, formatVietnamDateTime, getTodayBusinessDate } from '@/lib/dateUtils'
@@ -212,11 +212,11 @@ export function DashboardPage() {
             <CardHeader
               title={t('dashboard.recentInspections')}
               action={
-                <Button 
+                <Button
                   endIcon={<ArrowForward />}
                   onClick={() => navigate('/inspection')}
                 >
-                  {t('dashboard.viewAll')}
+                  {t('dashboard.goToInspection')}
                 </Button>
               }
             />

@@ -14,9 +14,9 @@ import { InspectorPerformanceChart } from '@/components/analytics/InspectorPerfo
 import { InspectorDetailedKPI } from '@/components/analytics/InspectorDetailedKPI'
 import type { AnalyticsFilters as Filters } from '@/types/analytics'
 
-// UI 테스트용 Mock 서비스 (나중에 실제 서비스로 교체)
-import * as analyticsService from '@/ui_test/mockServices/mockAnalyticsService'
-import { getProductModels, getInspectionProcesses } from '@/ui_test/mockServices/mockManagementService'
+// Supabase 서비스
+import * as analyticsService from '@/services/analyticsService'
+import { getProductModels, getInspectionProcesses } from '@/services/managementService'
 
 interface TabPanelProps {
   children?: React.ReactNode

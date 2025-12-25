@@ -21,7 +21,7 @@ import {
 } from '@mui/material'
 import { useSnackbar } from 'notistack'
 import type { Database } from '@/types/database'
-import * as userService from '@/ui_test/mockServices/mockUserService'
+import * as userService from '@/services/userService'
 
 type User = Database['public']['Tables']['users']['Row']
 

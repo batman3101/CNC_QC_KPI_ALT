@@ -1,11 +1,11 @@
+/**
+ * useAuth Hook - Supabase 전용
+ */
+
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
-import { USE_MOCK_AUTH } from '@/config/app.config'
-
-// UI 테스트용 Mock 서비스
-import * as mockAuthService from '@/ui_test/mockServices/mockAuthService'
 
 export function useAuth() {
   const navigate = useNavigate()
@@ -13,29 +13,7 @@ export function useAuth() {
     useAuthStore()
 
   useEffect(() => {
-    if (USE_MOCK_AUTH) {
-      // Mock 인증: 콘솔에 테스트 계정 정보 출력
-      mockAuthService.printMockCredentials()
-
-      // Mock 세션 확인
-      mockAuthService.mockGetSession().then(({ user }) => {
-        if (user) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          setUser(user as any)
-          setProfile({
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-          })
-        }
-        setLoading(false)
-      })
-
-      return
-    }
-
-    // 실제 Supabase 인증 (USE_MOCK_AUTH = false일 때)
+    // Supabase 세션 확인
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       setLoading(false)
@@ -85,30 +63,6 @@ export function useAuth() {
   }
 
   const signIn = async (email: string, password: string) => {
-    if (USE_MOCK_AUTH) {
-      // Mock 로그인
-      const { user, error } = await mockAuthService.mockSignIn(email, password)
-
-      if (error) {
-        return { error }
-      }
-
-      if (user) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setUser(user as any)
-        setProfile({
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
-        })
-        navigate('/dashboard')
-      }
-
-      return { error: null }
-    }
-
-    // 실제 Supabase 로그인
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -129,15 +83,6 @@ export function useAuth() {
   }
 
   const signOut = async () => {
-    if (USE_MOCK_AUTH) {
-      // Mock 로그아웃
-      await mockAuthService.mockSignOut()
-      logout()
-      navigate('/login')
-      return
-    }
-
-    // 실제 Supabase 로그아웃
     try {
       await supabase.auth.signOut()
       logout()

@@ -8,6 +8,9 @@ import { formatVietnamDate, formatVietnamDateTime } from '@/lib/dateUtils'
 declare module 'jspdf' {
   interface jsPDF {
     autoTable: typeof autoTable
+    lastAutoTable: {
+      finalY: number
+    }
   }
 }
 
@@ -58,7 +61,7 @@ export const generatePDFReport = async (
   })
 
   // Defects by Type
-  let finalY = (doc as any).lastAutoTable.finalY || 100
+  let finalY = doc.lastAutoTable?.finalY || 100
   doc.setFontSize(14)
   doc.text('Defects by Type', 14, finalY + 10)
 
@@ -77,7 +80,7 @@ export const generatePDFReport = async (
   })
 
   // Process Performance
-  finalY = (doc as any).lastAutoTable.finalY || 150
+  finalY = doc.lastAutoTable?.finalY || 150
   doc.setFontSize(14)
   doc.text('Process Performance', 14, finalY + 10)
 
@@ -97,7 +100,7 @@ export const generatePDFReport = async (
   })
 
   // Model Performance - Add new page if needed
-  finalY = (doc as any).lastAutoTable.finalY || 200
+  finalY = doc.lastAutoTable?.finalY || 200
   if (finalY > 250) {
     doc.addPage()
     finalY = 20

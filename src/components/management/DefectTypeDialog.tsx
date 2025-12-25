@@ -35,8 +35,8 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import type { Database } from '@/types/database'
 
-// UI 테스트용 Mock 서비스
-import * as managementService from '@/ui_test/mockServices/mockManagementService'
+// Supabase 서비스
+import * as managementService from '@/services/managementService'
 
 type DefectType = Database['public']['Tables']['defect_types']['Row']
 type DefectTypeInsert = Database['public']['Tables']['defect_types']['Insert']

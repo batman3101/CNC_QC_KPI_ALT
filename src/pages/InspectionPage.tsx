@@ -5,8 +5,8 @@ import { Box, Typography } from '@mui/material'
 import { InspectionSetup } from '@/components/inspection/InspectionSetup'
 import { InspectionRecordForm } from '@/components/inspection/InspectionRecordForm'
 import type { InspectionProcess, InspectionRecordInput } from '@/types/inspection'
-import * as managementService from '@/ui_test/mockServices/mockManagementService'
-import * as inspectionService from '@/ui_test/mockServices/mockInspectionService'
+import * as managementService from '@/services/managementService'
+import * as inspectionService from '@/services/inspectionService'
 
 interface InspectionState {
   isActive: boolean

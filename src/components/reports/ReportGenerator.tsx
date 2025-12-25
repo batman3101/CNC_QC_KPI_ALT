@@ -29,7 +29,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import { ko } from 'date-fns/locale'
 import { subDays } from 'date-fns'
 import type { ReportType, ReportFormat, ReportFilters } from '@/types/report'
-import * as reportService from '@/ui_test/mockServices/mockReportService'
+import * as reportService from '@/services/reportService'
 
 interface ReportGeneratorProps {
   models: { id: string; name: string; code: string }[]

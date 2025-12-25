@@ -38,7 +38,7 @@ import {
   CheckCircle,
 } from 'lucide-react'
 import type { AnalyticsFilters } from '@/types/analytics'
-import * as analyticsService from '@/ui_test/mockServices/mockAnalyticsService'
+import * as analyticsService from '@/services/analyticsService'
 
 interface InspectorDetailedKPIProps {
   filters: AnalyticsFilters

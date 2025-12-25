@@ -17,8 +17,8 @@ import {
 import { useSnackbar } from 'notistack'
 import type { Database } from '@/types/database'
 
-// UI 테스트용 Mock 서비스
-import * as managementService from '@/ui_test/mockServices/mockManagementService'
+// Supabase 서비스
+import * as managementService from '@/services/managementService'
 
 type ProductModel = Database['public']['Tables']['product_models']['Row']
 type ProductModelInsert =

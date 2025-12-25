@@ -149,6 +149,7 @@ export function ExcelBulkImportDialog({
       })
       setState('error')
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parseResult, onBulkSave, onSuccess, t, toast])
 
   const handleClose = useCallback(() => {

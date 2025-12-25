@@ -25,13 +25,14 @@ import { DataTable, type ColumnDef } from '@/components/common/DataTable'
 import type { Database } from '@/types/database'
 import type { DefectTypeImportData } from '@/types/excel-import'
 
-// UI 테스트용 Mock 서비스
-import * as managementService from '@/ui_test/mockServices/mockManagementService'
+// Supabase 서비스
+import * as managementService from '@/services/managementService'
 
 type DefectType = Database['public']['Tables']['defect_types']['Row']
 
 export function DefectTypeManagement() {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const isVietnamese = i18n.language === 'vi'
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingType, setEditingType] = useState<DefectType | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -104,7 +105,7 @@ export function DefectTypeManagement() {
         header: t('management.defectName'),
         cell: (row) => (
           <Typography variant="body2" fontWeight={500}>
-            {row.name}
+            {isVietnamese && row.name_vi ? row.name_vi : row.name}
           </Typography>
         ),
       },
@@ -121,7 +122,7 @@ export function DefectTypeManagement() {
               whiteSpace: 'nowrap',
             }}
           >
-            {row.description || '-'}
+            {isVietnamese && row.description_vi ? row.description_vi : (row.description || '-')}
           </Typography>
         ),
       },
@@ -159,7 +160,7 @@ export function DefectTypeManagement() {
         ],
       },
     ],
-    [t]
+    [t, isVietnamese]
   )
 
   const handleAddClick = () => {

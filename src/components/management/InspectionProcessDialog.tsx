@@ -28,8 +28,8 @@ import { Switch } from '@/components/ui/switch'
 import { useToast } from '@/hooks/use-toast'
 import type { Database } from '@/types/database'
 
-// UI 테스트용 Mock 서비스
-import * as managementService from '@/ui_test/mockServices/mockManagementService'
+// Supabase 서비스
+import * as managementService from '@/services/managementService'
 
 type InspectionProcess = Database['public']['Tables']['inspection_processes']['Row']
 type InspectionProcessInsert = Database['public']['Tables']['inspection_processes']['Insert']

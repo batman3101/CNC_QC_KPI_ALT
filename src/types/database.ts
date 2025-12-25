@@ -6,264 +6,297 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-export interface Database {
+export type Database = {
   public: {
     Tables: {
-      users: {
-        Row: {
-          id: string
-          email: string
-          role: 'admin' | 'manager' | 'inspector'
-          name: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          email: string
-          role: 'admin' | 'manager' | 'inspector'
-          name: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          email?: string
-          role?: 'admin' | 'manager' | 'inspector'
-          name?: string
-          created_at?: string
-        }
-      }
-      machines: {
-        Row: {
-          id: string
-          name: string
-          model: string
-          status: 'active' | 'inactive' | 'maintenance'
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          model: string
-          status?: 'active' | 'inactive' | 'maintenance'
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          model?: string
-          status?: 'active' | 'inactive' | 'maintenance'
-          created_at?: string
-        }
-      }
-      product_models: {
-        Row: {
-          id: string
-          name: string
-          code: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          name: string
-          code: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          name?: string
-          code?: string
-          created_at?: string
-        }
-      }
-      inspection_processes: {
-        Row: {
-          id: string
-          code: string
-          name: string
-          description: string | null
-          is_active: boolean
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          code: string
-          name: string
-          description?: string | null
-          is_active?: boolean
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          code?: string
-          name?: string
-          description?: string | null
-          is_active?: boolean
-          created_at?: string
-        }
-      }
       defect_types: {
         Row: {
-          id: string
           code: string
-          name: string
-          description: string | null
-          severity: 'low' | 'medium' | 'high'
-          is_active: boolean
           created_at: string
+          description: string | null
+          description_vi: string | null
+          id: string
+          is_active: boolean
+          name: string
+          name_vi: string | null
+          severity: 'low' | 'medium' | 'high'
         }
         Insert: {
-          id?: string
           code: string
-          name: string
-          description?: string | null
-          severity?: 'low' | 'medium' | 'high'
-          is_active?: boolean
           created_at?: string
+          description?: string | null
+          description_vi?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          name_vi?: string | null
+          severity?: 'low' | 'medium' | 'high'
         }
         Update: {
-          id?: string
           code?: string
-          name?: string
-          description?: string | null
-          severity?: 'low' | 'medium' | 'high'
-          is_active?: boolean
           created_at?: string
+          description?: string | null
+          description_vi?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          name_vi?: string | null
+          severity?: 'low' | 'medium' | 'high'
         }
+        Relationships: []
+      }
+      defects: {
+        Row: {
+          created_at: string
+          defect_type: string
+          description: string
+          id: string
+          inspection_id: string
+          model_id: string
+          photo_url: string | null
+          status: 'pending' | 'in_progress' | 'resolved'
+        }
+        Insert: {
+          created_at?: string
+          defect_type: string
+          description: string
+          id?: string
+          inspection_id: string
+          model_id: string
+          photo_url?: string | null
+          status?: 'pending' | 'in_progress' | 'resolved'
+        }
+        Update: {
+          created_at?: string
+          defect_type?: string
+          description?: string
+          id?: string
+          inspection_id?: string
+          model_id?: string
+          photo_url?: string | null
+          status?: 'pending' | 'in_progress' | 'resolved'
+        }
+        Relationships: []
       }
       inspection_items: {
         Row: {
+          created_at: string
+          data_type: 'numeric' | 'ok_ng'
           id: string
           model_id: string
           name: string
           standard_value: number
-          tolerance_min: number
           tolerance_max: number
+          tolerance_min: number
           unit: string
-          data_type: 'numeric' | 'ok_ng'
-          created_at: string
         }
         Insert: {
+          created_at?: string
+          data_type?: 'numeric' | 'ok_ng'
           id?: string
           model_id: string
           name: string
           standard_value: number
-          tolerance_min: number
           tolerance_max: number
+          tolerance_min: number
           unit: string
-          data_type?: 'numeric' | 'ok_ng'
-          created_at?: string
         }
         Update: {
+          created_at?: string
+          data_type?: 'numeric' | 'ok_ng'
           id?: string
           model_id?: string
           name?: string
           standard_value?: number
-          tolerance_min?: number
           tolerance_max?: number
+          tolerance_min?: number
           unit?: string
-          data_type?: 'numeric' | 'ok_ng'
-          created_at?: string
         }
+        Relationships: []
       }
-      inspections: {
+      inspection_processes: {
         Row: {
-          id: string
-          user_id: string
-          machine_id: string | null
-          model_id: string
-          inspection_process: string  // 관리 페이지에서 동적 관리
-          defect_type: string | null
-          inspection_quantity: number
-          defect_quantity: number
-          photo_url: string | null
-          status: 'pass' | 'fail' | 'pending'
+          code: string
           created_at: string
+          description: string | null
+          description_vi: string | null
+          id: string
+          is_active: boolean
+          name: string
+          name_vi: string | null
         }
         Insert: {
-          id?: string
-          user_id: string
-          machine_id?: string | null
-          model_id: string
-          inspection_process: string  // 관리 페이지에서 동적 관리
-          defect_type?: string | null
-          inspection_quantity: number
-          defect_quantity: number
-          photo_url?: string | null
-          status?: 'pass' | 'fail' | 'pending'
+          code: string
           created_at?: string
+          description?: string | null
+          description_vi?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          name_vi?: string | null
         }
         Update: {
-          id?: string
-          user_id?: string
-          machine_id?: string | null
-          model_id?: string
-          inspection_process?: string  // 관리 페이지에서 동적 관리
-          defect_type?: string | null
-          inspection_quantity?: number
-          defect_quantity?: number
-          photo_url?: string | null
-          status?: 'pass' | 'fail' | 'pending'
+          code?: string
           created_at?: string
+          description?: string | null
+          description_vi?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          name_vi?: string | null
         }
+        Relationships: []
       }
       inspection_results: {
         Row: {
+          created_at: string
           id: string
           inspection_id: string
           item_id: string
           measured_value: number
           result: 'pass' | 'fail'
-          created_at: string
         }
         Insert: {
+          created_at?: string
           id?: string
           inspection_id: string
           item_id: string
           measured_value: number
           result: 'pass' | 'fail'
-          created_at?: string
         }
         Update: {
+          created_at?: string
           id?: string
           inspection_id?: string
           item_id?: string
           measured_value?: number
           result?: 'pass' | 'fail'
-          created_at?: string
         }
+        Relationships: []
       }
-      defects: {
+      inspections: {
         Row: {
-          id: string
-          inspection_id: string
-          model_id: string
-          defect_type: string
-          description: string
-          photo_url: string | null
-          status: 'pending' | 'in_progress' | 'resolved'
           created_at: string
+          defect_quantity: number
+          defect_type: string | null
+          id: string
+          inspection_process: string
+          inspection_quantity: number
+          machine_id: string | null
+          model_id: string
+          photo_url: string | null
+          status: 'pass' | 'fail' | 'pending'
+          user_id: string
         }
         Insert: {
-          id?: string
-          inspection_id: string
-          model_id: string
-          defect_type: string
-          description: string
-          photo_url?: string | null
-          status?: 'pending' | 'in_progress' | 'resolved'
           created_at?: string
+          defect_quantity?: number
+          defect_type?: string | null
+          id?: string
+          inspection_process: string
+          inspection_quantity?: number
+          machine_id?: string | null
+          model_id: string
+          photo_url?: string | null
+          status?: 'pass' | 'fail' | 'pending'
+          user_id: string
         }
         Update: {
-          id?: string
-          inspection_id?: string
-          model_id?: string
-          defect_type?: string
-          description?: string
-          photo_url?: string | null
-          status?: 'pending' | 'in_progress' | 'resolved'
           created_at?: string
+          defect_quantity?: number
+          defect_type?: string | null
+          id?: string
+          inspection_process?: string
+          inspection_quantity?: number
+          machine_id?: string | null
+          model_id?: string
+          photo_url?: string | null
+          status?: 'pass' | 'fail' | 'pending'
+          user_id?: string
         }
+        Relationships: []
       }
+      machines: {
+        Row: {
+          created_at: string
+          id: string
+          model: string
+          name: string
+          status: 'active' | 'inactive' | 'maintenance'
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          model: string
+          name: string
+          status?: 'active' | 'inactive' | 'maintenance'
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          model?: string
+          name?: string
+          status?: 'active' | 'inactive' | 'maintenance'
+        }
+        Relationships: []
+      }
+      product_models: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          role: 'admin' | 'manager' | 'inspector'
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          role?: 'admin' | 'manager' | 'inspector'
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          role?: 'admin' | 'manager' | 'inspector'
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 }

@@ -26,9 +26,9 @@ import {
 import { useAuthStore } from '@/stores/authStore'
 import type { Database } from '@/types/database'
 
-// UI 테스트용 Mock 서비스
-import * as managementService from '@/ui_test/mockServices/mockManagementService'
-import * as inspectionService from '@/ui_test/mockServices/mockInspectionService'
+// Supabase 서비스
+import * as managementService from '@/services/managementService'
+import * as inspectionService from '@/services/inspectionService'
 
 type InspectionItem = Database['public']['Tables']['inspection_items']['Row']
 type InspectionResultInsert =
@@ -146,17 +146,16 @@ export function InspectionForm({
         })
       )
 
-      await inspectionService.batchCreateInspectionResults(results)
+      await inspectionService.createInspectionResults(results)
 
       // 3. Determine overall status
-      const overallStatus =
-        inspectionService.determineInspectionStatus(results)
+      const hasFailures = results.some((r) => r.result === 'fail')
+      const overallStatus = hasFailures ? 'fail' : 'pass'
 
       // 4. Update inspection status
-      await inspectionService.updateInspectionStatus(
-        inspection.id,
-        overallStatus
-      )
+      await inspectionService.updateInspection(inspection.id, {
+        status: overallStatus,
+      })
 
       return { inspection, overallStatus }
     },

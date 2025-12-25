@@ -8,6 +8,7 @@ import {
   Warning as WarningIcon,
   TrendingUp as TrendingUpIcon,
   Description as DescriptionIcon,
+  AutoAwesome as AutoAwesomeIcon,
   People as PeopleIcon,
 } from '@mui/icons-material'
 
@@ -53,6 +54,12 @@ const getNavItems = (): NavItem[] => [
     titleKey: 'nav.reports',
     href: '/reports',
     icon: DescriptionIcon,
+    roles: ['admin', 'manager'],
+  },
+  {
+    titleKey: 'nav.aiInsights',
+    href: '/ai-insights',
+    icon: AutoAwesomeIcon,
     roles: ['admin', 'manager'],
   },
   {

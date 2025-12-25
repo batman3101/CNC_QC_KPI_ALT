@@ -33,8 +33,10 @@ import {
 
 import type { InspectionProcess, InspectionRecordInput } from '@/types/inspection'
 import { useAuth } from '@/hooks/useAuth'
-import * as managementService from '@/ui_test/mockServices/mockManagementService'
-import type { Machine } from '@/ui_test/mockServices/mockManagementService'
+import * as managementService from '@/services/managementService'
+import type { Database } from '@/types/database'
+
+type Machine = Database['public']['Tables']['machines']['Row']
 
 interface InspectionRecordFormProps {
   modelId: string

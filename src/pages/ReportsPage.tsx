@@ -7,8 +7,8 @@ import { ReportGenerator } from '@/components/reports/ReportGenerator'
 import { ReportList } from '@/components/reports/ReportList'
 import { ReportSummaryCard } from '@/components/reports/ReportSummaryCard'
 import type { ReportFilters } from '@/types/report'
-import * as reportService from '@/ui_test/mockServices/mockReportService'
-import { getProductModels, getInspectionProcesses } from '@/ui_test/mockServices/mockManagementService'
+import * as reportService from '@/services/reportService'
+import { getProductModels, getInspectionProcesses } from '@/services/managementService'
 
 interface TabPanelProps {
   children?: React.ReactNode

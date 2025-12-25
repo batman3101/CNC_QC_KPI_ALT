@@ -12,6 +12,7 @@ import { InspectionPage } from '@/pages/InspectionPage'
 import { DefectsPage } from '@/pages/DefectsPage'
 import { AnalyticsPage } from '@/pages/AnalyticsPage'
 import { ReportsPage } from '@/pages/ReportsPage'
+import { AIInsightsPage } from '@/pages/AIInsightsPage'
 import { ManagementPage } from '@/pages/ManagementPage'
 import { UserManagementPage } from '@/pages/UserManagementPage'
 import { useAuthStore } from '@/stores/authStore'
@@ -64,6 +65,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['admin', 'manager']}>
               <ReportsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/ai-insights"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager']}>
+              <AIInsightsPage />
             </ProtectedRoute>
           }
         />

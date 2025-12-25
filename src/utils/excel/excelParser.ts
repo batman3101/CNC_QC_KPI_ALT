@@ -217,7 +217,7 @@ export async function parseExcelFile<T = Record<string, unknown>>(
     allData.push(rowData)
 
     // Validate row
-    const validation = validateRow<T>(rowData, schema, rowNum)
+    const validation = validateRow<T>(rowData, schema)
     const errors: ValidationError[] = validation.errors.map((err) => {
       const mapping = mappings.find((m) => m.field === err.field)
       const fieldLabel = mapping

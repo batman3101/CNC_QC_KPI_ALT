@@ -23,7 +23,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { UserDialog } from './UserDialog'
 import { useAuthStore } from '@/stores/authStore'
 import type { Database } from '@/types/database'
-import * as userService from '@/ui_test/mockServices/mockUserService'
+import * as userService from '@/services/userService'
 
 // 날짜 유틸리티
 import { formatVietnamDate } from '@/lib/dateUtils'
@@ -158,6 +158,7 @@ export function UserList() {
         searchable: false,
       },
     ],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [t]
   )
 

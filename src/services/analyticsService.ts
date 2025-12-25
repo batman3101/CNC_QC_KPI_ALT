@@ -8,6 +8,10 @@ import type {
   KPISummary,
   HourlyDistribution,
   InspectorPerformance,
+  InspectorDetailedKPI,
+  InspectorDailyTrend,
+  InspectorModelPerformance,
+  InspectorProcessPerformance,
 } from '@/types/analytics'
 
 // Helper function to build date filter
@@ -94,7 +98,7 @@ export async function getKPISummary(
   const topInspectors = Object.entries(inspectorDefects)
     .sort((a, b) => b[1].defects - a[1].defects)
     .slice(0, 3)
-    .map(([_id, stats], index) => ({
+    .map(([, stats], index) => ({
       rank: index + 1,
       name: stats.name,
       inspectionCount: stats.count,
@@ -406,4 +410,181 @@ export async function getInspectorPerformance(
     defectRate: (stats.defects / stats.total) * 100,
     avgInspectionTime: 4.2, // Mock data
   }))
+}
+
+// 8. Get Inspector List
+export async function getInspectorList(): Promise<{ id: string; name: string }[]> {
+  const { data: users, error } = await supabase
+    .from('users')
+    .select('id, name, role')
+    .eq('role', 'inspector')
+    .order('name')
+
+  if (error) throw error
+
+  return (users || []).map(user => ({
+    id: user.id,
+    name: user.name,
+  }))
+}
+
+// 9. Get Inspector Detailed KPI
+export async function getInspectorDetailedKPI(
+  inspectorId: string,
+  filters: AnalyticsFilters
+): Promise<InspectorDetailedKPI | null> {
+  const dateFilter = buildDateFilter(filters)
+
+  // Get inspector info
+  const { data: inspector, error: inspectorError } = await supabase
+    .from('users')
+    .select('id, name')
+    .eq('id', inspectorId)
+    .single()
+
+  if (inspectorError || !inspector) return null
+
+  // Get all inspections for this inspector in the date range
+  const { data: inspectorInspections } = await supabase
+    .from('inspections')
+    .select(`
+      id, status, created_at, model_id, inspection_process,
+      product_models (name, code),
+      inspection_processes:inspection_process (name, code)
+    `)
+    .eq('user_id', inspectorId)
+    .gte('created_at', dateFilter.gte)
+    .lte('created_at', dateFilter.lte)
+
+  // Get all team inspections for comparison
+  const { data: teamInspections } = await supabase
+    .from('inspections')
+    .select('user_id, status, created_at')
+    .gte('created_at', dateFilter.gte)
+    .lte('created_at', dateFilter.lte)
+
+  const myInspections = inspectorInspections || []
+  const allTeamInspections = teamInspections || []
+
+  // Calculate basic stats
+  const totalInspections = myInspections.length
+  const defectCount = myInspections.filter(i => i.status === 'fail').length
+  const defectRate = totalInspections > 0 ? (defectCount / totalInspections) * 100 : 0
+  const passRate = 100 - defectRate
+
+  // Calculate ranking
+  const inspectorStats = new Map<string, { total: number; defects: number }>()
+  allTeamInspections.forEach((insp: { user_id: string; status: string }) => {
+    const stats = inspectorStats.get(insp.user_id) || { total: 0, defects: 0 }
+    stats.total++
+    if (insp.status === 'fail') stats.defects++
+    inspectorStats.set(insp.user_id, stats)
+  })
+
+  const rankings = Array.from(inspectorStats.entries())
+    .map(([userId, stats]) => ({
+      userId,
+      defectRate: stats.total > 0 ? (stats.defects / stats.total) * 100 : 0,
+    }))
+    .sort((a, b) => a.defectRate - b.defectRate)
+
+  const rank = rankings.findIndex(r => r.userId === inspectorId) + 1
+  const totalInspectors = rankings.length
+
+  // Daily trend
+  const dailyMap = new Map<string, { total: number; defects: number }>()
+  myInspections.forEach((insp: { created_at: string; status: string }) => {
+    const date = new Date(insp.created_at).toISOString().split('T')[0]
+    const stats = dailyMap.get(date) || { total: 0, defects: 0 }
+    stats.total++
+    if (insp.status === 'fail') stats.defects++
+    dailyMap.set(date, stats)
+  })
+
+  const dailyTrend: InspectorDailyTrend[] = Array.from(dailyMap.entries())
+    .map(([date, stats]) => ({
+      date,
+      inspectionCount: stats.total,
+      defectCount: stats.defects,
+      defectRate: stats.total > 0 ? (stats.defects / stats.total) * 100 : 0,
+    }))
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  // Model performance
+  const modelMap = new Map<string, { name: string; code: string; total: number; defects: number }>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  myInspections.forEach((insp: any) => {
+    const modelId = insp.model_id
+    const modelName = insp.product_models?.name || 'Unknown'
+    const modelCode = insp.product_models?.code || 'N/A'
+    const stats = modelMap.get(modelId) || { name: modelName, code: modelCode, total: 0, defects: 0 }
+    stats.total++
+    if (insp.status === 'fail') stats.defects++
+    modelMap.set(modelId, stats)
+  })
+
+  const modelPerformance: InspectorModelPerformance[] = Array.from(modelMap.values()).map(stats => ({
+    modelName: stats.name,
+    modelCode: stats.code,
+    inspectionCount: stats.total,
+    defectCount: stats.defects,
+    defectRate: stats.total > 0 ? (stats.defects / stats.total) * 100 : 0,
+  }))
+
+  // Process performance
+  const processMap = new Map<string, { name: string; code: string; total: number; defects: number }>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  myInspections.forEach((insp: any) => {
+    const processCode = insp.inspection_process
+    const processName = insp.inspection_processes?.name || processCode
+    const stats = processMap.get(processCode) || { name: processName, code: processCode, total: 0, defects: 0 }
+    stats.total++
+    if (insp.status === 'fail') stats.defects++
+    processMap.set(processCode, stats)
+  })
+
+  const processPerformance: InspectorProcessPerformance[] = Array.from(processMap.values()).map(stats => ({
+    processName: stats.name,
+    processCode: stats.code,
+    inspectionCount: stats.total,
+    defectCount: stats.defects,
+    defectRate: stats.total > 0 ? (stats.defects / stats.total) * 100 : 0,
+  }))
+
+  // Team comparison
+  const teamTotal = allTeamInspections.length
+  const teamDefects = allTeamInspections.filter((i: { status: string }) => i.status === 'fail').length
+  const avgDefectRate = teamTotal > 0 ? (teamDefects / teamTotal) * 100 : 0
+
+  // Calculate number of active days for average daily inspections
+  const uniqueDates = new Set(allTeamInspections.map((i: { created_at: string }) =>
+    new Date(i.created_at).toISOString().split('T')[0]
+  ))
+  const activeDays = uniqueDates.size || 1
+  const avgDailyInspections = teamTotal / activeDays / (totalInspectors || 1)
+
+  const myDailyInspections = totalInspections / activeDays
+
+  return {
+    inspectorId,
+    inspectorName: inspector.name,
+    totalInspections,
+    defectCount,
+    defectRate,
+    passRate,
+    avgInspectionTime: 4.2, // TODO: 실제 검사 시간 추적 추가
+    rank,
+    totalInspectors,
+    dailyTrend,
+    modelPerformance,
+    processPerformance,
+    teamComparison: {
+      avgDefectRate,
+      avgInspectionTime: 4.2,
+      avgDailyInspections,
+      defectRateDiff: defectRate - avgDefectRate,
+      inspectionTimeDiff: 0,
+      dailyInspectionsDiff: myDailyInspections - avgDailyInspections,
+    },
+  }
 }

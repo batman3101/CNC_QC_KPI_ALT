@@ -47,8 +47,26 @@
     "defects": "불량 관리",
     "analytics": "분석",
     "reports": "리포트",
+    "aiInsights": "AI 인사이트",
     "management": "관리",
     "userManagement": "사용자 관리"
+  },
+  "aiInsights": {
+    "title": "AI 인사이트",
+    "description": "AI가 분석한 품질 검사 인사이트를 확인하세요",
+    "refresh": "새로고침",
+    "refreshing": "분석 중...",
+    "lastUpdated": "마지막 업데이트",
+    "dailySummary": "일별 요약",
+    "keyIssues": "주요 이슈",
+    "performanceAnalysis": "성과 분석",
+    "riskAlerts": "리스크 알림",
+    "chatbot": {
+      "title": "AI 챗봇",
+      "placeholder": "품질 데이터에 대해 질문하세요...",
+      "send": "전송",
+      "thinking": "AI가 분석 중..."
+    }
   },
   "dashboard": {
     "title": "대시보드",
@@ -73,6 +91,7 @@
     "inProgress": "처리중",
     "resolved": "해결됨",
     "viewAll": "전체 보기",
+    "goToInspection": "검사 실행",
     "todayBasis": "금일 기준",
     "avgInspectionTime": "평균 검사 시간",
     "inspectionId": "검사 ID",

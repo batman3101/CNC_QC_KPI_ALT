@@ -114,8 +114,7 @@ export function getSchemaForEntityType(
  */
 export function validateRow<T>(
   data: unknown,
-  schema: z.ZodTypeAny,
-  _rowNumber: number
+  schema: z.ZodTypeAny
 ): { valid: boolean; data: T | null; errors: Array<{ field: string; message: string }> } {
   const result = schema.safeParse(data)
 

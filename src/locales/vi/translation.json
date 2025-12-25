@@ -47,8 +47,26 @@
     "defects": "Quản lý lỗi",
     "analytics": "Phân tích",
     "reports": "Báo cáo",
+    "aiInsights": "AI Insights",
     "management": "Quản lý",
     "userManagement": "Quản lý người dùng"
+  },
+  "aiInsights": {
+    "title": "AI Insights",
+    "description": "Xem các phân tích chất lượng từ AI",
+    "refresh": "Làm mới",
+    "refreshing": "Đang phân tích...",
+    "lastUpdated": "Cập nhật lần cuối",
+    "dailySummary": "Tóm tắt hàng ngày",
+    "keyIssues": "Vấn đề chính",
+    "performanceAnalysis": "Phân tích hiệu suất",
+    "riskAlerts": "Cảnh báo rủi ro",
+    "chatbot": {
+      "title": "AI Chatbot",
+      "placeholder": "Hỏi về dữ liệu chất lượng...",
+      "send": "Gửi",
+      "thinking": "AI đang phân tích..."
+    }
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -73,6 +91,7 @@
     "inProgress": "Đang xử lý",
     "resolved": "Đã giải quyết",
     "viewAll": "Xem tất cả",
+    "goToInspection": "Thực hiện kiểm tra",
     "todayBasis": "Tính theo hôm nay",
     "avgInspectionTime": "Thời gian kiểm tra TB",
     "inspectionId": "Mã kiểm tra",
