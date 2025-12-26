@@ -149,15 +149,68 @@ export function AIChatbot({ analyticsData }: AIChatbotProps) {
             <Box
               sx={{
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 height: '100%',
-                color: 'text.secondary',
+                gap: 2,
+                px: 1,
               }}
             >
-              <Typography variant="body2">
+              <Typography variant="body2" color="text.secondary">
                 {t('aiInsights.chatbot.placeholder')}
               </Typography>
+
+              {/* 추천 질문 섹션 */}
+              <Box
+                sx={{
+                  width: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 1,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ textAlign: 'center', mb: 0.5 }}
+                >
+                  {t('aiInsights.chatbot.suggestedQuestions')}
+                </Typography>
+                {['q1', 'q2', 'q3', 'q4', 'q5'].map((key) => (
+                  <Paper
+                    key={key}
+                    elevation={0}
+                    onClick={() => {
+                      const question = t(`aiInsights.chatbot.suggestions.${key}`)
+                      setInput(question)
+                    }}
+                    sx={{
+                      p: 1.5,
+                      cursor: 'pointer',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                        backgroundColor: 'primary.50',
+                        transform: 'translateX(4px)',
+                      },
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: 'text.primary',
+                        fontSize: '0.8rem',
+                      }}
+                    >
+                      {t(`aiInsights.chatbot.suggestions.${key}`)}
+                    </Typography>
+                  </Paper>
+                ))}
+              </Box>
             </Box>
           )}
 
