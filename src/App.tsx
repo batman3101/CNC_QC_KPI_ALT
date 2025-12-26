@@ -15,6 +15,7 @@ import { ReportsPage } from '@/pages/ReportsPage'
 import { AIInsightsPage } from '@/pages/AIInsightsPage'
 import { ManagementPage } from '@/pages/ManagementPage'
 import { UserManagementPage } from '@/pages/UserManagementPage'
+import { MonitorPage } from '@/pages/MonitorPage'
 import { useAuthStore } from '@/stores/authStore'
 import { InstallPrompt } from '@/components/pwa'
 import '@/i18n/config'
@@ -41,6 +42,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/monitor" element={<MonitorPage />} />
 
       <Route
         element={

@@ -448,6 +448,10 @@
     "invalidDataType": "Loại dữ liệu phải là numeric hoặc ok_ng",
     "invalidBoolean": "Vui lòng nhập TRUE hoặc FALSE"
   },
+  "monitor": {
+    "title": "Màn hình giám sát",
+    "lastUpdated": "Cập nhật lần cuối"
+  },
   "pwa": {
     "installPrompt": "Cài đặt ứng dụng để sử dụng ngoại tuyến",
     "install": "Cài đặt",
