@@ -4,6 +4,7 @@ import { Box, Toolbar } from '@mui/material'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
 import { MobileBottomNav } from './MobileBottomNav'
+import { DefectAlertBanner } from '@/components/defects/DefectAlertBanner'
 
 interface LayoutProps {
   userName?: string
@@ -35,6 +36,7 @@ export function Layout({ userName, userRole }: LayoutProps) {
         }}
       >
         <Toolbar /> {/* This pushes content below AppBar */}
+        <DefectAlertBanner />
         <Outlet />
       </Box>
 

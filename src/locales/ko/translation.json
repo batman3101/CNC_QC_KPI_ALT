@@ -168,6 +168,7 @@
     "statusPending": "조치 대기",
     "statusInProgress": "조치 중",
     "statusResolved": "조치 완료",
+    "noPending": "미처리 불량이 없습니다",
     "defectType": "불량 유형",
     "machine": "설비",
     "model": "모델",
@@ -183,7 +184,16 @@
     "startAction": "조치 시작",
     "completeAction": "조치 완료",
     "statusChanged": "상태 변경 완료",
-    "statusChangeError": "상태 변경 실패"
+    "statusChangeError": "상태 변경 실패",
+    "alert": {
+      "pendingCount": "미처리 불량 {{count}}건이 있습니다",
+      "pendingWarning": "즉시 조치가 필요합니다",
+      "startedAction": "불량 조치를 시작했습니다",
+      "completedAction": "불량 조치가 완료되었습니다",
+      "newDefect": "새로운 불량이 등록되었습니다",
+      "viewDetails": "상세보기",
+      "dismiss": "닫기"
+    }
   },
   "analytics": {
     "title": "분석",

@@ -1,10 +1,13 @@
-import { AppBar, Toolbar, IconButton, Typography, Menu, MenuItem, Box, ListItemIcon, ListItemText, Divider, Button } from '@mui/material'
-import { Menu as MenuIcon, Person, Logout, Brightness4, Brightness7 } from '@mui/icons-material'
+import { AppBar, Toolbar, IconButton, Typography, Menu, MenuItem, Box, ListItemIcon, ListItemText, Divider, Button, Badge, Tooltip } from '@mui/material'
+import { Menu as MenuIcon, Person, Logout, Brightness4, Brightness7, NotificationsOutlined } from '@mui/icons-material'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useAuth } from '@/hooks/useAuth'
 import { useThemeMode } from '@/contexts/ThemeContext'
 import { OfflineIndicator } from '@/components/pwa'
+import * as inspectionService from '@/services/inspectionService'
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -16,7 +19,17 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
   const { t, i18n } = useTranslation()
   const { signOut } = useAuth()
   const { mode, toggleTheme } = useThemeMode()
+  const navigate = useNavigate()
   const [userAnchorEl, setUserAnchorEl] = useState<null | HTMLElement>(null)
+
+  // Fetch pending defect count for notification badge
+  const { data: defects = [] } = useQuery({
+    queryKey: ['defects'],
+    queryFn: () => inspectionService.getDefects(),
+    refetchInterval: 30000, // 30초마다 자동 갱신
+  })
+
+  const pendingDefectCount = defects.filter((d) => d.status === 'pending').length
 
   const toggleLanguage = () => {
     const newLang = i18n.language === 'ko' ? 'vi' : 'ko'
@@ -82,6 +95,22 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
         <Box sx={{ flexGrow: 1 }} />
 
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          {/* Defect Notification Bell */}
+          <Tooltip title={pendingDefectCount > 0 ? t('defects.alert.pendingCount', { count: pendingDefectCount }) : t('defects.noPending')}>
+            <IconButton
+              color="inherit"
+              onClick={() => navigate('/defects')}
+            >
+              <Badge
+                badgeContent={pendingDefectCount}
+                color="error"
+                max={99}
+              >
+                <NotificationsOutlined />
+              </Badge>
+            </IconButton>
+          </Tooltip>
+
           {/* Offline Indicator */}
           <OfflineIndicator />
 

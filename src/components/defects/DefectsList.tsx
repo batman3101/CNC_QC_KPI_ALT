@@ -116,7 +116,18 @@ export function DefectsList() {
             : defect
         )
       })
-      enqueueSnackbar(t('defects.statusChanged'), { variant: 'success' })
+
+      // 상태별로 다른 알림 메시지 표시
+      const alertMessage = updatedDefect.status === 'in_progress'
+        ? t('defects.alert.startedAction')
+        : updatedDefect.status === 'resolved'
+        ? t('defects.alert.completedAction')
+        : t('defects.statusChanged')
+
+      enqueueSnackbar(alertMessage, {
+        variant: updatedDefect.status === 'resolved' ? 'success' : 'info',
+        autoHideDuration: 3000,
+      })
     },
     onError: (error: Error) => {
       enqueueSnackbar(error.message, { variant: 'error' })

@@ -168,6 +168,7 @@
     "statusPending": "Chờ xử lý",
     "statusInProgress": "Đang xử lý",
     "statusResolved": "Đã xử lý",
+    "noPending": "Không có lỗi chưa xử lý",
     "defectType": "Loại lỗi",
     "machine": "Thiết bị",
     "model": "Mẫu",
@@ -183,7 +184,16 @@
     "startAction": "Bắt đầu xử lý",
     "completeAction": "Hoàn tất xử lý",
     "statusChanged": "Thay đổi trạng thái thành công",
-    "statusChangeError": "Thay đổi trạng thái thất bại"
+    "statusChangeError": "Thay đổi trạng thái thất bại",
+    "alert": {
+      "pendingCount": "Có {{count}} lỗi chưa xử lý",
+      "pendingWarning": "Cần xử lý ngay",
+      "startedAction": "Đã bắt đầu xử lý lỗi",
+      "completedAction": "Đã hoàn tất xử lý lỗi",
+      "newDefect": "Đã đăng ký lỗi mới",
+      "viewDetails": "Xem chi tiết",
+      "dismiss": "Đóng"
+    }
   },
   "analytics": {
     "title": "Phân tích",
