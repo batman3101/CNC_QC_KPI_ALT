@@ -16,6 +16,7 @@ import { AIInsightsPage } from '@/pages/AIInsightsPage'
 import { ManagementPage } from '@/pages/ManagementPage'
 import { UserManagementPage } from '@/pages/UserManagementPage'
 import { useAuthStore } from '@/stores/authStore'
+import { InstallPrompt } from '@/components/pwa'
 import '@/i18n/config'
 
 const queryClient = new QueryClient({
@@ -104,6 +105,7 @@ function App() {
         <SnackbarProvider maxSnack={3} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
           <BrowserRouter>
             <AppRoutes />
+            <InstallPrompt />
           </BrowserRouter>
           <ReactQueryDevtools initialIsOpen={false} />
         </SnackbarProvider>

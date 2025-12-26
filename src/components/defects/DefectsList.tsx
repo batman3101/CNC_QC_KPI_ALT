@@ -14,6 +14,8 @@ import {
   Select,
   MenuItem,
   Grid,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material'
 import {
   Warning as WarningIcon,
@@ -38,6 +40,8 @@ type Defect = Database['public']['Tables']['defects']['Row']
 
 export function DefectsList() {
   const { t } = useTranslation()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedDefect, setSelectedDefect] = useState<Defect | null>(null)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
@@ -402,7 +406,7 @@ export function DefectsList() {
         renderActions={renderActions}
         toolbarActions={toolbarActions}
         searchPlaceholder={t('defects.defectType')}
-        pageSize={20}
+        pageSize={isMobile ? 5 : 20}
         enableFilters={true}
       />
 

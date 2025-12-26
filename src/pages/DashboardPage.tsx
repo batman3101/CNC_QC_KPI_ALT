@@ -18,6 +18,8 @@ import {
   Grid,
   Button,
   CardHeader,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import {
   BarChart,
@@ -37,6 +39,8 @@ import { getBusinessDate, formatVietnamDateTime, getTodayBusinessDate } from '@/
 export function DashboardPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   // Fetch recent inspections
   const { data: inspections = [], isLoading } = useQuery({
@@ -140,11 +144,19 @@ export function DashboardPage() {
 
   return (
     <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" fontWeight={700} gutterBottom>
+      <Box sx={{ mb: { xs: 2, md: 4 } }}>
+        <Typography
+          variant={isMobile ? 'h5' : 'h4'}
+          fontWeight={700}
+          gutterBottom
+        >
           {t('dashboard.title')}
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ display: { xs: 'none', sm: 'block' } }}
+        >
           {t('dashboard.description')}
         </Typography>
       </Box>
@@ -224,7 +236,7 @@ export function DashboardPage() {
               {isLoading ? (
                 <Box sx={{ py: 4 }}>
                   {[...Array(5)].map((_, i) => (
-                    <Skeleton key={i} height={50} sx={{ mb: 1 }} />
+                    <Skeleton key={i} height={isMobile ? 100 : 50} sx={{ mb: 1 }} />
                   ))}
                 </Box>
               ) : recentInspections.length === 0 ? (
@@ -233,7 +245,41 @@ export function DashboardPage() {
                     {t('common.noData')}
                   </Typography>
                 </Box>
+              ) : isMobile ? (
+                /* Mobile Card View */
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 1 }}>
+                  {recentInspections.map((inspection) => (
+                    <Paper
+                      key={inspection.id}
+                      variant="outlined"
+                      sx={{
+                        p: 2,
+                        borderRadius: 1,
+                        borderLeft: 4,
+                        borderLeftColor: inspection.status === 'pass' ? 'success.main' : 'error.main',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                        <Typography variant="subtitle2" fontWeight={600}>
+                          {getModelCode(inspection.model_id)}
+                        </Typography>
+                        <Chip
+                          label={inspection.status === 'pass' ? t('dashboard.pass') : t('dashboard.fail')}
+                          color={inspection.status === 'pass' ? 'success' : 'error'}
+                          size="small"
+                        />
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                        {getMachineName(inspection.machine_id)}
+                      </Typography>
+                      <Typography variant="caption" color="text.disabled">
+                        {formatVietnamDateTime(inspection.created_at)}
+                      </Typography>
+                    </Paper>
+                  ))}
+                </Box>
               ) : (
+                /* Desktop Table View */
                 <TableContainer
                   component={Paper}
                   elevation={2}

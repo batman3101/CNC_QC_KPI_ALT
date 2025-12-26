@@ -22,7 +22,8 @@
     "all": "전체",
     "clearAll": "전체 해제",
     "rowsPerPage": "페이지당 행 수",
-    "paginationInfo": "{{from}}-{{to}} / 총 {{count}}건"
+    "paginationInfo": "{{from}}-{{to}} / 총 {{count}}건",
+    "toggleTheme": "테마 변경"
   },
   "auth": {
     "login": "로그인",
@@ -130,6 +131,8 @@
     "photo": "사진",
     "uploadPhoto": "사진 업로드",
     "photoHelper": "이미지 파일만 업로드 가능 (최대 10MB)",
+    "selectFromGallery": "갤러리에서 선택",
+    "takePhoto": "카메라로 촬영",
     "startInspection": "검사 시작",
     "inspectionForm": "검사 실행",
     "inspectionFormDescription": "각 검사 항목의 측정값을 입력하세요",
@@ -444,6 +447,18 @@
     "invalidSeverity": "심각도는 low, medium, high 중 하나여야 합니다",
     "invalidDataType": "데이터 유형은 numeric 또는 ok_ng 여야 합니다",
     "invalidBoolean": "TRUE 또는 FALSE로 입력해주세요"
+  },
+  "pwa": {
+    "installPrompt": "앱을 설치하면 오프라인에서도 사용할 수 있습니다",
+    "install": "설치",
+    "updateAvailable": "새 버전이 있습니다",
+    "update": "업데이트",
+    "offline": "오프라인",
+    "online": "온라인",
+    "syncPending": "동기화 대기 중",
+    "syncComplete": "동기화 완료",
+    "syncError": "동기화 오류",
+    "savedOffline": "오프라인에 저장됨"
   },
   "validation": {
     "required": "필수 입력 항목입니다",

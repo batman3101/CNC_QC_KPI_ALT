@@ -55,6 +55,77 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
         main: '#ec4899',
       },
     },
+    components: {
+      // Touch-friendly button styles
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            minHeight: 44, // Apple's recommended touch target
+            '@media (max-width: 600px)': {
+              minHeight: 48,
+            },
+          },
+          sizeLarge: {
+            minHeight: 52,
+          },
+        },
+      },
+      // Touch-friendly input styles
+      MuiTextField: {
+        styleOverrides: {
+          root: {
+            '& .MuiInputBase-input': {
+              fontSize: '16px', // Prevents iOS zoom on focus
+              '@media (max-width: 600px)': {
+                fontSize: '16px',
+              },
+            },
+          },
+        },
+      },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: {
+            '@media (max-width: 600px)': {
+              minHeight: 48,
+            },
+          },
+          input: {
+            fontSize: '16px', // Prevents iOS zoom on focus
+          },
+        },
+      },
+      // Touch-friendly icon button
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            '@media (max-width: 600px)': {
+              padding: 12,
+            },
+          },
+        },
+      },
+      // Touch-friendly list items
+      MuiListItemButton: {
+        styleOverrides: {
+          root: {
+            '@media (max-width: 600px)': {
+              minHeight: 48,
+            },
+          },
+        },
+      },
+      // Touch-friendly chips
+      MuiChip: {
+        styleOverrides: {
+          root: {
+            '@media (max-width: 600px)': {
+              height: 32,
+            },
+          },
+        },
+      },
+    },
   })
 
   return (

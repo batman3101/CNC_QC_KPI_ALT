@@ -22,7 +22,8 @@
     "all": "Tất cả",
     "clearAll": "Xóa tất cả",
     "rowsPerPage": "Số hàng mỗi trang",
-    "paginationInfo": "{{from}}-{{to}} / Tổng {{count}}"
+    "paginationInfo": "{{from}}-{{to}} / Tổng {{count}}",
+    "toggleTheme": "Đổi giao diện"
   },
   "auth": {
     "login": "Đăng nhập",
@@ -130,6 +131,8 @@
     "photo": "Ảnh",
     "uploadPhoto": "Tải ảnh lên",
     "photoHelper": "Chỉ tải lên tệp ảnh (tối đa 10MB)",
+    "selectFromGallery": "Chọn từ thư viện",
+    "takePhoto": "Chụp ảnh",
     "startInspection": "Bắt đầu kiểm tra",
     "inspectionForm": "Thực hiện kiểm tra",
     "inspectionFormDescription": "Nhập giá trị đo cho từng hạng mục kiểm tra",
@@ -444,6 +447,18 @@
     "invalidSeverity": "Mức độ phải là low, medium hoặc high",
     "invalidDataType": "Loại dữ liệu phải là numeric hoặc ok_ng",
     "invalidBoolean": "Vui lòng nhập TRUE hoặc FALSE"
+  },
+  "pwa": {
+    "installPrompt": "Cài đặt ứng dụng để sử dụng ngoại tuyến",
+    "install": "Cài đặt",
+    "updateAvailable": "Có phiên bản mới",
+    "update": "Cập nhật",
+    "offline": "Ngoại tuyến",
+    "online": "Trực tuyến",
+    "syncPending": "Đang chờ đồng bộ",
+    "syncComplete": "Đồng bộ hoàn tất",
+    "syncError": "Lỗi đồng bộ",
+    "savedOffline": "Đã lưu ngoại tuyến"
   },
   "validation": {
     "required": "Trường này là bắt buộc",

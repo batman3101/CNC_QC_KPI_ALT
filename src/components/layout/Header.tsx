@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@/hooks/useAuth'
 import { useThemeMode } from '@/contexts/ThemeContext'
+import { OfflineIndicator } from '@/components/pwa'
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -38,7 +39,7 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
       position="fixed"
       color="inherit"
       elevation={0}
-      sx={{ 
+      sx={{
         zIndex: (theme) => theme.zIndex.drawer + 1,
         borderBottom: 1,
         borderColor: 'divider',
@@ -71,6 +72,7 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
               textDecoration: 'none',
               letterSpacing: '-0.025em',
               fontSize: '1.25rem',
+              display: { xs: 'none', sm: 'block' },
             }}
           >
             CNC QC KPI
@@ -79,7 +81,10 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
 
         <Box sx={{ flexGrow: 1 }} />
 
-        <Box sx={{ display: 'flex', gap: 1 }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          {/* Offline Indicator */}
+          <OfflineIndicator />
+
           {/* Theme Toggle */}
           <IconButton onClick={toggleTheme} color="inherit">
             {mode === 'dark' ? <Brightness7 /> : <Brightness4 />}

@@ -40,7 +40,8 @@
       "mcp__plugin_supabase_supabase__execute_sql",
       "mcp__supabase-cnc-qc-kpi__generate_typescript_types",
       "mcp__plugin_supabase_supabase__generate_typescript_types",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(node scripts/generate-icons.mjs:*)"
     ],
     "deny": [],
     "ask": []

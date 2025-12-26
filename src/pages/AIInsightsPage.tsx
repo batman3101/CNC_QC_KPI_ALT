@@ -204,25 +204,27 @@ export function AIInsightsPage() {
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <Box>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'nowrap' }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography variant="h4" fontWeight={700} sx={{ mb: 0.5 }}>
             {t('aiInsights.title')}
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body2" color="text.secondary" noWrap>
             {t('aiInsights.description')}
           </Typography>
           {lastUpdated && (
-            <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }}>
+            <Typography variant="caption" color="text.disabled" sx={{ mt: 0.5, display: 'block' }} noWrap>
               {t('aiInsights.lastUpdated')}: {lastUpdated}
             </Typography>
           )}
         </Box>
         <Button
           variant="contained"
-          startIcon={isGenerating ? <CircularProgress size={20} color="inherit" /> : <Refresh />}
+          startIcon={isGenerating ? <CircularProgress size={16} color="inherit" /> : <Refresh />}
           onClick={handleGenerateInsights}
           disabled={isGenerating || !analyticsData}
+          size="small"
+          sx={{ whiteSpace: 'nowrap', flexShrink: 0, minWidth: 'auto', px: 2 }}
         >
           {isGenerating ? t('aiInsights.refreshing') : t('aiInsights.refresh')}
         </Button>

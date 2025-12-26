@@ -24,6 +24,8 @@ import {
   MenuItem,
   Chip,
   Stack,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import {
   Search as SearchIcon,
@@ -49,8 +51,11 @@ export function DataTable<T>({
   title,
   externalSearch,
   onExternalSearchChange,
+  renderMobileCard,
 }: DataTableProps<T>) {
   const { t } = useTranslation()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
   // State
   const [searchQuery, setSearchQuery] = useState('')
@@ -318,7 +323,7 @@ export function DataTable<T>({
           </Box>
         </Collapse>
 
-        {/* Table */}
+        {/* Table or Mobile Cards */}
         {loading ? (
           <Box sx={{ py: 8, textAlign: 'center' }}>
             <Typography variant="body2" color="text.secondary">
@@ -331,7 +336,45 @@ export function DataTable<T>({
               {emptyMessage || t('common.noData')}
             </Typography>
           </Box>
+        ) : isMobile && renderMobileCard ? (
+          /* Mobile Card View */
+          <>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {paginatedData.map((row, index) => (
+                <Box key={getRowId(row)}>
+                  {renderMobileCard(row, index)}
+                </Box>
+              ))}
+            </Box>
+
+            {/* Pagination for Mobile */}
+            {enablePagination && (
+              <TablePagination
+                component="div"
+                count={sortedData.length}
+                page={page}
+                onPageChange={handleChangePage}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                rowsPerPageOptions={[10, 20, 50]}
+                labelRowsPerPage={t('common.rowsPerPage')}
+                labelDisplayedRows={({ from, to, count }) =>
+                  t('common.paginationInfo', { from, to, count })
+                }
+                sx={{
+                  '.MuiTablePagination-toolbar': {
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                  },
+                  '.MuiTablePagination-selectLabel, .MuiTablePagination-displayedRows': {
+                    margin: 0,
+                  },
+                }}
+              />
+            )}
+          </>
         ) : (
+          /* Desktop Table View */
           <>
             <TableContainer component={Paper} variant="outlined">
               <Table size="medium">
@@ -382,7 +425,7 @@ export function DataTable<T>({
               </Table>
             </TableContainer>
 
-            {/* Pagination */}
+            {/* Pagination for Desktop */}
             {enablePagination && (
               <TablePagination
                 component="div"

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -22,6 +22,9 @@ import {
   IconButton,
   Autocomplete,
   CircularProgress,
+  Menu,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material'
 import {
   Save as SaveIcon,
@@ -29,6 +32,8 @@ import {
   Assessment,
   CloudUpload as CloudUploadIcon,
   Delete as DeleteIcon,
+  PhotoLibrary as GalleryIcon,
+  CameraAlt as CameraIcon,
 } from '@mui/icons-material'
 
 import type { InspectionProcess, InspectionRecordInput } from '@/types/inspection'
@@ -82,6 +87,9 @@ export function InspectionRecordForm({
   const [photoError, setPhotoError] = useState<string | null>(null)
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null)
   const [machineInputValue, setMachineInputValue] = useState('')
+  const [photoMenuAnchor, setPhotoMenuAnchor] = useState<null | HTMLElement>(null)
+  const galleryInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
 
   const {
     control,
@@ -165,6 +173,25 @@ export function InspectionRecordForm({
     setPhotoError(null)
   }
 
+  // 사진 메뉴 핸들러
+  const handlePhotoMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setPhotoMenuAnchor(event.currentTarget)
+  }
+
+  const handlePhotoMenuClose = () => {
+    setPhotoMenuAnchor(null)
+  }
+
+  const handleGallerySelect = () => {
+    handlePhotoMenuClose()
+    galleryInputRef.current?.click()
+  }
+
+  const handleCameraCapture = () => {
+    handlePhotoMenuClose()
+    cameraInputRef.current?.click()
+  }
+
   const handleFormSubmit = async (values: FormValues) => {
     setIsSubmitting(true)
     try {
@@ -188,7 +215,7 @@ export function InspectionRecordForm({
 
   return (
     <Card>
-      <CardContent sx={{ p: 4 }}>
+      <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
           <Assessment color="primary" />
           <Typography variant="h6" fontWeight={600}>
@@ -391,38 +418,81 @@ export function InspectionRecordForm({
                 {t('inspection.photoHelper')}
               </Typography>
 
+              {/* Hidden file inputs */}
+              <input
+                type="file"
+                ref={galleryInputRef}
+                hidden
+                accept="image/*"
+                onChange={handlePhotoChange}
+              />
+              <input
+                type="file"
+                ref={cameraInputRef}
+                hidden
+                accept="image/*"
+                capture="environment"
+                onChange={handlePhotoChange}
+              />
+
               {!photoPreview ? (
-                <Button
-                  variant="outlined"
-                  component="label"
-                  startIcon={<CloudUploadIcon />}
-                  fullWidth
-                  sx={{ py: 2 }}
-                >
-                  {t('inspection.uploadPhoto')}
-                  <input
-                    type="file"
-                    hidden
-                    accept="image/*"
-                    onChange={handlePhotoChange}
-                  />
-                </Button>
+                <>
+                  <Button
+                    variant="outlined"
+                    startIcon={<CloudUploadIcon />}
+                    fullWidth
+                    sx={{ py: 2 }}
+                    onClick={handlePhotoMenuOpen}
+                  >
+                    {t('inspection.uploadPhoto')}
+                  </Button>
+                  <Menu
+                    anchorEl={photoMenuAnchor}
+                    open={Boolean(photoMenuAnchor)}
+                    onClose={handlePhotoMenuClose}
+                    anchorOrigin={{
+                      vertical: 'bottom',
+                      horizontal: 'center',
+                    }}
+                    transformOrigin={{
+                      vertical: 'top',
+                      horizontal: 'center',
+                    }}
+                    PaperProps={{
+                      sx: { minWidth: 200 }
+                    }}
+                  >
+                    <MenuItem onClick={handleGallerySelect}>
+                      <ListItemIcon>
+                        <GalleryIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>{t('inspection.selectFromGallery')}</ListItemText>
+                    </MenuItem>
+                    <MenuItem onClick={handleCameraCapture}>
+                      <ListItemIcon>
+                        <CameraIcon fontSize="small" />
+                      </ListItemIcon>
+                      <ListItemText>{t('inspection.takePhoto')}</ListItemText>
+                    </MenuItem>
+                  </Menu>
+                </>
               ) : (
                 <Paper variant="outlined" sx={{ p: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                  <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: 'flex-start', gap: 2 }}>
                     <Box
                       component="img"
                       src={photoPreview}
                       alt="Preview"
                       sx={{
-                        width: 200,
-                        height: 150,
+                        width: { xs: '100%', sm: 200 },
+                        height: { xs: 'auto', sm: 150 },
+                        maxHeight: { xs: 200, sm: 150 },
                         objectFit: 'cover',
                         borderRadius: 1,
                       }}
                     />
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="body2" gutterBottom>
+                    <Box sx={{ flex: 1, width: '100%' }}>
+                      <Typography variant="body2" gutterBottom noWrap>
                         {photoFile?.name}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">

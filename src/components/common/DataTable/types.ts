@@ -66,4 +66,6 @@ export interface DataTableProps<T> {
   externalSearch?: string
   /** 외부 검색어 변경 핸들러 */
   onExternalSearchChange?: (search: string) => void
+  /** 모바일 카드 렌더러 (제공시 모바일에서 테이블 대신 카드 표시) */
+  renderMobileCard?: (row: T, index: number) => React.ReactNode
 }
