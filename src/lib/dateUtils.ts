@@ -259,3 +259,71 @@ export function getBusinessDayInfo(): {
     businessDayEnd: formatVietnamDateTime(end)
   }
 }
+
+/**
+ * Get business date range filter for Supabase queries
+ * Converts calendar date range to business day range (08:00 ~ next day 07:59)
+ *
+ * @param fromDate - Start date (calendar date, will use 08:00 of this date)
+ * @param toDate - End date (calendar date, will use 07:59:59 of next day)
+ * @returns Object with gte and lte ISO strings for Supabase query
+ */
+export function getBusinessDateRangeFilter(
+  fromDate: Date,
+  toDate: Date
+): { gte: string; lte: string } {
+  // Get business date strings (YYYY-MM-DD)
+  const fromBusinessDate = formatDateString(fromDate)
+  const toBusinessDate = formatDateString(toDate)
+
+  // Get actual datetime range
+  const start = getBusinessDayStart(fromBusinessDate)
+  const end = getBusinessDayEnd(toBusinessDate)
+
+  return {
+    gte: start.toISOString(),
+    lte: end.toISOString()
+  }
+}
+
+/**
+ * Get recent business days range
+ * Returns date range for the last N business days ending today
+ *
+ * @param days - Number of days to go back (e.g., 7 for last week, 30 for last month)
+ * @returns Object with from and to Date objects
+ */
+export function getRecentBusinessDays(days: number): { from: Date; to: Date } {
+  const todayBusinessDate = getTodayBusinessDate()
+  const fromBusinessDate = getRelativeBusinessDate(-days)
+
+  return {
+    from: getBusinessDayStart(fromBusinessDate),
+    to: getBusinessDayEnd(todayBusinessDate)
+  }
+}
+
+/**
+ * Get hour in Vietnam timezone from a date
+ * Used for hourly distribution charts
+ *
+ * @param date - Date object or ISO string
+ * @returns Hour (0-23) in Vietnam timezone
+ */
+export function getVietnamHour(date: Date | string): number {
+  const dateObj = typeof date === 'string' ? new Date(date) : date
+  const vietnamDate = toVietnamTime(dateObj)
+  return vietnamDate.getHours()
+}
+
+/**
+ * Get business date from ISO string or Date
+ * Convenience wrapper for getBusinessDate
+ *
+ * @param dateInput - ISO date string or Date object
+ * @returns Business date string (YYYY-MM-DD)
+ */
+export function parseBusinessDate(dateInput: Date | string): string {
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
+  return getBusinessDate(date)
+}

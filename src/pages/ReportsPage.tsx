@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { Box, Typography, Grid, Tabs, Tab } from '@mui/material'
-import { subDays } from 'date-fns'
+import { getRecentBusinessDays } from '@/lib/dateUtils'
 import { ReportGenerator } from '@/components/reports/ReportGenerator'
 import { ReportList } from '@/components/reports/ReportList'
 import { ReportSummaryCard } from '@/components/reports/ReportSummaryCard'
@@ -36,12 +36,9 @@ export function ReportsPage() {
   const { t } = useTranslation()
   const [tabValue, setTabValue] = useState(0)
 
-  // Default filters for summary
+  // Default filters for summary (using business day range: 08:00 ~ next day 07:59)
   const [summaryFilters] = useState<ReportFilters>({
-    dateRange: {
-      from: subDays(new Date(), 30),
-      to: new Date(),
-    },
+    dateRange: getRecentBusinessDays(30),
     reportType: 'monthly',
   })
 

@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { subDays } from 'date-fns'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Box, Typography, Tabs, Tab, Grid } from '@mui/material'
@@ -12,6 +11,7 @@ import { DefectTypeChart } from '@/components/analytics/DefectTypeChart'
 import { HourlyDistributionChart } from '@/components/analytics/HourlyDistributionChart'
 import { InspectorPerformanceChart } from '@/components/analytics/InspectorPerformanceChart'
 import { InspectorDetailedKPI } from '@/components/analytics/InspectorDetailedKPI'
+import { getRecentBusinessDays } from '@/lib/dateUtils'
 import type { AnalyticsFilters as Filters } from '@/types/analytics'
 
 // Supabase 서비스
@@ -43,11 +43,9 @@ function TabPanel(props: TabPanelProps) {
 export function AnalyticsPage() {
   const { t } = useTranslation()
   const [tabValue, setTabValue] = useState(0)
+  // Use business day range (08:00 ~ next day 07:59)
   const [filters, setFilters] = useState<Filters>({
-    dateRange: {
-      from: subDays(new Date(), 30),
-      to: new Date(),
-    },
+    dateRange: getRecentBusinessDays(30),
   })
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {

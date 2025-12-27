@@ -6,6 +6,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { getBusinessDateRangeFilter } from '@/lib/dateUtils'
 import type { Report, ReportFilters, ReportSummary } from '@/types/report'
 
 // In-memory storage for generated reports (will reset on page refresh)
@@ -23,15 +24,15 @@ export async function getReportById(id: string): Promise<Report | undefined> {
 
 // Generate report summary from inspection data
 export async function getReportSummary(filters: ReportFilters): Promise<ReportSummary> {
-  const fromDate = filters.dateRange.from.toISOString()
-  const toDate = filters.dateRange.to.toISOString()
+  // Use business day range (08:00 ~ next day 07:59)
+  const dateFilter = getBusinessDateRangeFilter(filters.dateRange.from, filters.dateRange.to)
 
   // Fetch inspections for the date range
   let query = supabase
     .from('inspections')
     .select('*')
-    .gte('created_at', fromDate)
-    .lte('created_at', toDate)
+    .gte('created_at', dateFilter.gte)
+    .lte('created_at', dateFilter.lte)
 
   if (filters.modelId) {
     query = query.eq('model_id', filters.modelId)
@@ -45,12 +46,12 @@ export async function getReportSummary(filters: ReportFilters): Promise<ReportSu
 
   const inspectionData = inspections || []
 
-  // Fetch defects for the date range
+  // Fetch defects for the date range (using business day range)
   const { data: defects } = await supabase
     .from('defects')
     .select('*')
-    .gte('created_at', fromDate)
-    .lte('created_at', toDate)
+    .gte('created_at', dateFilter.gte)
+    .lte('created_at', dateFilter.lte)
 
   const defectData = defects || []
 

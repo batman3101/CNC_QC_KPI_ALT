@@ -27,7 +27,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
 import { ko } from 'date-fns/locale'
-import { subDays } from 'date-fns'
+import { getRecentBusinessDays } from '@/lib/dateUtils'
 import type { ReportType, ReportFormat, ReportFilters } from '@/types/report'
 import * as reportService from '@/services/reportService'
 
@@ -42,8 +42,10 @@ export function ReportGenerator({ models, processes }: ReportGeneratorProps) {
 
   const [reportType, setReportType] = useState<ReportType>('daily')
   const [format, setFormat] = useState<ReportFormat>('pdf')
-  const [dateFrom, setDateFrom] = useState<Date | null>(subDays(new Date(), 7))
-  const [dateTo, setDateTo] = useState<Date | null>(new Date())
+  // Use business day range (08:00 ~ next day 07:59)
+  const initialRange = getRecentBusinessDays(7)
+  const [dateFrom, setDateFrom] = useState<Date | null>(initialRange.from)
+  const [dateTo, setDateTo] = useState<Date | null>(initialRange.to)
   const [modelId, setModelId] = useState<string>('')
   const [processId, setProcessId] = useState<string>('')
   const [successMessage, setSuccessMessage] = useState<string>('')
@@ -93,21 +95,26 @@ export function ReportGenerator({ models, processes }: ReportGeneratorProps) {
   ) => {
     if (newType) {
       setReportType(newType)
-      // Auto-adjust date range based on report type
-      const now = new Date()
+      // Auto-adjust date range based on report type (using business day range)
       switch (newType) {
-        case 'daily':
-          setDateFrom(now)
-          setDateTo(now)
+        case 'daily': {
+          const range = getRecentBusinessDays(0)
+          setDateFrom(range.from)
+          setDateTo(range.to)
           break
-        case 'weekly':
-          setDateFrom(subDays(now, 7))
-          setDateTo(now)
+        }
+        case 'weekly': {
+          const range = getRecentBusinessDays(7)
+          setDateFrom(range.from)
+          setDateTo(range.to)
           break
-        case 'monthly':
-          setDateFrom(subDays(now, 30))
-          setDateTo(now)
+        }
+        case 'monthly': {
+          const range = getRecentBusinessDays(30)
+          setDateFrom(range.from)
+          setDateTo(range.to)
           break
+        }
         case 'custom':
           // Keep current dates for custom
           break

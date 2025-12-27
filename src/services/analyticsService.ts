@@ -1,4 +1,9 @@
 import { supabase } from '@/lib/supabase'
+import {
+  getBusinessDateRangeFilter,
+  parseBusinessDate,
+  getVietnamHour,
+} from '@/lib/dateUtils'
 import type {
   AnalyticsFilters,
   DefectRateTrend,
@@ -14,12 +19,9 @@ import type {
   InspectorProcessPerformance,
 } from '@/types/analytics'
 
-// Helper function to build date filter
+// Helper function to build date filter using business day logic (08:00 ~ next day 07:59)
 function buildDateFilter(filters: AnalyticsFilters) {
-  return {
-    gte: filters.dateRange.from.toISOString(),
-    lte: filters.dateRange.to.toISOString(),
-  }
+  return getBusinessDateRangeFilter(filters.dateRange.from, filters.dateRange.to)
 }
 
 // 1. KPI Summary
@@ -141,9 +143,9 @@ export async function getDefectRateTrend(
 
   if (!inspections) return []
 
-  // Group by date
+  // Group by business date (08:00 ~ next day 07:59)
   const groupedByDate = inspections.reduce((acc, inspection: { created_at: string; status: string }) => {
-    const date = new Date(inspection.created_at).toISOString().split('T')[0]
+    const date = parseBusinessDate(inspection.created_at)
     if (!acc[date]) {
       acc[date] = { total: 0, defects: 0 }
     }
@@ -333,9 +335,9 @@ export async function getHourlyDistribution(
 
   if (!inspections) return []
 
-  // Group by hour
+  // Group by hour (Vietnam timezone)
   const groupedByHour = inspections.reduce((acc, inspection: { created_at: string; status: string }) => {
-    const hour = new Date(inspection.created_at).getHours()
+    const hour = getVietnamHour(inspection.created_at)
     if (!acc[hour]) {
       acc[hour] = { inspections: 0, defects: 0 }
     }
@@ -491,10 +493,10 @@ export async function getInspectorDetailedKPI(
   const rank = rankings.findIndex(r => r.userId === inspectorId) + 1
   const totalInspectors = rankings.length
 
-  // Daily trend
+  // Daily trend (business day based)
   const dailyMap = new Map<string, { total: number; defects: number }>()
   myInspections.forEach((insp: { created_at: string; status: string }) => {
-    const date = new Date(insp.created_at).toISOString().split('T')[0]
+    const date = parseBusinessDate(insp.created_at)
     const stats = dailyMap.get(date) || { total: 0, defects: 0 }
     stats.total++
     if (insp.status === 'fail') stats.defects++
@@ -556,9 +558,9 @@ export async function getInspectorDetailedKPI(
   const teamDefects = allTeamInspections.filter((i: { status: string }) => i.status === 'fail').length
   const avgDefectRate = teamTotal > 0 ? (teamDefects / teamTotal) * 100 : 0
 
-  // Calculate number of active days for average daily inspections
+  // Calculate number of active days for average daily inspections (business day based)
   const uniqueDates = new Set(allTeamInspections.map((i: { created_at: string }) =>
-    new Date(i.created_at).toISOString().split('T')[0]
+    parseBusinessDate(i.created_at)
   ))
   const activeDays = uniqueDates.size || 1
   const avgDailyInspections = teamTotal / activeDays / (totalInspectors || 1)

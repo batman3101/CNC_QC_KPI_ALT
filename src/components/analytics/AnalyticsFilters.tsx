@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { DateRange } from 'react-day-picker'
-import { subDays } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import {
   Card,
@@ -16,6 +15,7 @@ import {
 } from '@mui/material'
 import { FilterList, Refresh } from '@mui/icons-material'
 import { DateRangePicker } from './DateRangePicker'
+import { getRecentBusinessDays } from '@/lib/dateUtils'
 import type { AnalyticsFilters as Filters } from '@/types/analytics'
 
 interface AnalyticsFiltersProps {
@@ -49,9 +49,8 @@ export function AnalyticsFilters({
   }
 
   const handleQuickDate = (days: number) => {
-    const to = new Date()
-    const from = subDays(to, days)
-    const range = { from, to }
+    // Use business day range (08:00 ~ next day 07:59)
+    const range = getRecentBusinessDays(days)
     setDateRange(range)
     onChange({
       ...filters,
@@ -60,10 +59,8 @@ export function AnalyticsFilters({
   }
 
   const handleReset = () => {
-    const defaultRange = {
-      from: subDays(new Date(), 30),
-      to: new Date(),
-    }
+    // Use business day range (08:00 ~ next day 07:59)
+    const defaultRange = getRecentBusinessDays(30)
     setDateRange(defaultRange)
     onChange({
       dateRange: defaultRange,
