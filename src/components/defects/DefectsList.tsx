@@ -31,7 +31,7 @@ import type { Database } from '@/types/database'
 
 // Supabase 서비스
 import * as inspectionService from '@/services/inspectionService'
-import { getProductModels } from '@/services/managementService'
+import { getProductModels, getDefectTypes } from '@/services/managementService'
 
 // 날짜 유틸리티
 import { formatVietnamDateTime } from '@/lib/dateUtils'
@@ -79,10 +79,22 @@ export function DefectsList() {
     queryFn: getProductModels,
   })
 
+  // Fetch defect types for name display
+  const { data: defectTypes = [] } = useQuery({
+    queryKey: ['defect-types'],
+    queryFn: getDefectTypes,
+  })
+
   // Helper function to get model code by model_id
   const getModelCode = (modelId: string): string => {
     const model = productModels.find((m) => m.id === modelId)
     return model ? model.code : '-'
+  }
+
+  // Helper function to get defect type name by defect_type (ID)
+  const getDefectTypeName = (defectTypeId: string): string => {
+    const defectType = defectTypes.find((dt) => dt.id === defectTypeId)
+    return defectType ? defectType.name : defectTypeId
   }
 
   // Update status mutation
@@ -170,7 +182,7 @@ export function DefectsList() {
         header: t('defects.defectType'),
         cell: (row) => (
           <Typography variant="body2" fontWeight={500}>
-            {row.defect_type}
+            {getDefectTypeName(row.defect_type)}
           </Typography>
         ),
       },
@@ -215,7 +227,7 @@ export function DefectsList() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, productModels]
+    [t, productModels, defectTypes]
   )
 
   const handleViewDetail = (defect: Defect) => {

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Box, Typography } from '@mui/material'
+import { useSnackbar } from 'notistack'
 import { InspectionSetup } from '@/components/inspection/InspectionSetup'
 import { InspectionRecordForm } from '@/components/inspection/InspectionRecordForm'
 import type { InspectionProcess, InspectionRecordInput } from '@/types/inspection'
@@ -16,6 +17,8 @@ interface InspectionState {
 
 export function InspectionPage() {
   const { t } = useTranslation()
+  const queryClient = useQueryClient()
+  const { enqueueSnackbar } = useSnackbar()
   const [inspectionState, setInspectionState] = useState<InspectionState>({
     isActive: false,
     modelId: null,
@@ -41,6 +44,14 @@ export function InspectionPage() {
   const handleSubmit = async (data: InspectionRecordInput) => {
     // Submit inspection record
     await inspectionService.createInspectionRecord(data)
+
+    // Invalidate queries to refresh data immediately
+    await queryClient.invalidateQueries({ queryKey: ['defects'] })
+    await queryClient.invalidateQueries({ queryKey: ['inspections'] })
+    await queryClient.invalidateQueries({ queryKey: ['dashboard-defects'] })
+
+    // Show success message
+    enqueueSnackbar(t('inspection.submitSuccess'), { variant: 'success' })
 
     // Reset state
     setInspectionState({

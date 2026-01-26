@@ -321,6 +321,7 @@ export interface InspectionRecordInput {
   model_id: string
   inspection_process: { code: string; name: string }
   defect_type_id: string | null
+  machine_id: string | null
   machine_number: string | null
   inspector_id: string
   inspection_quantity: number
@@ -333,7 +334,7 @@ export async function createInspectionRecord(data: InspectionRecordInput): Promi
 
   const inspection = await createInspection({
     user_id: data.inspector_id,
-    machine_id: data.machine_number || null,
+    machine_id: data.machine_id || null,
     model_id: data.model_id,
     inspection_process: data.inspection_process.code,
     inspection_quantity: data.inspection_quantity,

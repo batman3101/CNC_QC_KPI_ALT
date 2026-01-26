@@ -199,6 +199,7 @@ export function InspectionRecordForm({
         model_id: modelId,
         inspection_process: inspectionProcess,
         defect_type_id: values.defectTypeId || null,
+        machine_id: selectedMachine?.id || null,
         machine_number: selectedMachine?.name || null,
         inspector_id: values.inspectorId,
         inspection_quantity: values.inspectionQuantity,
@@ -323,10 +324,10 @@ export function InspectionRecordForm({
                     <InputLabel>{t('inspection.inspector')} *</InputLabel>
                     <Select {...field} label={`${t('inspection.inspector')} *`}>
                       {users
-                        .filter((u) => u.role === 'inspector')
-                        .map((inspector) => (
-                          <MenuItem key={inspector.id} value={inspector.id}>
-                            {inspector.name}
+                        .filter((u) => u.role !== 'admin')
+                        .map((user) => (
+                          <MenuItem key={user.id} value={user.id}>
+                            {user.name} ({user.role === 'manager' ? t('common.manager') : t('common.inspector')})
                           </MenuItem>
                         ))}
                     </Select>

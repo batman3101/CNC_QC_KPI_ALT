@@ -97,6 +97,7 @@ export async function syncPendingInspections(): Promise<{
           name: inspection.inspection_process_name,
         },
         defect_type_id: inspection.defect_type_id,
+        machine_id: inspection.machine_id || null,
         machine_number: inspection.machine_name,
         inspector_id: inspection.inspector_id,
         inspection_quantity: inspection.inspection_quantity,

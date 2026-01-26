@@ -10,6 +10,7 @@ import {
   Chip,
   Button,
   Divider,
+  Skeleton,
 } from '@mui/material'
 import {
   CheckCircle,
@@ -18,7 +19,8 @@ import {
   Image as ImageIcon,
 } from '@mui/icons-material'
 import type { Database } from '@/types/database'
-import { getProductModels } from '@/services/managementService'
+import { getProductModels, getDefectTypes, getUsers, getMachines } from '@/services/managementService'
+import { getInspectionById } from '@/services/inspectionService'
 
 type Defect = Database['public']['Tables']['defects']['Row']
 
@@ -43,10 +45,54 @@ export function DefectDetailDialog({
     queryFn: getProductModels,
   })
 
+  // Fetch defect types for name display
+  const { data: defectTypes = [] } = useQuery({
+    queryKey: ['defect-types'],
+    queryFn: getDefectTypes,
+  })
+
+  // Fetch users for inspector name
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: getUsers,
+  })
+
+  // Fetch machines for machine name
+  const { data: machines = [] } = useQuery({
+    queryKey: ['machines'],
+    queryFn: getMachines,
+  })
+
+  // Fetch related inspection data
+  const { data: inspection, isLoading: inspectionLoading } = useQuery({
+    queryKey: ['inspection', defect?.inspection_id],
+    queryFn: () => getInspectionById(defect!.inspection_id),
+    enabled: !!defect?.inspection_id,
+  })
+
   // Helper function to get model info
   const getModelInfo = (modelId: string): { code: string; name: string } => {
     const model = productModels.find((m) => m.id === modelId)
     return model ? { code: model.code, name: model.name } : { code: '-', name: '-' }
+  }
+
+  // Helper function to get defect type name
+  const getDefectTypeName = (defectTypeId: string): string => {
+    const defectType = defectTypes.find((dt) => dt.id === defectTypeId)
+    return defectType ? defectType.name : defectTypeId
+  }
+
+  // Helper function to get user name
+  const getUserName = (userId: string): string => {
+    const user = users.find((u) => u.id === userId)
+    return user ? user.name : '-'
+  }
+
+  // Helper function to get machine name
+  const getMachineName = (machineId: string | null): string => {
+    if (!machineId) return '-'
+    const machine = machines.find((m) => m.id === machineId)
+    return machine ? machine.name : '-'
   }
 
   if (!defect) return null
@@ -118,6 +164,7 @@ export function DefectDetailDialog({
 
           {/* Defect Information */}
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {/* 등록일시 */}
             <Box>
               <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>
                 {t('defects.registeredDate')}
@@ -127,6 +174,7 @@ export function DefectDetailDialog({
               </Typography>
             </Box>
 
+            {/* 모델 코드 */}
             <Box>
               <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>
                 {t('management.modelCode')}
@@ -139,24 +187,113 @@ export function DefectDetailDialog({
               </Box>
             </Box>
 
+            {/* 불량 유형 */}
             <Box>
               <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>
                 {t('defects.defectType')}
               </Typography>
               <Typography variant="body1" fontWeight={500}>
-                {defect.defect_type}
+                {getDefectTypeName(defect.defect_type)}
               </Typography>
             </Box>
 
-            <Box>
-              <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>
-                {t('defects.description')}
-              </Typography>
-              <Typography variant="body1">
-                {defect.description}
-              </Typography>
-            </Box>
+            {/* 검사 정보 (inspections 테이블에서 가져옴) */}
+            {inspectionLoading ? (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <Skeleton variant="rectangular" height={60} />
+                <Skeleton variant="rectangular" height={60} />
+              </Box>
+            ) : inspection ? (
+              <>
+                {/* 검사 수량 / 불량 수량 / 불량률 */}
+                <Box sx={{ display: 'flex', gap: 2 }}>
+                  <Box sx={{
+                    flex: 1,
+                    p: 2,
+                    bgcolor: 'action.hover',
+                    borderRadius: 1,
+                    textAlign: 'center',
+                    border: 1,
+                    borderColor: 'divider',
+                  }}>
+                    <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                      {t('inspection.inspectionQuantity')}
+                    </Typography>
+                    <Typography variant="h5" fontWeight={600} color="text.primary">
+                      {inspection.inspection_quantity.toLocaleString()}
+                    </Typography>
+                  </Box>
+                  <Box sx={{
+                    flex: 1,
+                    p: 2,
+                    bgcolor: 'action.hover',
+                    borderRadius: 1,
+                    textAlign: 'center',
+                    border: 1,
+                    borderColor: 'error.main',
+                  }}>
+                    <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                      {t('inspection.defectQuantity')}
+                    </Typography>
+                    <Typography variant="h5" fontWeight={600} color="error.main">
+                      {inspection.defect_quantity.toLocaleString()}
+                    </Typography>
+                  </Box>
+                  <Box sx={{
+                    flex: 1,
+                    p: 2,
+                    bgcolor: 'action.hover',
+                    borderRadius: 1,
+                    textAlign: 'center',
+                    border: 1,
+                    borderColor: 'warning.main',
+                  }}>
+                    <Typography variant="caption" color="text.secondary" display="block" gutterBottom>
+                      {t('inspection.defectRate')}
+                    </Typography>
+                    <Typography variant="h5" fontWeight={600} color="warning.main">
+                      {inspection.inspection_quantity > 0
+                        ? ((inspection.defect_quantity / inspection.inspection_quantity) * 100).toFixed(2)
+                        : 0}%
+                    </Typography>
+                  </Box>
+                </Box>
 
+                {/* 검사 공정 */}
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>
+                    {t('inspection.process')}
+                  </Typography>
+                  <Chip
+                    label={inspection.inspection_process}
+                    size="small"
+                    variant="outlined"
+                  />
+                </Box>
+
+                {/* 설비 번호 */}
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>
+                    {t('inspection.machineNumber')}
+                  </Typography>
+                  <Typography variant="body1">
+                    {getMachineName(inspection.machine_id)}
+                  </Typography>
+                </Box>
+
+                {/* 검사자 */}
+                <Box>
+                  <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>
+                    {t('inspection.inspector')}
+                  </Typography>
+                  <Typography variant="body1">
+                    {getUserName(inspection.user_id)}
+                  </Typography>
+                </Box>
+              </>
+            ) : null}
+
+            {/* 사진 */}
             {defect.photo_url ? (
               <Box>
                 <Typography variant="caption" color="text.secondary" fontWeight={500} display="block" gutterBottom>

@@ -23,7 +23,9 @@
     "clearAll": "Xóa tất cả",
     "rowsPerPage": "Số hàng mỗi trang",
     "paginationInfo": "{{from}}-{{to}} / Tổng {{count}}",
-    "toggleTheme": "Đổi giao diện"
+    "toggleTheme": "Đổi giao diện",
+    "manager": "Quản lý",
+    "inspector": "Kiểm tra viên"
   },
   "auth": {
     "login": "Đăng nhập",
@@ -136,6 +138,7 @@
     "defectQuantityHelper": "Nhập số lượng lỗi được phát hiện trong phạm vi số lượng kiểm tra",
     "quantityInputGuide": "Cách nhập: Phát hiện lỗi → Nhập số lượng kiểm tra/lỗi → Đặt lại số lượng kiểm tra về 0 → Đếm lại đến lỗi tiếp theo → Lặp lại",
     "submit": "Nhập",
+    "submitSuccess": "Kết quả kiểm tra đã được đăng ký",
     "photo": "Ảnh",
     "uploadPhoto": "Tải ảnh lên",
     "photoHelper": "Chỉ tải lên tệp ảnh (tối đa 10MB)",

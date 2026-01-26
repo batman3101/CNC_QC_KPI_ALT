@@ -24,6 +24,7 @@ export interface InspectionRecordInput {
   model_id: string
   inspection_process: InspectionProcess  // 검사 공정 객체
   defect_type_id: string | null
+  machine_id: string | null  // 설비 ID (UUID)
   machine_number: string | null  // 설비 번호 (선택사항)
   inspector_id: string
   inspection_quantity: number

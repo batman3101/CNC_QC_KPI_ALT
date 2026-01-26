@@ -23,7 +23,9 @@
     "clearAll": "전체 해제",
     "rowsPerPage": "페이지당 행 수",
     "paginationInfo": "{{from}}-{{to}} / 총 {{count}}건",
-    "toggleTheme": "테마 변경"
+    "toggleTheme": "테마 변경",
+    "manager": "관리자",
+    "inspector": "검사자"
   },
   "auth": {
     "login": "로그인",
@@ -136,6 +138,7 @@
     "defectQuantityHelper": "해당 검사 수량 범위 내에서 발견된 불량 수량을 입력하세요",
     "quantityInputGuide": "입력 방법: 불량 발생 → 검사수량/불량수량 입력 → 검사수량 리셋(0) → 다음 불량까지 재카운트 → 반복",
     "submit": "입력",
+    "submitSuccess": "검사 실적이 등록되었습니다",
     "photo": "사진",
     "uploadPhoto": "사진 업로드",
     "photoHelper": "이미지 파일만 업로드 가능 (최대 10MB)",
