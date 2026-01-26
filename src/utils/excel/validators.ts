@@ -22,7 +22,8 @@ export function createProductModelSchema(t: TranslationFn) {
  */
 export function createInspectionItemSchema(
   t: TranslationFn,
-  existingModelCodes: string[] = []
+  existingModelCodes: string[] = [],
+  existingProcessCodes: string[] = []
 ) {
   return z
     .object({
@@ -32,6 +33,15 @@ export function createInspectionItemSchema(
         .refine(
           (code) => existingModelCodes.length === 0 || existingModelCodes.includes(code),
           t('bulkImport.modelNotFound')
+        ),
+      process_code: z
+        .string()
+        .optional()
+        .nullable()
+        .transform((val) => (val === '' ? null : val))
+        .refine(
+          (code) => !code || existingProcessCodes.length === 0 || existingProcessCodes.includes(code),
+          t('bulkImport.processNotFound')
         ),
       name: z.string().min(1, t('validation.required')).max(100),
       data_type: z.enum(['numeric', 'ok_ng'], {
@@ -93,13 +103,13 @@ export function createDefectTypeSchema(t: TranslationFn) {
 export function getSchemaForEntityType(
   entityType: EntityType,
   t: TranslationFn,
-  options?: { existingModelCodes?: string[] }
+  options?: { existingModelCodes?: string[]; existingProcessCodes?: string[] }
 ): z.ZodTypeAny {
   switch (entityType) {
     case 'productModel':
       return createProductModelSchema(t)
     case 'inspectionItem':
-      return createInspectionItemSchema(t, options?.existingModelCodes)
+      return createInspectionItemSchema(t, options?.existingModelCodes, options?.existingProcessCodes)
     case 'inspectionProcess':
       return createInspectionProcessSchema(t)
     case 'defectType':

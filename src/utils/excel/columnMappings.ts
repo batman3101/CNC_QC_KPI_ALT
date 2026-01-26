@@ -39,8 +39,19 @@ export const COLUMN_MAPPINGS: Record<EntityType, ColumnMapping[]> = {
       required: true,
       dataType: 'string',
       description: {
-        ko: '검사 항목이 속할 모델의 코드 (이미 등록된 모델만 가능)',
-        vi: 'Ma mau cua hang muc kiem tra (chi ma da dang ky)',
+        ko: '모델 코드 또는 모델-공정 (예: M1, B7 MMW-CNC2). "-CNC1", "-CNC2" 형식 자동 분리',
+        vi: 'Ma mau hoac mau-quy trinh (VD: M1, B7 MMW-CNC2). Tu dong tach "-CNC1", "-CNC2"',
+      },
+    },
+    {
+      field: 'process_code',
+      koHeader: '공정 코드',
+      viHeader: 'Ma quy trinh',
+      required: false,
+      dataType: 'string',
+      description: {
+        ko: '공정 코드 (선택사항). 모델 코드에 "-CNC1/-CNC2" 포함 시 자동 설정됨',
+        vi: 'Ma quy trinh (tuy chon). Tu dong neu ma mau co "-CNC1/-CNC2"',
       },
     },
     {
@@ -250,8 +261,9 @@ export const SAMPLE_DATA: Record<EntityType, Record<string, unknown>[]> = {
   ],
   inspectionItem: [
     {
-      model_code: 'PM-001',
-      name: '외경 / Duong kinh ngoai',
+      model_code: 'B7 MMW-CNC1',
+      process_code: '',
+      name: 'CTQ-01',
       data_type: 'numeric',
       standard_value: 10.5,
       tolerance_min: 10.0,
@@ -259,8 +271,19 @@ export const SAMPLE_DATA: Record<EntityType, Record<string, unknown>[]> = {
       unit: 'mm',
     },
     {
-      model_code: 'PM-001',
-      name: '표면 검사 / Kiem tra be mat',
+      model_code: 'B7 MMW-CNC2',
+      process_code: '',
+      name: 'CTQ-02',
+      data_type: 'ok_ng',
+      standard_value: '',
+      tolerance_min: '',
+      tolerance_max: '',
+      unit: '',
+    },
+    {
+      model_code: 'M1',
+      process_code: '',
+      name: 'CTQ-03 (All Process)',
       data_type: 'ok_ng',
       standard_value: '',
       tolerance_min: '',

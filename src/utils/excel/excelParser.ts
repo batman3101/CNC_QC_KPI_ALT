@@ -22,6 +22,57 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 type TranslationFn = (key: string) => string
 
 /**
+ * Process pattern regex for auto-separation from model code
+ * Matches: -CNC1, -CNC2, -IQC, -PQC, -OQC, etc.
+ */
+const PROCESS_PATTERN = /^(.+)-([A-Z0-9]+\d*)$/i
+
+/**
+ * Known process codes that should be auto-separated
+ */
+const KNOWN_PROCESS_CODES = ['CNC1', 'CNC2', 'CNC3', 'IQC', 'PQC', 'OQC', 'FQC']
+
+/**
+ * Parse model-process combined string into separate model and process codes
+ * e.g., "B7 MMW-CNC2" => { model: "B7 MMW", process: "CNC2" }
+ * e.g., "M1" => { model: "M1", process: null }
+ */
+export function parseModelProcessCode(
+  combinedCode: string,
+  existingProcessCodes: string[] = []
+): { model: string; process: string | null } {
+  if (!combinedCode) {
+    return { model: '', process: null }
+  }
+
+  const trimmed = combinedCode.trim()
+
+  // Check for known process code patterns at the end
+  const allProcessCodes = [...new Set([...KNOWN_PROCESS_CODES, ...existingProcessCodes.map(c => c.toUpperCase())])]
+
+  for (const processCode of allProcessCodes) {
+    const suffix = `-${processCode}`
+    if (trimmed.toUpperCase().endsWith(suffix.toUpperCase())) {
+      const modelPart = trimmed.slice(0, -suffix.length).trim()
+      return { model: modelPart, process: processCode }
+    }
+  }
+
+  // Fallback: try regex pattern match
+  const match = trimmed.match(PROCESS_PATTERN)
+  if (match) {
+    const potentialProcess = match[2].toUpperCase()
+    // Only split if the suffix looks like a process code (contains numbers or is in known list)
+    if (/\d/.test(potentialProcess) || allProcessCodes.includes(potentialProcess)) {
+      return { model: match[1].trim(), process: potentialProcess }
+    }
+  }
+
+  // No process code found, return as model only
+  return { model: trimmed, process: null }
+}
+
+/**
  * Validate file type and size
  */
 export function validateFile(
@@ -116,6 +167,7 @@ export async function parseExcelFile<T = Record<string, unknown>>(
   t: TranslationFn,
   options?: {
     existingModelCodes?: string[]
+    existingProcessCodes?: string[]
     existingCodes?: string[]
   }
 ): Promise<ParseResult<T>> {
@@ -185,6 +237,7 @@ export async function parseExcelFile<T = Record<string, unknown>>(
   // Get validation schema
   const schema = getSchemaForEntityType(entityType, t, {
     existingModelCodes: options?.existingModelCodes,
+    existingProcessCodes: options?.existingProcessCodes,
   })
 
   // Parse data rows
@@ -213,6 +266,20 @@ export async function parseExcelFile<T = Record<string, unknown>>(
         rowData[mapping.field] = mapping.defaultValue
       }
     })
+
+    // Auto-separate model and process codes for inspection items
+    // e.g., "B7 MMW-CNC2" => model: "B7 MMW", process: "CNC2"
+    if (entityType === 'inspectionItem' && rowData.model_code) {
+      const modelCodeValue = String(rowData.model_code)
+      // Only auto-parse if process_code is empty/not provided
+      if (!rowData.process_code) {
+        const parsed = parseModelProcessCode(modelCodeValue, options?.existingProcessCodes || [])
+        rowData.model_code = parsed.model
+        if (parsed.process) {
+          rowData.process_code = parsed.process
+        }
+      }
+    }
 
     allData.push(rowData)
 

@@ -16,12 +16,15 @@ import {
   Select,
   MenuItem,
   Box,
+  TextField,
+  InputAdornment,
 } from '@mui/material'
 import {
   Add,
   Edit,
   Delete,
   Upload,
+  Search,
 } from '@mui/icons-material'
 import { useSnackbar } from 'notistack'
 import { InspectionItemDialog } from './InspectionItemDialog'
@@ -35,10 +38,14 @@ import * as managementService from '@/services/managementService'
 
 type ProductModel = Database['public']['Tables']['product_models']['Row']
 type InspectionItem = Database['public']['Tables']['inspection_items']['Row']
+type InspectionProcess = Database['public']['Tables']['inspection_processes']['Row']
 
 export function InspectionItemManagement() {
   const { t } = useTranslation()
   const [selectedModelId, setSelectedModelId] = useState<string>('all')
+  const [selectedProcessId, setSelectedProcessId] = useState<string>('all')
+  const [selectedDataType, setSelectedDataType] = useState<string>('all')
+  const [nameFilter, setNameFilter] = useState<string>('')
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<InspectionItem | null>(null)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -54,14 +61,45 @@ export function InspectionItemManagement() {
     queryFn: managementService.getProductModels,
   })
 
+  // Fetch inspection processes
+  const { data: processes = [] } = useQuery({
+    queryKey: ['inspection-processes'],
+    queryFn: managementService.getInspectionProcesses,
+  })
+
   // Fetch inspection items
-  const { data: items = [], isLoading } = useQuery({
+  const { data: rawItems = [], isLoading } = useQuery({
     queryKey: ['inspection-items', selectedModelId],
     queryFn: () =>
       managementService.getInspectionItems(
         selectedModelId === 'all' ? undefined : selectedModelId
       ),
   })
+
+  // Client-side filtering for process, data type, and name
+  const items = useMemo(() => {
+    let filtered = rawItems
+
+    // Filter by process
+    if (selectedProcessId !== 'all') {
+      filtered = filtered.filter((item) => item.process_id === selectedProcessId)
+    }
+
+    // Filter by data type
+    if (selectedDataType !== 'all') {
+      filtered = filtered.filter((item) => item.data_type === selectedDataType)
+    }
+
+    // Filter by name
+    if (nameFilter.trim()) {
+      const searchLower = nameFilter.toLowerCase().trim()
+      filtered = filtered.filter((item) =>
+        item.name.toLowerCase().includes(searchLower)
+      )
+    }
+
+    return filtered
+  }, [rawItems, selectedProcessId, selectedDataType, nameFilter])
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -94,6 +132,13 @@ export function InspectionItemManagement() {
     return model?.code || modelId
   }
 
+  // Get process code by ID
+  const getProcessCode = (processId: string | null) => {
+    if (!processId) return '-'
+    const process = processes.find((p) => p.id === processId)
+    return process?.code || '-'
+  }
+
   // Column definitions
   const columns: ColumnDef<InspectionItem>[] = useMemo(
     () => [
@@ -108,6 +153,26 @@ export function InspectionItemManagement() {
             variant="outlined"
           />
         ),
+        searchable: false,
+      },
+      {
+        id: 'process_id',
+        header: t('management.processCode'),
+        cell: (row) => {
+          const processCode = getProcessCode(row.process_id)
+          return processCode !== '-' ? (
+            <Chip
+              label={processCode}
+              size="small"
+              color="secondary"
+              variant="outlined"
+            />
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              -
+            </Typography>
+          )
+        },
         searchable: false,
       },
       {
@@ -130,11 +195,7 @@ export function InspectionItemManagement() {
             variant="outlined"
           />
         ),
-        filterType: 'select',
-        filterOptions: [
-          { label: t('management.dataTypeNumeric'), value: 'numeric' },
-          { label: t('management.dataTypeOkNg'), value: 'ok_ng' },
-        ],
+        searchable: false,
       },
       {
         id: 'standard_value',
@@ -172,7 +233,7 @@ export function InspectionItemManagement() {
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [t, models]
+    [t, models, processes]
   )
 
   const handleAdd = () => {
@@ -216,10 +277,11 @@ export function InspectionItemManagement() {
     </>
   )
 
-  // Toolbar actions with model filter - 모델 코드 기준
+  // Toolbar actions with filters
   const toolbarActions = (
-    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-      <FormControl size="small" sx={{ minWidth: 180 }}>
+    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+      {/* Model Code Filter */}
+      <FormControl size="small" sx={{ minWidth: 150 }}>
         <InputLabel>{t('management.modelCode')}</InputLabel>
         <Select
           value={selectedModelId}
@@ -229,11 +291,59 @@ export function InspectionItemManagement() {
           <MenuItem value="all">{t('common.all')}</MenuItem>
           {models.map((model) => (
             <MenuItem key={model.id} value={model.id}>
-              {model.code} - {model.name}
+              {model.code}
             </MenuItem>
           ))}
         </Select>
       </FormControl>
+
+      {/* Process Code Filter */}
+      <FormControl size="small" sx={{ minWidth: 130 }}>
+        <InputLabel>{t('management.processCode')}</InputLabel>
+        <Select
+          value={selectedProcessId}
+          onChange={(e) => setSelectedProcessId(e.target.value)}
+          label={t('management.processCode')}
+        >
+          <MenuItem value="all">{t('common.all')}</MenuItem>
+          {processes.map((process) => (
+            <MenuItem key={process.id} value={process.id}>
+              {process.code}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      {/* Data Type Filter */}
+      <FormControl size="small" sx={{ minWidth: 130 }}>
+        <InputLabel>{t('management.dataType')}</InputLabel>
+        <Select
+          value={selectedDataType}
+          onChange={(e) => setSelectedDataType(e.target.value)}
+          label={t('management.dataType')}
+        >
+          <MenuItem value="all">{t('common.all')}</MenuItem>
+          <MenuItem value="numeric">{t('management.dataTypeNumeric')}</MenuItem>
+          <MenuItem value="ok_ng">{t('management.dataTypeOkNg')}</MenuItem>
+        </Select>
+      </FormControl>
+
+      {/* Name Filter */}
+      <TextField
+        size="small"
+        placeholder={t('management.itemName')}
+        value={nameFilter}
+        onChange={(e) => setNameFilter(e.target.value)}
+        sx={{ minWidth: 150 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Search fontSize="small" />
+            </InputAdornment>
+          ),
+        }}
+      />
+
       <Button
         variant="outlined"
         startIcon={<Upload />}
@@ -262,7 +372,8 @@ export function InspectionItemManagement() {
         renderActions={renderActions}
         toolbarActions={toolbarActions}
         pageSize={20}
-        enableFilters={true}
+        enableSearch={false}
+        enableFilters={false}
       />
 
       {/* Add/Edit Dialog */}
@@ -271,6 +382,7 @@ export function InspectionItemManagement() {
         onOpenChange={setDialogOpen}
         item={editingItem}
         models={models}
+        processes={processes}
       />
 
       {/* Delete Confirmation Dialog */}
@@ -297,6 +409,7 @@ export function InspectionItemManagement() {
         onOpenChange={setImportDialogOpen}
         entityType="inspectionItem"
         existingModels={models as ProductModel[]}
+        existingProcesses={processes as InspectionProcess[]}
         onBulkSave={handleBulkSave}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['inspection-items'] })

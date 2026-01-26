@@ -41,7 +41,15 @@
       "mcp__supabase-cnc-qc-kpi__generate_typescript_types",
       "mcp__plugin_supabase_supabase__generate_typescript_types",
       "Bash(npm run build:*)",
-      "Bash(node scripts/generate-icons.mjs:*)"
+      "Bash(node scripts/generate-icons.mjs:*)",
+      "Bash(ls -la \"C:\\\\Work Drive\\\\APP\\\\CNC_QC_KPI\\\\src\\\\ui_test\"\" 2>/dev/null || echo \"ui_test directory not found \")",
+      "mcp__supabase-cnc-qc-kpi__apply_migration",
+      "mcp__supabase-cnc-qc-kpi__get_project_url",
+      "mcp__supabase-cnc-qc-kpi__list_migrations",
+      "Bash(timeout:*)",
+      "mcp__supabase-cnc-qc-kpi__execute_sql",
+      "Bash(node:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

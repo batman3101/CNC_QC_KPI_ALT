@@ -35,6 +35,7 @@ interface ExcelBulkImportDialogPropsExtended extends ExcelBulkImportDialogProps 
     onProgress: (current: number, total: number) => void
   ) => Promise<{ success: number; failed: number; errors: string[] }>
   existingCodes?: string[]
+  existingProcesses?: Array<{ id: string; code: string; name: string }>
 }
 
 export function ExcelBulkImportDialog({
@@ -44,6 +45,7 @@ export function ExcelBulkImportDialog({
   onSuccess,
   onBulkSave,
   existingModels,
+  existingProcesses,
   existingCodes,
 }: ExcelBulkImportDialogPropsExtended) {
   const { t, i18n } = useTranslation()
@@ -82,6 +84,7 @@ export function ExcelBulkImportDialog({
         // Parse and validate file content
         const result = await parseExcelFile(file, entityType, t, {
           existingModelCodes: existingModels?.map((m) => m.code),
+          existingProcessCodes: existingProcesses?.map((p) => p.code),
           existingCodes,
         })
         setParseResult(result)
@@ -92,7 +95,7 @@ export function ExcelBulkImportDialog({
         setState('idle')
       }
     },
-    [entityType, existingCodes, existingModels, t]
+    [entityType, existingCodes, existingModels, existingProcesses, t]
   )
 
   const handleClearFile = useCallback(() => {

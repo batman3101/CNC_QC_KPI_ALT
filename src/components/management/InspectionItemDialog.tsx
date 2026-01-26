@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Dialog,
   DialogContent,
@@ -42,17 +42,20 @@ type InspectionItemInsert =
 type InspectionItemUpdate =
   Database['public']['Tables']['inspection_items']['Update']
 type ProductModel = Database['public']['Tables']['product_models']['Row']
+type InspectionProcess = Database['public']['Tables']['inspection_processes']['Row']
 
 interface InspectionItemDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   item?: InspectionItem | null
   models: ProductModel[]
+  processes?: InspectionProcess[]
 }
 
 function createFormSchema(t: (key: string) => string) {
   return z.object({
     model_id: z.string().min(1, t('validation.selectModel')),
+    process_id: z.string().optional().nullable(),
     name: z
       .string()
       .min(1, t('validation.enterItemName'))
@@ -73,11 +76,21 @@ export function InspectionItemDialog({
   onOpenChange,
   item,
   models,
+  processes = [],
 }: InspectionItemDialogProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const isEditing = !!item
+
+  // Fetch processes if not provided
+  const { data: fetchedProcesses = [] } = useQuery({
+    queryKey: ['inspection-processes'],
+    queryFn: managementService.getInspectionProcesses,
+    enabled: processes.length === 0,
+  })
+
+  const availableProcesses = processes.length > 0 ? processes : fetchedProcesses
 
   const formSchema = createFormSchema(t)
 
@@ -85,6 +98,7 @@ export function InspectionItemDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       model_id: '',
+      process_id: null,
       name: '',
       data_type: 'ok_ng',
       standard_value: 0,
@@ -105,6 +119,7 @@ export function InspectionItemDialog({
             : 0
         form.reset({
           model_id: item.model_id,
+          process_id: item.process_id || null,
           name: item.name,
           data_type: item.data_type,
           standard_value: item.standard_value || 0,
@@ -114,6 +129,7 @@ export function InspectionItemDialog({
       } else {
         form.reset({
           model_id: '',
+          process_id: null,
           name: '',
           data_type: 'ok_ng',
           standard_value: 0,
@@ -173,11 +189,15 @@ export function InspectionItemDialog({
 
     let itemData: InspectionItemInsert | InspectionItemUpdate
 
+    // Handle process_id - convert empty string to null
+    const processId = values.process_id && values.process_id !== '' ? values.process_id : null
+
     if (values.data_type === 'numeric') {
       const standardValue = values.standard_value || 0
       const toleranceValue = tolerance || 0
       itemData = {
         ...rest,
+        process_id: processId,
         standard_value: standardValue,
         tolerance_min: standardValue - toleranceValue,
         tolerance_max: standardValue + toleranceValue,
@@ -187,6 +207,7 @@ export function InspectionItemDialog({
       // OK/NG type
       itemData = {
         model_id: values.model_id,
+        process_id: processId,
         name: values.name,
         data_type: 'ok_ng',
         standard_value: 0,
@@ -246,6 +267,38 @@ export function InspectionItemDialog({
                           {model.code} - {model.name}
                         </SelectItem>
                       ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="process_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('management.processOptional')}</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(value === '__none__' ? null : value)}
+                    value={field.value || '__none__'}
+                    disabled={isLoading}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t('management.selectProcess')} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="__none__">{t('management.noProcess')}</SelectItem>
+                      {availableProcesses
+                        .filter((p) => p.is_active)
+                        .map((process) => (
+                          <SelectItem key={process.id} value={process.id}>
+                            {process.code} - {process.name}
+                          </SelectItem>
+                        ))}
                     </SelectContent>
                   </Select>
                   <FormMessage />

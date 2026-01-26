@@ -85,6 +85,8 @@ export interface ExcelBulkImportDialogProps {
   onSuccess?: () => void
   // For inspection items - need to pass existing models
   existingModels?: Array<{ id: string; code: string; name: string }>
+  // For inspection items - need to pass existing processes
+  existingProcesses?: Array<{ id: string; code: string; name: string }>
 }
 
 // Data types for each entity
@@ -95,6 +97,7 @@ export interface ProductModelImportData {
 
 export interface InspectionItemImportData {
   model_code: string
+  process_code?: string
   name: string
   data_type: 'numeric' | 'ok_ng'
   standard_value?: number

@@ -362,6 +362,7 @@ export async function bulkCreateProductModels(
 export async function bulkCreateInspectionItems(
   data: Array<{
     model_code: string
+    process_code?: string | null
     name: string
     data_type: 'numeric' | 'ok_ng'
     standard_value?: number
@@ -376,6 +377,9 @@ export async function bulkCreateInspectionItems(
   const models = await getProductModels()
   const modelCodeToId = new Map(models.map((m) => [m.code.toLowerCase(), m.id]))
 
+  const processes = await getInspectionProcesses()
+  const processCodeToId = new Map(processes.map((p) => [p.code.toLowerCase(), p.id]))
+
   for (let i = 0; i < data.length; i++) {
     try {
       const item = data[i]
@@ -385,8 +389,15 @@ export async function bulkCreateInspectionItems(
         throw new Error(`Model not found: ${item.model_code}`)
       }
 
+      // Convert process_code to process_id (optional)
+      let processId: string | null = null
+      if (item.process_code) {
+        processId = processCodeToId.get(item.process_code.toLowerCase()) || null
+      }
+
       await createInspectionItem({
         model_id: modelId,
+        process_id: processId,
         name: item.name,
         data_type: item.data_type,
         standard_value: item.standard_value ?? 0,

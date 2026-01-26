@@ -85,6 +85,7 @@ export type Database = {
           id: string
           model_id: string
           name: string
+          process_id: string | null
           standard_value: number
           tolerance_max: number
           tolerance_min: number
@@ -96,6 +97,7 @@ export type Database = {
           id?: string
           model_id: string
           name: string
+          process_id?: string | null
           standard_value: number
           tolerance_max: number
           tolerance_min: number
@@ -107,6 +109,7 @@ export type Database = {
           id?: string
           model_id?: string
           name?: string
+          process_id?: string | null
           standard_value?: number
           tolerance_max?: number
           tolerance_min?: number
