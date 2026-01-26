@@ -49,7 +49,12 @@
       "Bash(timeout:*)",
       "mcp__supabase-cnc-qc-kpi__execute_sql",
       "Bash(node:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(typescript-language-server:*)",
+      "Bash(pyright-langserver:*)",
+      "Bash(netstat:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd //c \"taskkill /PID 7408 /F\")"
     ],
     "deny": [],
     "ask": []
