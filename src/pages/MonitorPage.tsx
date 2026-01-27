@@ -117,6 +117,27 @@ export function MonitorPage() {
     return defectType ? defectType.name : defectTypeId
   }
 
+  // Helper function to generate formatted inspection ID (INS-MMDD-XXX)
+  const getFormattedInspectionId = (inspection: { id: string; created_at: string }, allInspections: typeof inspections): string => {
+    const date = new Date(inspection.created_at)
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+
+    // Get inspections from the same day, sorted by created_at
+    const dateStr = `${date.getFullYear()}-${month}-${day}`
+    const sameDayInspections = allInspections
+      .filter(i => {
+        const iDate = new Date(i.created_at)
+        return `${iDate.getFullYear()}-${String(iDate.getMonth() + 1).padStart(2, '0')}-${String(iDate.getDate()).padStart(2, '0')}` === dateStr
+      })
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+
+    // Find the sequence number for this inspection
+    const seqNum = sameDayInspections.findIndex(i => i.id === inspection.id) + 1
+
+    return `INS-${month}${day}-${String(seqNum).padStart(3, '0')}`
+  }
+
   const getMachineName = (machineId: string | null) => {
     if (!machineId) return 'N/A'
     const machine = machines.find((m) => m.id === machineId)
@@ -219,7 +240,7 @@ export function MonitorPage() {
                 letterSpacing: '-0.025em',
               }}
             >
-              CNC QC KPI - {t('monitor.title')}
+              CNC QC KPI
             </Typography>
           </Box>
 
@@ -330,7 +351,7 @@ export function MonitorPage() {
                           <TableRow key={inspection.id} hover>
                             <TableCell>
                               <Typography variant="body2" fontWeight={500}>
-                                {inspection.id.slice(0, 8)}
+                                {getFormattedInspectionId(inspection, inspections)}
                               </Typography>
                             </TableCell>
                             <TableCell>
