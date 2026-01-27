@@ -55,16 +55,28 @@ export async function getReportSummary(filters: ReportFilters): Promise<ReportSu
 
   const defectData = defects || []
 
+  // Fetch defect types for name mapping
+  const { data: defectTypesData } = await supabase
+    .from('defect_types')
+    .select('id, name')
+
+  // Create a map for quick lookup
+  const defectTypeMap = new Map<string, string>()
+  defectTypesData?.forEach(dt => {
+    defectTypeMap.set(dt.id, dt.name)
+  })
+
   // Calculate statistics
   const total_inspections = inspectionData.length
   const passed_inspections = inspectionData.filter(i => i.status === 'pass').length
   const failed_inspections = inspectionData.filter(i => i.status === 'fail').length
   const pass_rate = total_inspections > 0 ? (passed_inspections / total_inspections) * 100 : 0
 
-  // Defects by type
+  // Defects by type (using name from defect_types table)
   const defectsByType: Record<string, number> = {}
   defectData.forEach(defect => {
-    const type = defect.defect_type || '기타'
+    // Use the name from defect_types map, fallback to defect_type ID or '기타'
+    const type = defectTypeMap.get(defect.defect_type) || defect.defect_type || '기타'
     defectsByType[type] = (defectsByType[type] || 0) + 1
   })
 

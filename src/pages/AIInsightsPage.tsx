@@ -17,7 +17,7 @@ import { generateAllInsights } from '@/services/geminiService'
 // Supabase 서비스
 import * as analyticsService from '@/services/analyticsService'
 import * as inspectionService from '@/services/inspectionService'
-import { getProductModels } from '@/services/managementService'
+import { getProductModels, getDefectTypes } from '@/services/managementService'
 
 // 날짜 유틸리티
 import { getTodayBusinessDate, getBusinessDate, formatDateString } from '@/lib/dateUtils'
@@ -62,6 +62,12 @@ export function AIInsightsPage() {
   const { data: models = [] } = useQuery({
     queryKey: ['ai-models'],
     queryFn: getProductModels,
+  })
+
+  // Fetch defect types for name mapping
+  const { data: defectTypesData = [] } = useQuery({
+    queryKey: ['ai-defect-types-list'],
+    queryFn: getDefectTypes,
   })
 
   const { data: defectTypeDistribution = [] } = useQuery({
@@ -153,12 +159,17 @@ export function AIInsightsPage() {
       }
     })
 
-    // 미해결 불량
+    // 미해결 불량 (불량 유형 이름으로 변환)
+    const defectTypeMap = new Map<string, string>()
+    defectTypesData.forEach(dt => {
+      defectTypeMap.set(dt.id, dt.name)
+    })
+
     const pendingDefects = defects
       .filter(d => d.status === 'pending' || d.status === 'in_progress')
       .map(d => ({
         id: d.id,
-        type: d.defect_type,
+        type: defectTypeMap.get(d.defect_type) || d.defect_type,
         status: d.status,
         createdAt: d.created_at,
       }))
@@ -176,7 +187,7 @@ export function AIInsightsPage() {
       modelDefectRates,
       pendingDefects,
     }
-  }, [inspections, defects, models, defectTypeDistribution, machinePerformance])
+  }, [inspections, defects, models, defectTypeDistribution, machinePerformance, defectTypesData])
 
   // 인사이트 생성
   const handleGenerateInsights = useCallback(async () => {

@@ -31,7 +31,7 @@ import {
 
 // Supabase 서비스
 import * as inspectionService from '@/services/inspectionService'
-import { getMachines, getProductModels } from '@/services/managementService'
+import { getMachines, getProductModels, getDefectTypes } from '@/services/managementService'
 
 // 날짜 유틸리티
 import { getBusinessDate, formatVietnamDateTime, getTodayBusinessDate } from '@/lib/dateUtils'
@@ -65,6 +65,18 @@ export function DashboardPage() {
     queryKey: ['product-models'],
     queryFn: getProductModels,
   })
+
+  // Fetch defect types for name display
+  const { data: defectTypes = [] } = useQuery({
+    queryKey: ['defect-types'],
+    queryFn: getDefectTypes,
+  })
+
+  // Helper function to get defect type name by ID
+  const getDefectTypeName = (defectTypeId: string): string => {
+    const defectType = defectTypes.find((dt) => dt.id === defectTypeId)
+    return defectType ? defectType.name : defectTypeId
+  }
 
   // Helper function to get machine name by ID
   const getMachineName = (machineId: string | null) => {
@@ -412,7 +424,7 @@ export function DashboardPage() {
                         }}
                       >
                         <Typography variant="subtitle2" fontWeight={600}>
-                          {defect.defect_type}
+                          {getDefectTypeName(defect.defect_type)}
                         </Typography>
                         <Chip
                           label={

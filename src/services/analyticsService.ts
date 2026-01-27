@@ -304,11 +304,23 @@ export async function getDefectTypeDistribution(
 
   if (!defects) return []
 
-  // Group by defect type
+  // Fetch defect types for name mapping
+  const { data: defectTypesData } = await supabase
+    .from('defect_types')
+    .select('id, name')
+
+  // Create a map for quick lookup
+  const defectTypeMap = new Map<string, string>()
+  defectTypesData?.forEach(dt => {
+    defectTypeMap.set(dt.id, dt.name)
+  })
+
+  // Group by defect type (using name from defect_types table)
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const groupedByType = defects.reduce((acc, defect: any) => {
-    const type = defect.defect_type
-    acc[type] = (acc[type] || 0) + 1
+    // Use the name from defect_types map, fallback to ID if not found
+    const typeName = defectTypeMap.get(defect.defect_type) || defect.defect_type
+    acc[typeName] = (acc[typeName] || 0) + 1
     return acc
   }, {} as Record<string, number>)
 
