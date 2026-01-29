@@ -51,6 +51,7 @@ export interface ParseResult<T = Record<string, unknown>> {
   invalidRows: ParsedRow<T>[]
   validCount: number
   errorCount: number
+  autoCodeGenerated?: boolean
 }
 
 // Import state for UI

@@ -472,7 +472,8 @@
     "partialValid": "{{valid}}건 유효, {{error}}건 오류",
     "invalidSeverity": "심각도는 low, medium, high 중 하나여야 합니다",
     "invalidDataType": "데이터 유형은 numeric 또는 ok_ng 여야 합니다",
-    "invalidBoolean": "TRUE 또는 FALSE로 입력해주세요"
+    "invalidBoolean": "TRUE 또는 FALSE로 입력해주세요",
+    "autoCodeGenerated": "중복 코드가 자동 변환되었습니다 (예: DIM → DIM-001)"
   },
   "monitor": {
     "title": "모니터 뷰",

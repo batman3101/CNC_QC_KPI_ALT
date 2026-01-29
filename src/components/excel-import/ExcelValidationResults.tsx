@@ -3,7 +3,7 @@
  */
 
 import { useTranslation } from 'react-i18next'
-import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react'
+import { CheckCircle2, XCircle, AlertCircle, Info } from 'lucide-react'
 import {
   Table,
   TableBody,
@@ -55,6 +55,14 @@ export function ExcelValidationResults({ result }: ExcelValidationResultsProps) 
           {t('bulkImport.errorCount')}: {result.errorCount}
         </Badge>
       </div>
+
+      {/* Auto code generation notice */}
+      {result.autoCodeGenerated && (
+        <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400">
+          <Info className="h-5 w-5 flex-shrink-0" />
+          <span className="text-sm">{t('bulkImport.autoCodeGenerated')}</span>
+        </div>
+      )}
 
       {/* Status message */}
       {result.errorCount === 0 && result.validCount > 0 && (

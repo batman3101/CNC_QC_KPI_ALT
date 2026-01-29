@@ -180,8 +180,8 @@ export const COLUMN_MAPPINGS: Record<EntityType, ColumnMapping[]> = {
       required: true,
       dataType: 'string',
       description: {
-        ko: '고유한 불량 코드 (예: DIM, SUR, SHA)',
-        vi: 'Ma loi duy nhat (VD: DIM, SUR, SHA)',
+        ko: '불량 분류 코드 (예: DIM, SUR, SHA). 중복 시 자동 순번 부여 (DIM-001, DIM-002)',
+        vi: 'Ma phan loai loi (VD: DIM, SUR, SHA). Tu dong danh so khi trung (DIM-001, DIM-002)',
       },
     },
     {
@@ -298,6 +298,7 @@ export const SAMPLE_DATA: Record<EntityType, Record<string, unknown>[]> = {
   defectType: [
     { code: 'DIM', name: '치수 불량 / Loi kich thuoc', description: 'Dimension defect', severity: 'high', is_active: true },
     { code: 'SUR', name: '표면 불량 / Loi be mat', description: 'Surface defect', severity: 'medium', is_active: true },
+    { code: 'SUR', name: 'ATN CRACK', description: 'Surface defect', severity: 'medium', is_active: true },
   ],
 }
 

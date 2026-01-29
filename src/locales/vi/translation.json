@@ -472,7 +472,8 @@
     "partialValid": "{{valid}} hợp lệ, {{error}} lỗi",
     "invalidSeverity": "Mức độ phải là low, medium hoặc high",
     "invalidDataType": "Loại dữ liệu phải là numeric hoặc ok_ng",
-    "invalidBoolean": "Vui lòng nhập TRUE hoặc FALSE"
+    "invalidBoolean": "Vui lòng nhập TRUE hoặc FALSE",
+    "autoCodeGenerated": "Mã trùng lặp đã được tự động chuyển đổi (VD: DIM → DIM-001)"
   },
   "monitor": {
     "title": "Màn hình giám sát",

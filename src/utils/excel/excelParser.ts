@@ -311,7 +311,82 @@ export async function parseExcelFile<T = Record<string, unknown>>(
 
   // Check for duplicates within file
   const codeField = entityType === 'inspectionItem' ? 'model_code' : 'code'
-  if (entityType !== 'inspectionItem') {
+  let autoCodeGenerated = false
+
+  if (entityType === 'defectType') {
+    // Defect types: auto-generate unique codes for duplicate category codes
+    const codeCount = new Map<string, number>()
+    allData.forEach((row) => {
+      const code = String(row.code || '')
+      if (code) codeCount.set(code, (codeCount.get(code) || 0) + 1)
+    })
+
+    const duplicatedCodes = new Set<string>()
+    codeCount.forEach((count, code) => {
+      if (count > 1) duplicatedCodes.add(code)
+    })
+
+    if (duplicatedCodes.size > 0) {
+      autoCodeGenerated = true
+      // Collect reserved codes: non-duplicate literal codes + DB existing codes
+      const reservedCodes = new Set<string>(
+        allData
+          .filter((row) => !duplicatedCodes.has(String(row.code || '')))
+          .map((row) => String(row.code || '').toLowerCase())
+      )
+      if (options?.existingCodes) {
+        options.existingCodes.forEach((c) => reservedCodes.add(c.toLowerCase()))
+      }
+
+      const codeSeq = new Map<string, number>()
+      allData.forEach((row, index) => {
+        const code = String(row.code || '')
+        if (duplicatedCodes.has(code)) {
+          let seq = (codeSeq.get(code) || 0) + 1
+          let newCode: string
+          do {
+            newCode = `${code}-${String(seq).padStart(3, '0')}`
+            if (reservedCodes.has(newCode.toLowerCase())) {
+              seq++
+            } else {
+              break
+            }
+          } while (true)
+          codeSeq.set(code, seq)
+          reservedCodes.add(newCode.toLowerCase())
+
+          row.code = newCode
+          const parsedRow = parsedRows[index]
+          if (parsedRow) {
+            (parsedRow.data as Record<string, unknown>).code = newCode
+          }
+        }
+      })
+    }
+
+    // DB existing code check for defect types (after auto-generation)
+    if (options?.existingCodes) {
+      const existingSet = new Set(options.existingCodes.map((c) => c.toLowerCase()))
+      allData.forEach((row, index) => {
+        const code = String(row.code || '')
+        if (existingSet.has(code.toLowerCase())) {
+          const parsedRow = parsedRows[index]
+          if (parsedRow) {
+            parsedRow.isValid = false
+            parsedRow.errors.push({
+              row: parsedRow.rowNumber,
+              field: 'code',
+              fieldLabel:
+                language === 'ko'
+                  ? mappings.find((m) => m.field === 'code')?.koHeader || 'code'
+                  : mappings.find((m) => m.field === 'code')?.viHeader || 'code',
+              message: `${t('bulkImport.codeExists')}: ${code}`,
+            })
+          }
+        }
+      })
+    }
+  } else if (entityType !== 'inspectionItem') {
     const duplicates = findDuplicates(allData, codeField)
     duplicates.forEach((rows, code) => {
       rows.forEach((rowNum) => {
@@ -332,8 +407,8 @@ export async function parseExcelFile<T = Record<string, unknown>>(
     })
   }
 
-  // Check for existing codes in database
-  if (options?.existingCodes && entityType !== 'inspectionItem') {
+  // Check for existing codes in database (defectType handled above)
+  if (options?.existingCodes && entityType !== 'inspectionItem' && entityType !== 'defectType') {
     const newCodes = allData.map((row) => String(row[codeField] || ''))
     const existing = findExistingCodes(newCodes, options.existingCodes)
     existing.forEach((code) => {
@@ -369,6 +444,7 @@ export async function parseExcelFile<T = Record<string, unknown>>(
     invalidRows,
     validCount: validRows.length,
     errorCount: invalidRows.length,
+    autoCodeGenerated,
   }
 }
 
