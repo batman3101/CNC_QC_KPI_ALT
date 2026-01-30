@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Box, Typography, Tabs, Tab, Grid } from '@mui/material'
+import { Box, Typography, Tabs, Tab, Grid, useTheme, useMediaQuery } from '@mui/material'
 import { KPICards } from '@/components/analytics/KPICards'
 import { AnalyticsFilters } from '@/components/analytics/AnalyticsFilters'
 import { DefectRateTrendChart } from '@/components/analytics/DefectRateTrendChart'
@@ -45,6 +45,8 @@ function TabPanel(props: TabPanelProps) {
 
 export function AnalyticsPage() {
   const { t } = useTranslation()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const { activeFactoryId } = useFactoryStore()
   const [tabValue, setTabValue] = useState(0)
   // Use business day range (08:00 ~ next day 07:59)
@@ -112,11 +114,11 @@ export function AnalyticsPage() {
 
   return (
     <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
+      <Box sx={{ mb: { xs: 2, md: 4 } }}>
+        <Typography variant={isMobile ? 'h5' : 'h4'} component="h1" fontWeight={700} gutterBottom>
           {t('analytics.title')}
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
           {t('analytics.description')}
         </Typography>
       </Box>

@@ -7,6 +7,7 @@ import {
   Button,
   Chip,
   IconButton,
+  Paper,
   Typography,
   Tooltip,
 } from '@mui/material'
@@ -253,6 +254,19 @@ export function UserList() {
         searchPlaceholder={t('userManagement.searchByNameOrEmail')}
         pageSize={20}
         enableFilters={true}
+        renderMobileCard={(user) => (
+          <Paper variant="outlined" sx={{ p: 2, borderRadius: 1 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+              <Typography variant="subtitle2" fontWeight={600}>{user.name}</Typography>
+              <Chip icon={getRoleIcon(user.role)} label={getRoleLabel(user.role)} color={getRoleColor(user.role)} size="small" variant="outlined" />
+            </Box>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>{user.email}</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Chip label={user.factory_id || '-'} size="small" variant="outlined" />
+              {renderActions(user)}
+            </Box>
+          </Paper>
+        )}
       />
 
       {/* User Dialog */}

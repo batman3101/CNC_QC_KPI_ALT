@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Box, Typography } from '@mui/material'
+import { Box, Typography, useTheme, useMediaQuery } from '@mui/material'
 import { useSnackbar } from 'notistack'
 import { InspectionSetup } from '@/components/inspection/InspectionSetup'
 import { InspectionRecordForm } from '@/components/inspection/InspectionRecordForm'
@@ -18,6 +18,8 @@ interface InspectionState {
 
 export function InspectionPage() {
   const { t } = useTranslation()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const queryClient = useQueryClient()
   const { enqueueSnackbar } = useSnackbar()
   const { activeFactoryId } = useFactoryStore()
@@ -76,11 +78,11 @@ export function InspectionPage() {
 
   return (
     <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
+      <Box sx={{ mb: { xs: 2, md: 4 } }}>
+        <Typography variant={isMobile ? 'h5' : 'h4'} component="h1" fontWeight={700} gutterBottom>
           {t('inspection.recordInputTitle')}
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
           {t('inspection.recordInputDescription')}
         </Typography>
       </Box>

@@ -1,4 +1,4 @@
-import { AppBar, Toolbar, IconButton, Typography, Menu, MenuItem, Box, ListItemIcon, ListItemText, Divider, Button, Badge, Tooltip } from '@mui/material'
+import { AppBar, Toolbar, IconButton, Typography, Menu, MenuItem, Box, ListItemIcon, ListItemText, Divider, Button, Badge, Tooltip, useMediaQuery, useTheme } from '@mui/material'
 import { Menu as MenuIcon, Person, Logout, Brightness4, Brightness7, NotificationsOutlined, Factory as FactoryIcon } from '@mui/icons-material'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -22,6 +22,8 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
   const { signOut } = useAuth()
   const { mode, toggleTheme } = useThemeMode()
   const navigate = useNavigate()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const [userAnchorEl, setUserAnchorEl] = useState<null | HTMLElement>(null)
   const { activeFactoryId, setActiveFactory } = useFactoryStore()
   const { profile } = useAuthStore()
@@ -69,7 +71,7 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
         borderColor: 'divider',
       }}
     >
-      <Toolbar sx={{ minHeight: 64 }}>
+      <Toolbar sx={{ minHeight: { xs: 56, md: 64 } }}>
         <IconButton
           color="inherit"
           edge="start"
@@ -105,7 +107,7 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
 
         <Box sx={{ flexGrow: 1 }} />
 
-        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', gap: { xs: 0.5, sm: 1 }, alignItems: 'center' }}>
           {/* Factory Toggle */}
           {activeFactoryId && (
             <Tooltip title={isAdmin ? t('factory.select') : t('factory.current')}>
@@ -115,14 +117,15 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
                   disabled={!isAdmin}
                   variant="outlined"
                   size="small"
-                  startIcon={<FactoryIcon />}
+                  startIcon={isMobile ? undefined : <FactoryIcon />}
                   sx={{
-                    minWidth: 'auto',
-                    px: 1.5,
+                    minWidth: isMobile ? 44 : 'auto',
+                    minHeight: 44,
+                    px: isMobile ? 0.75 : 1.5,
                     py: 0.5,
                     borderRadius: 1,
                     fontWeight: 600,
-                    fontSize: '0.875rem',
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
                     textTransform: 'none',
                     color: mode === 'dark' ? 'white' : 'black',
                     borderColor: mode === 'dark' ? 'white' : 'black',
@@ -147,6 +150,7 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
             <IconButton
               color="inherit"
               onClick={() => navigate('/defects')}
+              sx={{ minWidth: 44, minHeight: 44 }}
             >
               <Badge
                 badgeContent={pendingDefectCount}
@@ -162,7 +166,7 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
           <OfflineIndicator />
 
           {/* Theme Toggle */}
-          <IconButton onClick={toggleTheme} color="inherit">
+          <IconButton onClick={toggleTheme} color="inherit" sx={{ minWidth: 44, minHeight: 44 }}>
             {mode === 'dark' ? <Brightness7 /> : <Brightness4 />}
           </IconButton>
 
@@ -172,12 +176,13 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
             variant="outlined"
             size="small"
             sx={{
-              minWidth: 'auto',
-              px: 1.5,
+              minWidth: isMobile ? 44 : 'auto',
+              minHeight: 44,
+              px: isMobile ? 0.75 : 1.5,
               py: 0.5,
               borderRadius: 1,
               fontWeight: 600,
-              fontSize: '0.875rem',
+              fontSize: { xs: '0.75rem', sm: '0.875rem' },
               textTransform: 'none',
               color: mode === 'dark' ? 'white' : 'black',
               borderColor: mode === 'dark' ? 'white' : 'black',
@@ -194,6 +199,7 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
           <IconButton
             color="inherit"
             onClick={(e) => setUserAnchorEl(e.currentTarget)}
+            sx={{ minWidth: 44, minHeight: 44 }}
           >
             <Person />
           </IconButton>

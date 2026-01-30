@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { Box, Typography, Grid, Tabs, Tab } from '@mui/material'
+import { Box, Typography, Grid, Tabs, Tab, useTheme, useMediaQuery } from '@mui/material'
 import { getRecentBusinessDays } from '@/lib/dateUtils'
 import { ReportGenerator } from '@/components/reports/ReportGenerator'
 import { ReportList } from '@/components/reports/ReportList'
@@ -35,6 +35,8 @@ function TabPanel(props: TabPanelProps) {
 
 export function ReportsPage() {
   const { t } = useTranslation()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const { activeFactoryId } = useFactoryStore()
   const [tabValue, setTabValue] = useState(0)
 
@@ -74,17 +76,17 @@ export function ReportsPage() {
 
   return (
     <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
+      <Box sx={{ mb: { xs: 2, md: 4 } }}>
+        <Typography variant={isMobile ? 'h5' : 'h4'} component="h1" fontWeight={700} gutterBottom>
           {t('reports.title')}
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
           {t('reports.description')}
         </Typography>
       </Box>
 
       <Box>
-        <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 3 }}>
+        <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto" sx={{ mb: 3 }}>
           <Tab label={t('reports.generate')} />
           <Tab label={t('reports.reportList')} />
           <Tab label={t('reports.summary')} />

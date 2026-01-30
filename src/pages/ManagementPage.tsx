@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next'
-import { Box, Typography, Tabs, Tab } from '@mui/material'
+import { Box, Typography, Tabs, Tab, useTheme, useMediaQuery } from '@mui/material'
 import { useState } from 'react'
 import { ProductModelManagement } from '@/components/management/ProductModelManagement'
 import { InspectionItemManagement } from '@/components/management/InspectionItemManagement'
@@ -30,6 +30,8 @@ function TabPanel(props: TabPanelProps) {
 
 export function ManagementPage() {
   const { t } = useTranslation()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [tabValue, setTabValue] = useState(0)
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -38,17 +40,17 @@ export function ManagementPage() {
 
   return (
     <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
+      <Box sx={{ mb: { xs: 2, md: 4 } }}>
+        <Typography variant={isMobile ? 'h5' : 'h4'} component="h1" fontWeight={700} gutterBottom>
           {t('management.title')}
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
           {t('management.description')}
         </Typography>
       </Box>
 
       <Box>
-        <Tabs value={tabValue} onChange={handleTabChange} aria-label="management tabs">
+        <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto" aria-label="management tabs">
           <Tab label={t('management.productModels')} id="management-tab-0" />
           <Tab label={t('management.inspectionItems')} id="management-tab-1" />
           <Tab label={t('management.inspectionProcesses')} id="management-tab-2" />

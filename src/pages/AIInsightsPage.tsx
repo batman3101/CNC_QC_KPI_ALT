@@ -8,6 +8,8 @@ import {
   Grid,
   CircularProgress,
   Alert,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material'
 import { Refresh } from '@mui/icons-material'
 
@@ -28,6 +30,8 @@ import { useFactoryStore } from '@/stores/factoryStore'
 
 export function AIInsightsPage() {
   const { t, i18n } = useTranslation()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const language = i18n.language === 'vi' ? 'vi' : 'ko'
   const { activeFactoryId } = useFactoryStore()
 
@@ -233,12 +237,12 @@ export function AIInsightsPage() {
   return (
     <Box>
       {/* Header */}
-      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'nowrap' }}>
+      <Box sx={{ mb: { xs: 2, md: 4 }, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 2, flexWrap: 'nowrap' }}>
         <Box sx={{ minWidth: 0 }}>
-          <Typography variant="h4" fontWeight={700} sx={{ mb: 0.5 }}>
+          <Typography variant={isMobile ? 'h5' : 'h4'} fontWeight={700} sx={{ mb: 0.5 }}>
             {t('aiInsights.title')}
           </Typography>
-          <Typography variant="body2" color="text.secondary" noWrap>
+          <Typography variant="body2" color="text.secondary" noWrap sx={{ display: { xs: 'none', sm: 'block' } }}>
             {t('aiInsights.description')}
           </Typography>
           {lastUpdated && (

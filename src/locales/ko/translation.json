@@ -52,7 +52,8 @@
     "reports": "리포트",
     "aiInsights": "AI 인사이트",
     "management": "관리",
-    "userManagement": "사용자 관리"
+    "userManagement": "사용자 관리",
+    "viewAll": "전체 보기"
   },
   "aiInsights": {
     "title": "AI 인사이트",

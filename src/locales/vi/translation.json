@@ -52,7 +52,8 @@
     "reports": "Báo cáo",
     "aiInsights": "AI Insights",
     "management": "Quản lý",
-    "userManagement": "Quản lý người dùng"
+    "userManagement": "Quản lý người dùng",
+    "viewAll": "Xem tất cả"
   },
   "aiInsights": {
     "title": "AI Insights",

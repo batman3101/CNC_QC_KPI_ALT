@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Box, Typography, Tabs, Tab } from '@mui/material'
+import { Box, Typography, Tabs, Tab, useTheme, useMediaQuery } from '@mui/material'
 import { UserList, RolePermissions } from '@/components/user-management'
 
 interface TabPanelProps {
@@ -27,6 +27,8 @@ function TabPanel(props: TabPanelProps) {
 
 export function UserManagementPage() {
   const { t } = useTranslation()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [tabValue, setTabValue] = useState(0)
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -35,11 +37,11 @@ export function UserManagementPage() {
 
   return (
     <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
+      <Box sx={{ mb: { xs: 2, md: 4 } }}>
+        <Typography variant={isMobile ? 'h5' : 'h4'} component="h1" fontWeight={700} gutterBottom>
           {t('userManagement.title')}
         </Typography>
-        <Typography variant="body1" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' } }}>
           {t('userManagement.description')}
         </Typography>
       </Box>
@@ -48,6 +50,8 @@ export function UserManagementPage() {
         <Tabs
           value={tabValue}
           onChange={handleTabChange}
+          variant="scrollable"
+          scrollButtons="auto"
           aria-label="user management tabs"
         >
           <Tab label={t('userManagement.userList')} id="user-management-tab-0" />

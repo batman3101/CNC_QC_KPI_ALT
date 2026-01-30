@@ -15,6 +15,7 @@ import {
   Select,
   MenuItem,
   Grid,
+  Paper,
   useMediaQuery,
   useTheme,
 } from '@mui/material'
@@ -433,6 +434,24 @@ export function DefectsList() {
         searchPlaceholder={t('defects.defectType')}
         pageSize={isMobile ? 5 : 20}
         enableFilters={true}
+        renderMobileCard={(defect) => {
+          const config = statusConfig[defect.status]
+          const Icon = config.icon
+          return (
+            <Paper variant="outlined" sx={{ p: 2, borderRadius: 1, borderLeft: 4, borderLeftColor: defect.status === 'resolved' ? 'success.main' : defect.status === 'in_progress' ? 'primary.main' : 'error.main' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                <Typography variant="subtitle2" fontWeight={600}>{getDefectTypeName(defect.defect_type)}</Typography>
+                <Chip icon={<Icon />} label={config.label} color={config.color} size="small" />
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>{getModelCode(defect.model_id)}</Typography>
+              <Typography variant="body2" color="text.secondary" noWrap sx={{ mb: 1 }}>{defect.description}</Typography>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="caption" color="text.disabled">{formatVietnamDateTime(defect.created_at)}</Typography>
+                {renderActions(defect)}
+              </Box>
+            </Paper>
+          )
+        }}
       />
 
       {/* Detail Dialog */}
