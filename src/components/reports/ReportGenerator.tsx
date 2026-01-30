@@ -203,11 +203,17 @@ export function ReportGenerator({ models, processes }: ReportGeneratorProps) {
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
-                <InputLabel>{t('management.modelCode')}</InputLabel>
+                <InputLabel shrink>{t('management.modelCode')}</InputLabel>
                 <Select
                   value={modelId}
                   onChange={(e: SelectChangeEvent) => setModelId(e.target.value)}
                   label={t('management.modelCode')}
+                  displayEmpty
+                  renderValue={(selected) => {
+                    if (!selected) return t('reports.allModels')
+                    const model = models.find(m => m.id === selected)
+                    return model ? `${model.code} - ${model.name}` : selected
+                  }}
                 >
                   <MenuItem value="">{t('reports.allModels')}</MenuItem>
                   {models.map((model) => (
@@ -220,11 +226,17 @@ export function ReportGenerator({ models, processes }: ReportGeneratorProps) {
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <FormControl fullWidth>
-                <InputLabel>{t('reports.process')}</InputLabel>
+                <InputLabel shrink>{t('reports.process')}</InputLabel>
                 <Select
                   value={processId}
                   onChange={(e: SelectChangeEvent) => setProcessId(e.target.value)}
                   label={t('reports.process')}
+                  displayEmpty
+                  renderValue={(selected) => {
+                    if (!selected) return t('reports.allProcesses')
+                    const process = processes.find(p => p.id === selected)
+                    return process ? `${process.code} - ${process.name}` : selected
+                  }}
                 >
                   <MenuItem value="">{t('reports.allProcesses')}</MenuItem>
                   {processes.map((process) => (

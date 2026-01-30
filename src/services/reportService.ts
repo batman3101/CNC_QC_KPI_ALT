@@ -7,6 +7,7 @@
 
 import { supabase } from '@/lib/supabase'
 import { getBusinessDateRangeFilter } from '@/lib/dateUtils'
+import { generatePDFReport, generateExcelReport } from '@/utils/reportGenerators'
 import type { Report, ReportFilters, ReportSummary } from '@/types/report'
 
 // In-memory storage for generated reports (will reset on page refresh)
@@ -149,9 +150,6 @@ export async function generateReport(
   filters: ReportFilters,
   format: 'pdf' | 'excel'
 ): Promise<Report> {
-  const dateFrom = filters.dateRange.from.toLocaleDateString('ko-KR')
-  const dateTo = filters.dateRange.to.toLocaleDateString('ko-KR')
-
   const typeLabels: Record<string, string> = {
     daily: '일일',
     weekly: '주간',
@@ -159,7 +157,7 @@ export async function generateReport(
     custom: '맞춤',
   }
 
-  const title = `${typeLabels[filters.reportType] || '맞춤'} 품질 리포트 - ${dateFrom} ~ ${dateTo}`
+  const title = `${typeLabels[filters.reportType] || '맞춤'} 품질 리포트`
 
   const newReport: Report = {
     id: `report-${Date.now()}`,
@@ -211,19 +209,9 @@ export async function downloadReport(id: string): Promise<Blob> {
 
   const summary = await getReportSummary(filters)
 
-  // For now, generate a simple JSON blob as placeholder
-  // TODO: Implement actual PDF/Excel generation using jspdf and xlsx libraries
-  const reportData = {
-    title: report.title,
-    format: report.format,
-    generatedAt: new Date().toISOString(),
-    summary,
-    filters,
+  if (report.format === 'pdf') {
+    return generatePDFReport(summary, filters, report.title)
+  } else {
+    return generateExcelReport(summary, filters, report.title)
   }
-
-  const blob = new Blob([JSON.stringify(reportData, null, 2)], {
-    type: report.format === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  })
-
-  return blob
 }

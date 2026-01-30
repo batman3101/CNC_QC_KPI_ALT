@@ -14,12 +14,29 @@ declare module 'jspdf' {
   }
 }
 
-// Add Korean font support (fallback to sans-serif for Korean characters)
-const addKoreanFont = (doc: jsPDF) => {
-  // For Korean text, we'll use a web font or system font
-  // In production, you'd want to embed a proper Korean font
-  doc.setFont('helvetica')
-  return doc
+// Noto Sans KR font cache
+let fontLoaded = false
+
+const loadNotoSansKR = async (doc: jsPDF) => {
+  if (fontLoaded) {
+    doc.setFont('NotoSansKR')
+    return
+  }
+  try {
+    const response = await fetch(
+      'https://cdn.jsdelivr.net/gh/nicholasgasior/gfonts-subset@master/noto-sans-kr/NotoSansKR-Regular.ttf'
+    )
+    const buffer = await response.arrayBuffer()
+    const base64 = btoa(
+      new Uint8Array(buffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+    )
+    doc.addFileToVFS('NotoSansKR-Regular.ttf', base64)
+    doc.addFont('NotoSansKR-Regular.ttf', 'NotoSansKR', 'normal')
+    doc.setFont('NotoSansKR')
+    fontLoaded = true
+  } catch {
+    doc.setFont('helvetica')
+  }
 }
 
 export const generatePDFReport = async (
@@ -28,7 +45,7 @@ export const generatePDFReport = async (
   reportTitle: string
 ): Promise<Blob> => {
   const doc = new jsPDF()
-  addKoreanFont(doc)
+  await loadNotoSansKR(doc)
 
   // Title
   doc.setFontSize(20)
@@ -57,6 +74,7 @@ export const generatePDFReport = async (
     head: [['Metric', 'Value']],
     body: summaryData,
     theme: 'grid',
+    styles: { font: 'NotoSansKR' },
     headStyles: { fillColor: [66, 139, 202] },
   })
 
@@ -76,6 +94,7 @@ export const generatePDFReport = async (
     head: [['Defect Type', 'Count', 'Percentage']],
     body: defectsData,
     theme: 'grid',
+    styles: { font: 'NotoSansKR' },
     headStyles: { fillColor: [66, 139, 202] },
   })
 
@@ -96,6 +115,7 @@ export const generatePDFReport = async (
     head: [['Process', 'Inspections', 'Pass Rate', 'Grade']],
     body: processData,
     theme: 'grid',
+    styles: { font: 'NotoSansKR' },
     headStyles: { fillColor: [66, 139, 202] },
   })
 
@@ -121,6 +141,7 @@ export const generatePDFReport = async (
     head: [['Model', 'Inspections', 'Pass Rate', 'Grade']],
     body: modelData,
     theme: 'grid',
+    styles: { font: 'NotoSansKR' },
     headStyles: { fillColor: [66, 139, 202] },
   })
 
