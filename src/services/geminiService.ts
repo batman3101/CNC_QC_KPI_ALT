@@ -11,7 +11,7 @@ import type {
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY
 
 // Gemini API 엔드포인트 (무료 플랜 - gemini-1.5-flash)
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 
 // 시스템 프롬프트
 const SYSTEM_PROMPT = {

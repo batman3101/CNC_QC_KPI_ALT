@@ -64,6 +64,8 @@
     "keyIssues": "Vấn đề chính",
     "performanceAnalysis": "Phân tích hiệu suất",
     "riskAlerts": "Cảnh báo rủi ro",
+    "generateError": "Không thể tạo AI insights. Vui lòng thử lại sau.",
+    "noData": "Không có dữ liệu kiểm tra để phân tích. Vui lòng thực hiện kiểm tra và thử lại.",
     "chatbot": {
       "title": "AI Chatbot",
       "placeholder": "Hỏi về dữ liệu chất lượng...",

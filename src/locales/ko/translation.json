@@ -64,6 +64,8 @@
     "keyIssues": "주요 이슈",
     "performanceAnalysis": "성과 분석",
     "riskAlerts": "리스크 알림",
+    "generateError": "AI 인사이트 생성에 실패했습니다. 잠시 후 다시 시도해주세요.",
+    "noData": "분석할 검사 데이터가 없습니다. 검사를 실행한 후 다시 확인해주세요.",
     "chatbot": {
       "title": "AI 챗봇",
       "placeholder": "품질 데이터에 대해 질문하세요...",

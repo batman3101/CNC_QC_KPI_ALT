@@ -3,8 +3,8 @@
   "mode": "ralplan",
   "iteration": 1,
   "max_iterations": 5,
-  "plan_path": ".omc/plans/report-all-model-process-filter.md",
+  "plan_path": ".omc/plans/ai-insights-fix.md",
   "current_phase": "complete",
-  "started_at": "2026-01-30T11:00:00Z",
-  "task_description": "리포트 생성 페이지에서 전체 모델/전체 공정 선택 옵션 추가 및 PDF/EXCEL 출력 확인"
+  "started_at": "2026-01-30T12:00:00Z",
+  "task_description": "AI 인사이트 페이지가 동작하지 않는 원인 분석 및 수정"
 }
