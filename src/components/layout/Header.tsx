@@ -1,5 +1,5 @@
 import { AppBar, Toolbar, IconButton, Typography, Menu, MenuItem, Box, ListItemIcon, ListItemText, Divider, Button, Badge, Tooltip } from '@mui/material'
-import { Menu as MenuIcon, Person, Logout, Brightness4, Brightness7, NotificationsOutlined } from '@mui/icons-material'
+import { Menu as MenuIcon, Person, Logout, Brightness4, Brightness7, NotificationsOutlined, Factory as FactoryIcon } from '@mui/icons-material'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -8,6 +8,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { useThemeMode } from '@/contexts/ThemeContext'
 import { OfflineIndicator } from '@/components/pwa'
 import * as inspectionService from '@/services/inspectionService'
+import { useFactoryStore } from '@/stores/factoryStore'
+import { useAuthStore } from '@/stores/authStore'
 
 interface HeaderProps {
   onMenuClick: () => void
@@ -21,11 +23,20 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
   const { mode, toggleTheme } = useThemeMode()
   const navigate = useNavigate()
   const [userAnchorEl, setUserAnchorEl] = useState<null | HTMLElement>(null)
+  const { activeFactoryId, setActiveFactory } = useFactoryStore()
+  const { profile } = useAuthStore()
+  const isAdmin = profile?.role === 'admin'
+
+  const toggleFactory = () => {
+    if (!isAdmin) return
+    const next = activeFactoryId === 'ALT' ? 'ALV' : 'ALT'
+    setActiveFactory(next)
+  }
 
   // Fetch pending defect count for notification badge
   const { data: defects = [] } = useQuery({
-    queryKey: ['defects'],
-    queryFn: () => inspectionService.getDefects(),
+    queryKey: ['defects', activeFactoryId],
+    queryFn: () => inspectionService.getDefects({ factoryId: activeFactoryId || undefined }),
     refetchInterval: 30000, // 30초마다 자동 갱신
   })
 
@@ -95,6 +106,42 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
         <Box sx={{ flexGrow: 1 }} />
 
         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          {/* Factory Toggle */}
+          {activeFactoryId && (
+            <Tooltip title={isAdmin ? t('factory.select') : t('factory.current')}>
+              <span>
+                <Button
+                  onClick={toggleFactory}
+                  disabled={!isAdmin}
+                  variant="outlined"
+                  size="small"
+                  startIcon={<FactoryIcon />}
+                  sx={{
+                    minWidth: 'auto',
+                    px: 1.5,
+                    py: 0.5,
+                    borderRadius: 1,
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    textTransform: 'none',
+                    color: mode === 'dark' ? 'white' : 'black',
+                    borderColor: mode === 'dark' ? 'white' : 'black',
+                    '&:hover': {
+                      borderColor: mode === 'dark' ? 'white' : 'black',
+                      backgroundColor: mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                    },
+                    '&.Mui-disabled': {
+                      color: mode === 'dark' ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.5)',
+                      borderColor: mode === 'dark' ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
+                    },
+                  }}
+                >
+                  {activeFactoryId}
+                </Button>
+              </span>
+            </Tooltip>
+          )}
+
           {/* Defect Notification Bell */}
           <Tooltip title={pendingDefectCount > 0 ? t('defects.alert.pendingCount', { count: pendingDefectCount }) : t('defects.noPending')}>
             <IconButton

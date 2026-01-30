@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { useFactoryStore } from '@/stores/factoryStore'
 import {
   Box,
   Button,
@@ -35,6 +36,7 @@ export function UserList() {
   const queryClient = useQueryClient()
   const { enqueueSnackbar } = useSnackbar()
   const currentUser = useAuthStore((state) => state.user)
+  const { activeFactoryId } = useFactoryStore()
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
@@ -43,8 +45,8 @@ export function UserList() {
 
   // Fetch users
   const { data: users = [], isLoading } = useQuery({
-    queryKey: ['users'],
-    queryFn: () => userService.getUsers(),
+    queryKey: ['users', activeFactoryId],
+    queryFn: () => userService.getUsers(activeFactoryId || undefined),
   })
 
   // Fetch existing emails for duplicate check
@@ -146,6 +148,17 @@ export function UserList() {
           { label: t('userManagement.roleManager'), value: 'manager' },
           { label: t('userManagement.roleInspector'), value: 'inspector' },
         ],
+      },
+      {
+        id: 'factory_id',
+        header: t('factory.label'),
+        cell: (row) => (
+          <Chip
+            label={row.factory_id || '-'}
+            size="small"
+            variant="outlined"
+          />
+        ),
       },
       {
         id: 'created_at',

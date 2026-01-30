@@ -291,18 +291,24 @@ export async function getDefectTypes() {
 
 // ============= Machines =============
 
-export async function getMachines(): Promise<Machine[]> {
-  const { data, error } = await supabase
+export async function getMachines(factoryId?: string): Promise<Machine[]> {
+  let query = supabase
     .from('machines')
     .select('*')
     .eq('status', 'active')
     .order('name', { ascending: true })
 
+  if (factoryId) {
+    query = query.eq('factory_id', factoryId)
+  }
+
+  const { data, error } = await query
+
   if (error) throw error
   return data || []
 }
 
-export async function searchMachines(query: string): Promise<Machine[]> {
+export async function searchMachines(query: string, factoryId?: string): Promise<Machine[]> {
   let dbQuery = supabase
     .from('machines')
     .select('*')
@@ -312,6 +318,9 @@ export async function searchMachines(query: string): Promise<Machine[]> {
 
   if (query) {
     dbQuery = dbQuery.ilike('name', `%${query}%`)
+  }
+  if (factoryId) {
+    dbQuery = dbQuery.eq('factory_id', factoryId)
   }
 
   const { data, error } = await dbQuery

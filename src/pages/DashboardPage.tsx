@@ -36,28 +36,32 @@ import { getMachines, getProductModels, getDefectTypes } from '@/services/manage
 // 날짜 유틸리티
 import { getBusinessDate, formatVietnamDateTime, getTodayBusinessDate } from '@/lib/dateUtils'
 
+// Factory Store
+import { useFactoryStore } from '@/stores/factoryStore'
+
 export function DashboardPage() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
+  const { activeFactoryId } = useFactoryStore()
 
   // Fetch recent inspections
   const { data: inspections = [], isLoading } = useQuery({
-    queryKey: ['dashboard-inspections'],
-    queryFn: () => inspectionService.getInspections(),
+    queryKey: ['dashboard-inspections', activeFactoryId],
+    queryFn: () => inspectionService.getInspections({ factoryId: activeFactoryId || undefined }),
   })
 
   // Fetch recent defects
   const { data: allDefects = [], isLoading: defectsLoading } = useQuery({
-    queryKey: ['dashboard-defects'],
-    queryFn: () => inspectionService.getDefects(),
+    queryKey: ['dashboard-defects', activeFactoryId],
+    queryFn: () => inspectionService.getDefects({ factoryId: activeFactoryId || undefined }),
   })
 
   // Fetch machines from Management
   const { data: machines = [] } = useQuery({
-    queryKey: ['machines'],
-    queryFn: getMachines,
+    queryKey: ['machines', activeFactoryId],
+    queryFn: () => getMachines(activeFactoryId || undefined),
   })
 
   // Fetch product models from Management

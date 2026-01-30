@@ -6,6 +6,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/authStore'
+import { useFactoryStore } from '@/stores/factoryStore'
 
 export function useAuth() {
   const navigate = useNavigate()
@@ -50,12 +51,15 @@ export function useAuth() {
       if (error) throw error
 
       if (data) {
+        const factoryId = (data as { factory_id: string | null }).factory_id
         setProfile({
           id: (data as { id: string }).id,
           email: (data as { email: string }).email,
           name: (data as { name: string }).name,
           role: (data as { role: 'admin' | 'manager' | 'inspector' }).role,
+          factory_id: factoryId,
         })
+        useFactoryStore.getState().initializeFromUser(factoryId)
       }
     } catch (error) {
       console.error('Error fetching user profile:', error)

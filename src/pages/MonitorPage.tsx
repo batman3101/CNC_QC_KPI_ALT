@@ -47,12 +47,16 @@ import { getMachines, getProductModels, getDefectTypes } from '@/services/manage
 // 날짜 유틸리티
 import { getBusinessDate, formatVietnamDateTime, getTodayBusinessDate } from '@/lib/dateUtils'
 
+// Factory Store
+import { useFactoryStore } from '@/stores/factoryStore'
+
 const AUTO_REFRESH_INTERVAL = 2 * 60 * 1000 // 2분 (120초)
 
 export function MonitorPage() {
   const { t, i18n } = useTranslation()
   const { mode, toggleTheme } = useThemeMode()
   const queryClient = useQueryClient()
+  const { activeFactoryId } = useFactoryStore()
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date())
 
   const toggleLanguage = () => {
@@ -65,37 +69,37 @@ export function MonitorPage() {
   // 자동 새로고침
   useEffect(() => {
     const interval = setInterval(() => {
-      queryClient.invalidateQueries({ queryKey: ['monitor-inspections'] })
-      queryClient.invalidateQueries({ queryKey: ['monitor-defects'] })
+      queryClient.invalidateQueries({ queryKey: ['monitor-inspections', activeFactoryId] })
+      queryClient.invalidateQueries({ queryKey: ['monitor-defects', activeFactoryId] })
       setLastUpdated(new Date())
     }, AUTO_REFRESH_INTERVAL)
 
     return () => clearInterval(interval)
-  }, [queryClient])
+  }, [queryClient, activeFactoryId])
 
   // 수동 새로고침
   const handleManualRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['monitor-inspections'] })
-    queryClient.invalidateQueries({ queryKey: ['monitor-defects'] })
+    queryClient.invalidateQueries({ queryKey: ['monitor-inspections', activeFactoryId] })
+    queryClient.invalidateQueries({ queryKey: ['monitor-defects', activeFactoryId] })
     setLastUpdated(new Date())
   }
 
   // Fetch inspections
   const { data: inspections = [], isLoading } = useQuery({
-    queryKey: ['monitor-inspections'],
-    queryFn: () => inspectionService.getInspections(),
+    queryKey: ['monitor-inspections', activeFactoryId],
+    queryFn: () => inspectionService.getInspections({ factoryId: activeFactoryId || undefined }),
   })
 
   // Fetch defects
   const { data: allDefects = [], isLoading: defectsLoading } = useQuery({
-    queryKey: ['monitor-defects'],
-    queryFn: () => inspectionService.getDefects(),
+    queryKey: ['monitor-defects', activeFactoryId],
+    queryFn: () => inspectionService.getDefects({ factoryId: activeFactoryId || undefined }),
   })
 
   // Fetch machines
   const { data: machines = [] } = useQuery({
-    queryKey: ['machines'],
-    queryFn: getMachines,
+    queryKey: ['machines', activeFactoryId],
+    queryFn: () => getMachines(activeFactoryId || undefined),
   })
 
   // Fetch product models

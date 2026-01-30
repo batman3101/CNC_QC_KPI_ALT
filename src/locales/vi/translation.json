@@ -494,6 +494,17 @@
     "syncError": "Lỗi đồng bộ",
     "savedOffline": "Đã lưu ngoại tuyến"
   },
+  "factory": {
+    "label": "Nhà máy",
+    "alt": "Nhà máy ALT",
+    "alv": "Nhà máy ALV",
+    "select": "Chọn nhà máy",
+    "switchTo": "Chuyển sang {{factory}}",
+    "noAccess": "Bạn không có quyền truy cập",
+    "current": "Nhà máy hiện tại",
+    "assignment": "Phân công nhà máy",
+    "allFactories": "Tất cả nhà máy"
+  },
   "validation": {
     "required": "Trường này là bắt buộc",
     "email": "Định dạng email không đúng",

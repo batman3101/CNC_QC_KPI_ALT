@@ -36,6 +36,7 @@ export interface OfflineInspectionInput {
   defect_quantity: number
   photo_data: string | null
   notes: string | null
+  factory_id: string
 }
 
 // Save inspection offline
@@ -103,6 +104,7 @@ export async function syncPendingInspections(): Promise<{
         inspection_quantity: inspection.inspection_quantity,
         defect_quantity: inspection.defect_quantity,
         photo_url: inspection.photo_data,
+        factory_id: inspection.factory_id,
       })
 
       // Mark as synced
@@ -129,7 +131,7 @@ export async function syncPendingInspections(): Promise<{
 }
 
 // Cache reference data for offline use
-export async function cacheReferenceData(): Promise<void> {
+export async function cacheReferenceData(factoryId?: string): Promise<void> {
   if (!isOnline()) return
 
   try {
@@ -140,7 +142,7 @@ export async function cacheReferenceData(): Promise<void> {
       managementService.getProductModels(),
       managementService.getInspectionProcesses(),
       managementService.getDefectTypesRows(),
-      managementService.getMachines(),
+      managementService.getMachines(factoryId),
     ])
 
     // Clear and repopulate caches
@@ -185,6 +187,7 @@ export async function cacheReferenceData(): Promise<void> {
         name: m.name,
         model: m.model || null,
         status: m.status,
+        factory_id: (m as any).factory_id || factoryId || '',
         cached_at: now,
       }))
     )
@@ -220,7 +223,10 @@ export async function getCachedDefectTypes(): Promise<CachedDefectType[]> {
 }
 
 // Get cached machines
-export async function getCachedMachines(): Promise<CachedMachine[]> {
+export async function getCachedMachines(factoryId?: string): Promise<CachedMachine[]> {
+  if (factoryId) {
+    return offlineDb.machines.where('factory_id').equals(factoryId).toArray()
+  }
   return offlineDb.machines.toArray()
 }
 

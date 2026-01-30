@@ -9,6 +9,7 @@ export interface UserProfile {
   email: string
   name: string
   role: UserRole
+  factory_id: string | null
 }
 
 interface AuthState {

@@ -73,8 +73,9 @@ const INSIGHT_PROMPTS: Record<InsightType, { ko: string; vi: string }> = {
 }
 
 // 데이터를 문자열로 변환
-function formatDataForPrompt(data: AnalyticsDataForAI): string {
+function formatDataForPrompt(data: AnalyticsDataForAI, factoryName?: string): string {
   return `
+${factoryName ? `## 공장: ${factoryName}\n` : ''}
 ## 오늘 검사 데이터
 - 총 검사: ${data.todayInspections.total}건
 - 합격: ${data.todayInspections.passed}건

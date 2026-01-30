@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { useFactoryStore } from '@/stores/factoryStore'
 import {
   Card,
   CardContent,
@@ -48,6 +49,7 @@ export function DefectsList() {
 
   const queryClient = useQueryClient()
   const { enqueueSnackbar } = useSnackbar()
+  const { activeFactoryId } = useFactoryStore()
 
   const statusConfig = {
     pending: {
@@ -69,8 +71,8 @@ export function DefectsList() {
 
   // Fetch defects
   const { data: defects = [], isLoading } = useQuery({
-    queryKey: ['defects'],
-    queryFn: () => inspectionService.getDefects(),
+    queryKey: ['defects', activeFactoryId],
+    queryFn: () => inspectionService.getDefects({ factoryId: activeFactoryId || undefined }),
   })
 
   // Fetch product models for model code display
@@ -111,7 +113,7 @@ export function DefectsList() {
     },
     onSuccess: (updatedDefect) => {
       // 캐시 데이터를 직접 업데이트하여 즉시 UI에 반영
-      queryClient.setQueryData<Defect[]>(['defects'], (oldData) => {
+      queryClient.setQueryData<Defect[]>(['defects', activeFactoryId], (oldData) => {
         if (!oldData) return oldData
         return oldData.map((defect) =>
           defect.id === updatedDefect.id
@@ -120,7 +122,7 @@ export function DefectsList() {
         )
       })
       // 대시보드의 불량 데이터도 업데이트
-      queryClient.setQueryData<Defect[]>(['dashboard-defects'], (oldData) => {
+      queryClient.setQueryData<Defect[]>(['dashboard-defects', activeFactoryId], (oldData) => {
         if (!oldData) return oldData
         return oldData.map((defect) =>
           defect.id === updatedDefect.id

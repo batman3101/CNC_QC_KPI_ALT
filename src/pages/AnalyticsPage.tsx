@@ -18,6 +18,9 @@ import type { AnalyticsFilters as Filters } from '@/types/analytics'
 import * as analyticsService from '@/services/analyticsService'
 import { getProductModels, getInspectionProcesses } from '@/services/managementService'
 
+// Factory Store
+import { useFactoryStore } from '@/stores/factoryStore'
+
 interface TabPanelProps {
   children?: React.ReactNode
   index: number
@@ -42,6 +45,7 @@ function TabPanel(props: TabPanelProps) {
 
 export function AnalyticsPage() {
   const { t } = useTranslation()
+  const { activeFactoryId } = useFactoryStore()
   const [tabValue, setTabValue] = useState(0)
   // Use business day range (08:00 ~ next day 07:59)
   const [filters, setFilters] = useState<Filters>({
@@ -54,44 +58,44 @@ export function AnalyticsPage() {
 
   // Fetch KPI Summary
   const { data: kpiData, isLoading: kpiLoading } = useQuery({
-    queryKey: ['kpi-summary', filters],
-    queryFn: () => analyticsService.getKPISummary(filters),
+    queryKey: ['kpi-summary', filters, activeFactoryId],
+    queryFn: () => analyticsService.getKPISummary(filters, activeFactoryId || undefined),
   })
 
   // Fetch Defect Rate Trend
   const { data: trendData } = useQuery({
-    queryKey: ['defect-trend', filters],
-    queryFn: () => analyticsService.getDefectRateTrend(filters),
+    queryKey: ['defect-trend', filters, activeFactoryId],
+    queryFn: () => analyticsService.getDefectRateTrend(filters, activeFactoryId || undefined),
   })
 
   // Fetch Model Distribution
   const { data: modelData } = useQuery({
-    queryKey: ['model-distribution', filters],
-    queryFn: () => analyticsService.getModelDefectDistribution(filters),
+    queryKey: ['model-distribution', filters, activeFactoryId],
+    queryFn: () => analyticsService.getModelDefectDistribution(filters, activeFactoryId || undefined),
   })
 
   // Fetch Machine Performance
   const { data: machineData } = useQuery({
-    queryKey: ['machine-performance', filters],
-    queryFn: () => analyticsService.getMachinePerformance(filters),
+    queryKey: ['machine-performance', filters, activeFactoryId],
+    queryFn: () => analyticsService.getMachinePerformance(filters, activeFactoryId || undefined),
   })
 
   // Fetch Defect Types
   const { data: defectTypeData } = useQuery({
-    queryKey: ['defect-types', filters],
-    queryFn: () => analyticsService.getDefectTypeDistribution(filters),
+    queryKey: ['defect-types-analytics', filters, activeFactoryId],
+    queryFn: () => analyticsService.getDefectTypeDistribution(filters, activeFactoryId || undefined),
   })
 
   // Fetch Hourly Distribution
   const { data: hourlyData } = useQuery({
-    queryKey: ['hourly-distribution', filters],
-    queryFn: () => analyticsService.getHourlyDistribution(filters),
+    queryKey: ['hourly-distribution', filters, activeFactoryId],
+    queryFn: () => analyticsService.getHourlyDistribution(filters, activeFactoryId || undefined),
   })
 
   // Fetch Inspector Performance
   const { data: inspectorData } = useQuery({
-    queryKey: ['inspector-performance', filters],
-    queryFn: () => analyticsService.getInspectorPerformance(filters),
+    queryKey: ['inspector-performance', filters, activeFactoryId],
+    queryFn: () => analyticsService.getInspectorPerformance(filters, activeFactoryId || undefined),
   })
 
   // Fetch Product Models from Management

@@ -22,6 +22,7 @@ import {
 import { useSnackbar } from 'notistack'
 import type { Database } from '@/types/database'
 import * as userService from '@/services/userService'
+import { useFactoryStore } from '@/stores/factoryStore'
 
 type User = Database['public']['Tables']['users']['Row']
 
@@ -58,6 +59,7 @@ function createFormSchema(
     role: z.enum(['admin', 'manager', 'inspector'], {
       required_error: t('validation.required'),
     }),
+    factory_id: z.string().min(1, t('validation.required')),
     password: isEditing
       ? z
           .string()
@@ -74,6 +76,7 @@ type FormValues = {
   name: string
   email: string
   role: 'admin' | 'manager' | 'inspector'
+  factory_id: string
   password: string
 }
 
@@ -86,6 +89,7 @@ export function UserDialog({
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { enqueueSnackbar } = useSnackbar()
+  const { factories } = useFactoryStore()
   const isEditing = !!user
 
   const formSchema = createFormSchema(t, isEditing, existingEmails, user?.email)
@@ -101,6 +105,7 @@ export function UserDialog({
       name: '',
       email: '',
       role: 'inspector',
+      factory_id: 'ALT',
       password: '',
     },
   })
@@ -113,6 +118,7 @@ export function UserDialog({
           name: user.name,
           email: user.email,
           role: user.role as 'admin' | 'manager' | 'inspector',
+          factory_id: user.factory_id || 'ALT',
           password: '',
         })
       } else {
@@ -120,6 +126,7 @@ export function UserDialog({
           name: '',
           email: '',
           role: 'inspector',
+          factory_id: 'ALT',
           password: '',
         })
       }
@@ -162,6 +169,7 @@ export function UserDialog({
         name: values.name,
         email: values.email,
         role: values.role,
+        factory_id: values.factory_id,
       }
       // 비밀번호가 입력된 경우만 업데이트
       if (values.password) {
@@ -176,6 +184,7 @@ export function UserDialog({
         name: values.name,
         email: values.email,
         role: values.role,
+        factory_id: values.factory_id,
         password: values.password,
       })
     }
@@ -248,6 +257,28 @@ export function UserDialog({
                   </Select>
                   {errors.role && (
                     <FormHelperText>{errors.role.message}</FormHelperText>
+                  )}
+                </FormControl>
+              )}
+            />
+
+            <Controller
+              name="factory_id"
+              control={control}
+              render={({ field }) => (
+                <FormControl fullWidth error={!!errors.factory_id}>
+                  <InputLabel>{`${t('factory.assignment')} *`}</InputLabel>
+                  <Select
+                    {...field}
+                    label={`${t('factory.assignment')} *`}
+                    disabled={isLoading}
+                  >
+                    {factories.map((f) => (
+                      <MenuItem key={f.id} value={f.id}>{f.name}</MenuItem>
+                    ))}
+                  </Select>
+                  {errors.factory_id && (
+                    <FormHelperText>{errors.factory_id.message}</FormHelperText>
                   )}
                 </FormControl>
               )}

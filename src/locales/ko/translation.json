@@ -494,6 +494,17 @@
     "syncError": "동기화 오류",
     "savedOffline": "오프라인에 저장됨"
   },
+  "factory": {
+    "label": "공장",
+    "alt": "ALT 공장",
+    "alv": "ALV 공장",
+    "select": "공장 선택",
+    "switchTo": "{{factory}}(으)로 전환",
+    "noAccess": "접근 권한이 없습니다",
+    "current": "현재 공장",
+    "assignment": "공장 배정",
+    "allFactories": "전체 공장"
+  },
   "validation": {
     "required": "필수 입력 항목입니다",
     "email": "올바른 이메일 형식이 아닙니다",

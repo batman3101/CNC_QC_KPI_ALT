@@ -60,7 +60,7 @@ export function DefectDetailDialog({
   // Fetch machines for machine name
   const { data: machines = [] } = useQuery({
     queryKey: ['machines'],
-    queryFn: getMachines,
+    queryFn: () => getMachines(),
   })
 
   // Fetch related inspection data

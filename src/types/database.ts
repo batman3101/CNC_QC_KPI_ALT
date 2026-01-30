@@ -45,11 +45,39 @@ export type Database = {
         }
         Relationships: []
       }
+      factories: {
+        Row: {
+          id: string
+          name: string
+          name_vi: string | null
+          code: string
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          id: string
+          name: string
+          name_vi?: string | null
+          code: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          name_vi?: string | null
+          code?: string
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
       defects: {
         Row: {
           created_at: string
           defect_type: string
           description: string
+          factory_id: string | null
           id: string
           inspection_id: string
           model_id: string
@@ -60,6 +88,7 @@ export type Database = {
           created_at?: string
           defect_type: string
           description: string
+          factory_id?: string | null
           id?: string
           inspection_id: string
           model_id: string
@@ -70,6 +99,7 @@ export type Database = {
           created_at?: string
           defect_type?: string
           description?: string
+          factory_id?: string | null
           id?: string
           inspection_id?: string
           model_id?: string
@@ -182,6 +212,7 @@ export type Database = {
           created_at: string
           defect_quantity: number
           defect_type: string | null
+          factory_id: string | null
           id: string
           inspection_process: string
           inspection_quantity: number
@@ -195,6 +226,7 @@ export type Database = {
           created_at?: string
           defect_quantity?: number
           defect_type?: string | null
+          factory_id?: string | null
           id?: string
           inspection_process: string
           inspection_quantity?: number
@@ -208,6 +240,7 @@ export type Database = {
           created_at?: string
           defect_quantity?: number
           defect_type?: string | null
+          factory_id?: string | null
           id?: string
           inspection_process?: string
           inspection_quantity?: number
@@ -222,6 +255,7 @@ export type Database = {
       machines: {
         Row: {
           created_at: string
+          factory_id: string | null
           id: string
           model: string
           name: string
@@ -229,6 +263,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          factory_id?: string | null
           id?: string
           model: string
           name: string
@@ -236,6 +271,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          factory_id?: string | null
           id?: string
           model?: string
           name?: string
@@ -268,6 +304,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          factory_id: string | null
           id: string
           name: string
           role: 'admin' | 'manager' | 'inspector'
@@ -275,6 +312,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
+          factory_id?: string | null
           id?: string
           name: string
           role?: 'admin' | 'manager' | 'inspector'
@@ -282,6 +320,7 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
+          factory_id?: string | null
           id?: string
           name?: string
           role?: 'admin' | 'manager' | 'inspector'

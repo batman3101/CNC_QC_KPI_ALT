@@ -23,9 +23,13 @@ import { getProductModels, getDefectTypes } from '@/services/managementService'
 // 날짜 유틸리티
 import { getTodayBusinessDate, getBusinessDate, formatDateString } from '@/lib/dateUtils'
 
+// Factory Store
+import { useFactoryStore } from '@/stores/factoryStore'
+
 export function AIInsightsPage() {
   const { t, i18n } = useTranslation()
   const language = i18n.language === 'vi' ? 'vi' : 'ko'
+  const { activeFactoryId } = useFactoryStore()
 
   const [insights, setInsights] = useState<Record<InsightType, string>>({
     'daily-summary': '',
@@ -53,13 +57,13 @@ export function AIInsightsPage() {
 
   // 데이터 조회
   const { data: inspections = [] } = useQuery({
-    queryKey: ['ai-inspections'],
-    queryFn: () => inspectionService.getInspections(),
+    queryKey: ['ai-inspections', activeFactoryId],
+    queryFn: () => inspectionService.getInspections({ factoryId: activeFactoryId || undefined }),
   })
 
   const { data: defects = [] } = useQuery({
-    queryKey: ['ai-defects'],
-    queryFn: () => inspectionService.getDefects(),
+    queryKey: ['ai-defects', activeFactoryId],
+    queryFn: () => inspectionService.getDefects({ factoryId: activeFactoryId || undefined }),
   })
 
   const { data: models = [] } = useQuery({
@@ -74,13 +78,13 @@ export function AIInsightsPage() {
   })
 
   const { data: defectTypeDistribution = [] } = useQuery({
-    queryKey: ['ai-defect-types', filters],
-    queryFn: () => analyticsService.getDefectTypeDistribution(filters),
+    queryKey: ['ai-defect-types', filters, activeFactoryId],
+    queryFn: () => analyticsService.getDefectTypeDistribution(filters, activeFactoryId || undefined),
   })
 
   const { data: machinePerformance = [] } = useQuery({
-    queryKey: ['ai-machine-performance', filters],
-    queryFn: () => analyticsService.getMachinePerformance(filters),
+    queryKey: ['ai-machine-performance', filters, activeFactoryId],
+    queryFn: () => analyticsService.getMachinePerformance(filters, activeFactoryId || undefined),
   })
 
   // AI용 분석 데이터 구성

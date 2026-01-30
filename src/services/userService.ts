@@ -12,6 +12,7 @@ export interface CreateUserInput {
   name: string
   role: 'admin' | 'manager' | 'inspector'
   password: string
+  factory_id?: string
 }
 
 export interface UpdateUserInput {
@@ -19,16 +20,23 @@ export interface UpdateUserInput {
   name?: string
   role?: 'admin' | 'manager' | 'inspector'
   password?: string
+  factory_id?: string
 }
 
 /**
  * 모든 사용자 조회
  */
-export async function getUsers(): Promise<User[]> {
-  const { data, error } = await supabase
+export async function getUsers(factoryId?: string): Promise<User[]> {
+  let query = supabase
     .from('users')
     .select('*')
     .order('created_at', { ascending: false })
+
+  if (factoryId) {
+    query = query.eq('factory_id', factoryId)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('Error fetching users:', error)
@@ -79,6 +87,7 @@ export async function createUser(input: CreateUserInput): Promise<User> {
       data: {
         name: input.name,
         role: input.role,
+        factory_id: input.factory_id,
       },
     },
   })
@@ -98,6 +107,7 @@ export async function createUser(input: CreateUserInput): Promise<User> {
     .update({
       name: input.name,
       role: input.role,
+      factory_id: input.factory_id || null,
     })
     .eq('id', authData.user.id)
     .select()
@@ -111,6 +121,7 @@ export async function createUser(input: CreateUserInput): Promise<User> {
       email: input.email,
       name: input.name,
       role: input.role,
+      factory_id: input.factory_id || null,
       created_at: new Date().toISOString(),
     }
   }
@@ -140,6 +151,7 @@ export async function updateUser(id: string, input: UpdateUserInput): Promise<Us
   if (input.email) updateData.email = input.email
   if (input.name) updateData.name = input.name
   if (input.role) updateData.role = input.role
+  if (input.factory_id !== undefined) updateData.factory_id = input.factory_id
 
   const { data, error } = await supabase
     .from('users')
@@ -190,10 +202,16 @@ export async function getUserEmails(): Promise<string[]> {
 /**
  * 역할별 사용자 수 조회
  */
-export async function getUserCountsByRole(): Promise<Record<string, number>> {
-  const { data, error } = await supabase
+export async function getUserCountsByRole(factoryId?: string): Promise<Record<string, number>> {
+  let query = supabase
     .from('users')
     .select('role')
+
+  if (factoryId) {
+    query = query.eq('factory_id', factoryId)
+  }
+
+  const { data, error } = await query
 
   if (error) {
     console.error('Error fetching user counts:', error)

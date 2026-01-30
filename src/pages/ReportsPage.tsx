@@ -9,6 +9,7 @@ import { ReportSummaryCard } from '@/components/reports/ReportSummaryCard'
 import type { ReportFilters } from '@/types/report'
 import * as reportService from '@/services/reportService'
 import { getProductModels, getInspectionProcesses } from '@/services/managementService'
+import { useFactoryStore } from '@/stores/factoryStore'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -34,6 +35,7 @@ function TabPanel(props: TabPanelProps) {
 
 export function ReportsPage() {
   const { t } = useTranslation()
+  const { activeFactoryId } = useFactoryStore()
   const [tabValue, setTabValue] = useState(0)
 
   // Default filters for summary (using business day range: 08:00 ~ next day 07:59)
@@ -54,8 +56,8 @@ export function ReportsPage() {
 
   // Fetch report summary
   const { data: summary, isLoading: summaryLoading } = useQuery({
-    queryKey: ['report-summary', summaryFilters],
-    queryFn: () => reportService.getReportSummary(summaryFilters),
+    queryKey: ['report-summary', summaryFilters, activeFactoryId],
+    queryFn: () => reportService.getReportSummary(summaryFilters, activeFactoryId || undefined),
   })
 
   // Fetch Product Models from Management

@@ -26,7 +26,8 @@ function buildDateFilter(filters: AnalyticsFilters) {
 
 // 1. KPI Summary
 export async function getKPISummary(
-  filters: AnalyticsFilters
+  filters: AnalyticsFilters,
+  factoryId?: string
 ): Promise<KPISummary> {
   const dateFilter = buildDateFilter(filters)
 
@@ -43,6 +44,9 @@ export async function getKPISummary(
   if (filters.modelId) {
     inspectionsQuery = inspectionsQuery.eq('model_id', filters.modelId)
   }
+  if (factoryId) {
+    inspectionsQuery = inspectionsQuery.eq('factory_id', factoryId)
+  }
 
   const { data: inspections, count: totalInspections } =
     await inspectionsQuery
@@ -52,11 +56,17 @@ export async function getKPISummary(
     inspections?.filter((i: { status: string }) => i.status === 'fail').length || 0
 
   // Get unique inspectors
-  const { data: inspectors } = await supabase
+  let inspectorsQuery = supabase
     .from('inspections')
     .select('user_id')
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
+
+  if (factoryId) {
+    inspectorsQuery = inspectorsQuery.eq('factory_id', factoryId)
+  }
+
+  const { data: inspectors } = await inspectorsQuery
 
   const uniqueInspectors = new Set(
     inspectors?.map((i: { user_id: string }) => i.user_id).filter(Boolean)
@@ -132,7 +142,8 @@ export async function getKPISummary(
 
 // 2. Defect Rate Trend (Daily)
 export async function getDefectRateTrend(
-  filters: AnalyticsFilters
+  filters: AnalyticsFilters,
+  factoryId?: string
 ): Promise<DefectRateTrend[]> {
   const dateFilter = buildDateFilter(filters)
 
@@ -148,6 +159,9 @@ export async function getDefectRateTrend(
   }
   if (filters.modelId) {
     query = query.eq('model_id', filters.modelId)
+  }
+  if (factoryId) {
+    query = query.eq('factory_id', factoryId)
   }
 
   const { data: inspections } = await query
@@ -181,11 +195,12 @@ export async function getDefectRateTrend(
 
 // 3. Model Defect Distribution
 export async function getModelDefectDistribution(
-  filters: AnalyticsFilters
+  filters: AnalyticsFilters,
+  factoryId?: string
 ): Promise<ModelDefectDistribution[]> {
   const dateFilter = buildDateFilter(filters)
 
-  const { data: inspections } = await supabase
+  let query = supabase
     .from('inspections')
     .select(
       `
@@ -199,6 +214,12 @@ export async function getModelDefectDistribution(
     )
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
+
+  if (factoryId) {
+    query = query.eq('factory_id', factoryId)
+  }
+
+  const { data: inspections } = await query
 
   if (!inspections) return []
 
@@ -237,11 +258,12 @@ export async function getModelDefectDistribution(
 
 // 4. Machine Performance
 export async function getMachinePerformance(
-  filters: AnalyticsFilters
+  filters: AnalyticsFilters,
+  factoryId?: string
 ): Promise<MachinePerformance[]> {
   const dateFilter = buildDateFilter(filters)
 
-  const { data: inspections } = await supabase
+  let query = supabase
     .from('inspections')
     .select(
       `
@@ -255,6 +277,12 @@ export async function getMachinePerformance(
     )
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
+
+  if (factoryId) {
+    query = query.eq('factory_id', factoryId)
+  }
+
+  const { data: inspections } = await query
 
   if (!inspections) return []
 
@@ -296,11 +324,12 @@ export async function getMachinePerformance(
 
 // 5. Defect Type Distribution
 export async function getDefectTypeDistribution(
-  filters: AnalyticsFilters
+  filters: AnalyticsFilters,
+  factoryId?: string
 ): Promise<DefectTypeDistribution[]> {
   const dateFilter = buildDateFilter(filters)
 
-  const { data: defects } = await supabase
+  let query = supabase
     .from('defects')
     .select(
       `
@@ -312,6 +341,12 @@ export async function getDefectTypeDistribution(
     )
     .gte('inspections.created_at', dateFilter.gte)
     .lte('inspections.created_at', dateFilter.lte)
+
+  if (factoryId) {
+    query = query.eq('factory_id', factoryId)
+  }
+
+  const { data: defects } = await query
 
   if (!defects) return []
 
@@ -346,15 +381,22 @@ export async function getDefectTypeDistribution(
 
 // 6. Hourly Distribution
 export async function getHourlyDistribution(
-  filters: AnalyticsFilters
+  filters: AnalyticsFilters,
+  factoryId?: string
 ): Promise<HourlyDistribution[]> {
   const dateFilter = buildDateFilter(filters)
 
-  const { data: inspections } = await supabase
+  let query = supabase
     .from('inspections')
     .select('created_at, status')
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
+
+  if (factoryId) {
+    query = query.eq('factory_id', factoryId)
+  }
+
+  const { data: inspections } = await query
 
   if (!inspections) return []
 
@@ -386,11 +428,12 @@ export async function getHourlyDistribution(
 
 // 7. Inspector Performance
 export async function getInspectorPerformance(
-  filters: AnalyticsFilters
+  filters: AnalyticsFilters,
+  factoryId?: string
 ): Promise<InspectorPerformance[]> {
   const dateFilter = buildDateFilter(filters)
 
-  const { data: inspections } = await supabase
+  let query = supabase
     .from('inspections')
     .select(
       `
@@ -403,6 +446,12 @@ export async function getInspectorPerformance(
     )
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
+
+  if (factoryId) {
+    query = query.eq('factory_id', factoryId)
+  }
+
+  const { data: inspections } = await query
 
   if (!inspections) return []
 
@@ -456,7 +505,8 @@ export async function getInspectorList(): Promise<{ id: string; name: string }[]
 // 9. Get Inspector Detailed KPI
 export async function getInspectorDetailedKPI(
   inspectorId: string,
-  filters: AnalyticsFilters
+  filters: AnalyticsFilters,
+  factoryId?: string
 ): Promise<InspectorDetailedKPI | null> {
   const dateFilter = buildDateFilter(filters)
 
@@ -470,7 +520,7 @@ export async function getInspectorDetailedKPI(
   if (inspectorError || !inspector) return null
 
   // Get all inspections for this inspector in the date range
-  const { data: inspectorInspections } = await supabase
+  let inspectorQuery = supabase
     .from('inspections')
     .select(`
       id, status, created_at, model_id, inspection_process,
@@ -481,12 +531,24 @@ export async function getInspectorDetailedKPI(
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
 
+  if (factoryId) {
+    inspectorQuery = inspectorQuery.eq('factory_id', factoryId)
+  }
+
+  const { data: inspectorInspections } = await inspectorQuery
+
   // Get all team inspections for comparison
-  const { data: teamInspections } = await supabase
+  let teamQuery = supabase
     .from('inspections')
     .select('user_id, status, created_at')
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
+
+  if (factoryId) {
+    teamQuery = teamQuery.eq('factory_id', factoryId)
+  }
+
+  const { data: teamInspections } = await teamQuery
 
   const myInspections = inspectorInspections || []
   const allTeamInspections = teamInspections || []

@@ -18,6 +18,7 @@ export interface OfflineInspection {
   machine_name: string | null
   inspector_id: string
   inspector_name: string
+  factory_id: string
   inspection_quantity: number
   defect_quantity: number
   photo_data: string | null // Base64 encoded
@@ -60,6 +61,7 @@ export interface CachedMachine {
   name: string
   model: string | null
   status: string
+  factory_id: string
   cached_at: string
 }
 
@@ -82,12 +84,12 @@ class OfflineDatabase extends Dexie {
   constructor() {
     super('CncQcKpiOfflineDb')
 
-    this.version(1).stores({
-      offlineInspections: 'id, status, created_at, inspector_id',
+    this.version(2).stores({
+      offlineInspections: 'id, status, created_at, inspector_id, factory_id',
       productModels: 'id, code, is_active',
       inspectionProcesses: 'id, code, is_active',
       defectTypes: 'id, code, is_active',
-      machines: 'id, name, status',
+      machines: 'id, name, status, factory_id',
       users: 'id, email, role',
     })
   }

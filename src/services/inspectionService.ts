@@ -29,6 +29,7 @@ export async function getInspections(filters?: {
   modelId?: string
   machineId?: string
   userId?: string
+  factoryId?: string
 }): Promise<Inspection[]> {
   let query = supabase
     .from('inspections')
@@ -52,6 +53,9 @@ export async function getInspections(filters?: {
   }
   if (filters?.userId) {
     query = query.eq('user_id', filters.userId)
+  }
+  if (filters?.factoryId) {
+    query = query.eq('factory_id', filters.factoryId)
   }
 
   const { data, error } = await query
@@ -147,6 +151,7 @@ export async function getDefects(filters?: {
   modelId?: string
   startDate?: string
   endDate?: string
+  factoryId?: string
 }): Promise<Defect[]> {
   let query = supabase
     .from('defects')
@@ -164,6 +169,9 @@ export async function getDefects(filters?: {
   }
   if (filters?.endDate) {
     query = query.lte('created_at', filters.endDate)
+  }
+  if (filters?.factoryId) {
+    query = query.eq('factory_id', filters.factoryId)
   }
 
   const { data, error } = await query
@@ -235,6 +243,7 @@ export interface InspectionSubmitData {
   defectType?: string
   defectDescription?: string
   photoUrl?: string
+  factoryId?: string
 }
 
 export async function submitInspection(data: InspectionSubmitData): Promise<{
@@ -257,6 +266,7 @@ export async function submitInspection(data: InspectionSubmitData): Promise<{
     defect_type: data.defectType || null,
     photo_url: data.photoUrl || null,
     status,
+    factory_id: data.factoryId || null,
   })
 
   // Create inspection results
@@ -279,6 +289,7 @@ export async function submitInspection(data: InspectionSubmitData): Promise<{
       description: data.defectDescription || '검사 불합격',
       photo_url: data.photoUrl || null,
       status: 'pending',
+      factory_id: data.factoryId || null,
     })
   }
 
@@ -287,15 +298,21 @@ export async function submitInspection(data: InspectionSubmitData): Promise<{
 
 // ============= Statistics =============
 
-export async function getDefectStats(): Promise<{
+export async function getDefectStats(factoryId?: string): Promise<{
   total: number
   pending: number
   inProgress: number
   resolved: number
 }> {
-  const { data, error } = await supabase
+  let query = supabase
     .from('defects')
     .select('status')
+
+  if (factoryId) {
+    query = query.eq('factory_id', factoryId)
+  }
+
+  const { data, error } = await query
 
   if (error) throw error
 
@@ -327,6 +344,7 @@ export interface InspectionRecordInput {
   inspection_quantity: number
   defect_quantity: number
   photo_url?: string | null
+  factory_id?: string
 }
 
 export async function createInspectionRecord(data: InspectionRecordInput): Promise<Inspection> {
@@ -342,6 +360,7 @@ export async function createInspectionRecord(data: InspectionRecordInput): Promi
     defect_type: data.defect_type_id || null,
     photo_url: data.photo_url || null,
     status,
+    factory_id: data.factory_id || null,
   })
 
   // Create defect record if there are defects
@@ -353,6 +372,7 @@ export async function createInspectionRecord(data: InspectionRecordInput): Promi
       description: `검사 불합격 - 불량 수량: ${data.defect_quantity}`,
       photo_url: data.photo_url || null,
       status: 'pending',
+      factory_id: data.factory_id || null,
     })
   }
 

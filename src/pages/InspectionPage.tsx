@@ -8,6 +8,7 @@ import { InspectionRecordForm } from '@/components/inspection/InspectionRecordFo
 import type { InspectionProcess, InspectionRecordInput } from '@/types/inspection'
 import * as managementService from '@/services/managementService'
 import * as inspectionService from '@/services/inspectionService'
+import { useFactoryStore } from '@/stores/factoryStore'
 
 interface InspectionState {
   isActive: boolean
@@ -19,6 +20,7 @@ export function InspectionPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { enqueueSnackbar } = useSnackbar()
+  const { activeFactoryId } = useFactoryStore()
   const [inspectionState, setInspectionState] = useState<InspectionState>({
     isActive: false,
     modelId: null,
@@ -42,8 +44,11 @@ export function InspectionPage() {
   }
 
   const handleSubmit = async (data: InspectionRecordInput) => {
-    // Submit inspection record
-    await inspectionService.createInspectionRecord(data)
+    // Submit inspection record with factory_id
+    await inspectionService.createInspectionRecord({
+      ...data,
+      factory_id: activeFactoryId || undefined,
+    })
 
     // Invalidate queries to refresh data immediately
     await queryClient.invalidateQueries({ queryKey: ['defects'] })
