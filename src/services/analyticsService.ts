@@ -78,10 +78,21 @@ export async function getKPISummary(
   // Get top 3 inspectors by defect count found
   const inspectorDefects: Record<string, { name: string; count: number; defects: number }> = {}
   if (inspectors) {
+    const userIds = [...new Set(inspectors.map((i: { user_id: string }) => i.user_id).filter(Boolean))]
+    const { data: userProfiles } = await supabase
+      .from('users')
+      .select('id, name')
+      .in('id', userIds)
+    const userNameMap = new Map(userProfiles?.map((u: { id: string; name: string }) => [u.id, u.name]) || [])
+
     for (const inspector of inspectors as Array<{ user_id: string }>) {
       if (inspector.user_id) {
         if (!inspectorDefects[inspector.user_id]) {
-          inspectorDefects[inspector.user_id] = { name: inspector.user_id, count: 0, defects: 0 }
+          inspectorDefects[inspector.user_id] = {
+            name: userNameMap.get(inspector.user_id) || inspector.user_id,
+            count: 0,
+            defects: 0,
+          }
         }
         inspectorDefects[inspector.user_id].count++
       }

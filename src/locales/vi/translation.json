@@ -172,6 +172,7 @@
     "statusInProgress": "Đang xử lý",
     "statusResolved": "Đã xử lý",
     "noPending": "Không có lỗi chưa xử lý",
+    "unknownType": "Loại đã xóa",
     "defectType": "Loại lỗi",
     "machine": "Thiết bị",
     "model": "Mẫu",

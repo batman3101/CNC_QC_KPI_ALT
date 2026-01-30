@@ -172,6 +172,7 @@
     "statusInProgress": "조치 중",
     "statusResolved": "조치 완료",
     "noPending": "미처리 불량이 없습니다",
+    "unknownType": "삭제된 유형",
     "defectType": "불량 유형",
     "machine": "설비",
     "model": "모델",

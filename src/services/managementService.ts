@@ -282,6 +282,7 @@ export async function getDefectTypes() {
   const rows = await getDefectTypesRows()
   return rows.map(row => ({
     id: row.id,
+    code: row.code,
     name: row.name,
     description: row.description || '',
     created_at: row.created_at,

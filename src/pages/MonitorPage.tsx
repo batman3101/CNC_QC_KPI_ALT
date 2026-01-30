@@ -113,8 +113,8 @@ export function MonitorPage() {
   // Helper functions
   // Get defect type name by ID
   const getDefectTypeName = (defectTypeId: string): string => {
-    const defectType = defectTypes.find((dt) => dt.id === defectTypeId)
-    return defectType ? defectType.name : defectTypeId
+    const defectType = defectTypes.find((dt) => dt.id === defectTypeId || dt.code === defectTypeId)
+    return defectType ? defectType.name : t('defects.unknownType')
   }
 
   // Helper function to generate formatted inspection ID (INS-MMDD-XXX)

@@ -118,9 +118,16 @@ export async function getReportSummary(filters: ReportFilters): Promise<ReportSu
     }
   })
 
+  // Fetch model names from product_models table
+  const modelIds = Object.keys(inspectionsByModel).filter(id => id !== 'Unknown')
+  const { data: modelProfiles } = modelIds.length > 0
+    ? await supabase.from('product_models').select('id, code, name').in('id', modelIds)
+    : { data: [] }
+  const modelNameMap = new Map(modelProfiles?.map((m: { id: string; code: string; name: string }) => [m.id, m.code || m.name]) || [])
+
   const inspections_by_model = Object.entries(inspectionsByModel).map(([model_id, stats]) => ({
     model_id,
-    model_name: model_id, // Will need to fetch actual name from models table
+    model_name: modelNameMap.get(model_id) || model_id,
     count: stats.count,
     pass_rate: stats.count > 0 ? (stats.passed / stats.count) * 100 : 0,
   }))

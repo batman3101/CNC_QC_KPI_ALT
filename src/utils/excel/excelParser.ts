@@ -239,21 +239,6 @@ export async function parseExcelFile<T = Record<string, unknown>>(
     }
   })
 
-  // DEBUG: direct cell access test
-  console.log('[DEBUG] headers content:', JSON.stringify(headers))
-  console.log('[DEBUG] headerMap:', JSON.stringify(Object.fromEntries(headerToColumnIndex)))
-  // Read Row 4 cells by direct address
-  console.log('[DEBUG] worksheet.getCell("A4"):', JSON.stringify(worksheet.getCell('A4').value))
-  console.log('[DEBUG] worksheet.getCell("B4"):', JSON.stringify(worksheet.getCell('B4').value))
-  console.log('[DEBUG] worksheet.getCell("C4"):', JSON.stringify(worksheet.getCell('C4').value))
-  console.log('[DEBUG] worksheet.getCell("D4"):', JSON.stringify(worksheet.getCell('D4').value))
-  console.log('[DEBUG] worksheet.getCell("E4"):', JSON.stringify(worksheet.getCell('E4').value))
-  // Also check Row 4 with eachCell includeEmpty
-  const r4 = worksheet.getRow(4)
-  r4.eachCell({ includeEmpty: false }, (cell, col) => {
-    console.log(`[DEBUG] Row4 eachCell col=${col} addr=${cell.address} val=${JSON.stringify(cell.value)} type=${cell.type}`)
-  })
-
   // Get validation schema
   const schema = getSchemaForEntityType(entityType, t, {
     existingModelCodes: options?.existingModelCodes,

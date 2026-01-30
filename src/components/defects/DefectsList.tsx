@@ -93,8 +93,8 @@ export function DefectsList() {
 
   // Helper function to get defect type name by defect_type (ID)
   const getDefectTypeName = (defectTypeId: string): string => {
-    const defectType = defectTypes.find((dt) => dt.id === defectTypeId)
-    return defectType ? defectType.name : defectTypeId
+    const defectType = defectTypes.find((dt) => dt.id === defectTypeId || dt.code === defectTypeId)
+    return defectType ? defectType.name : t('defects.unknownType')
   }
 
   // Update status mutation
