@@ -31,3 +31,5 @@ dist-ssr
 # MCP configuration (contains tokens)
 .mcp.json
 .claude/
+
+.vercel
