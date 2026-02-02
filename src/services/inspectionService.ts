@@ -5,6 +5,7 @@
 
 import { supabase } from '@/lib/supabase'
 import type { Database } from '@/types/database'
+import imageCompression from 'browser-image-compression'
 
 type Inspection = Database['public']['Tables']['inspections']['Row']
 type InspectionInsert = Database['public']['Tables']['inspections']['Insert']
@@ -377,6 +378,16 @@ export async function createInspectionRecord(data: InspectionRecordInput): Promi
   }
 
   return inspection
+}
+
+export async function compressAndUploadPhoto(file: File): Promise<string> {
+  const compressed = await imageCompression(file, {
+    maxSizeMB: 0.5,
+    maxWidthOrHeight: 1600,
+    useWebWorker: true,
+  })
+  const contextId = crypto.randomUUID()
+  return uploadDefectPhoto(compressed, contextId)
 }
 
 // ============= Photo Upload =============

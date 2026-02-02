@@ -1,8 +1,10 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-02-02T02:17:03.448Z",
+  "lastUpdated": "2026-02-02T03:07:00.939Z",
   "activeFeatures": [
-    "CNC_QC_KPI"
+    "CNC_QC_KPI",
+    "defects",
+    "inspection"
   ],
   "primaryFeature": "CNC_QC_KPI",
   "features": {
@@ -15,9 +17,35 @@
       "documents": {},
       "timestamps": {
         "started": "2026-02-02T01:37:51.022Z",
-        "lastUpdated": "2026-02-02T02:17:03.448Z"
+        "lastUpdated": "2026-02-02T03:02:17.566Z"
       },
-      "lastFile": "C:\\Work Drive\\APP\\CNC_QC_KPI\\src\\pages\\MonitorPage.tsx"
+      "lastFile": "C:\\Work Drive\\APP\\CNC_QC_KPI\\src\\pages\\InspectionPage.tsx"
+    },
+    "defects": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-02T02:29:31.061Z",
+        "lastUpdated": "2026-02-02T03:07:00.939Z"
+      },
+      "lastFile": "C:\\Work Drive\\APP\\CNC_QC_KPI\\src\\components\\defects\\DefectEditDialog.tsx"
+    },
+    "inspection": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-02-02T03:02:13.836Z",
+        "lastUpdated": "2026-02-02T03:02:22.623Z"
+      },
+      "lastFile": "C:\\Work Drive\\APP\\CNC_QC_KPI\\src\\components\\inspection\\InspectionRecordForm.tsx"
     }
   },
   "pipeline": {
@@ -28,7 +56,7 @@
   "session": {
     "startedAt": "2026-02-02T01:12:10.775Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-02-02T02:17:03.448Z"
+    "lastActivity": "2026-02-02T03:07:00.939Z"
   },
   "history": [
     {
@@ -238,6 +266,144 @@
     {
       "timestamp": "2026-02-02T02:17:03.448Z",
       "feature": "CNC_QC_KPI",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T02:29:31.061Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T02:29:37.824Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T02:29:43.158Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T02:29:49.710Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T02:29:55.651Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T02:30:04.821Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T02:30:20.670Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T02:30:29.646Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T03:01:56.953Z",
+      "feature": "CNC_QC_KPI",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T03:02:02.379Z",
+      "feature": "CNC_QC_KPI",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T03:02:13.836Z",
+      "feature": "inspection",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T03:02:17.566Z",
+      "feature": "CNC_QC_KPI",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T03:02:19.288Z",
+      "feature": "inspection",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T03:02:22.623Z",
+      "feature": "inspection",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T03:02:40.216Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T03:02:47.949Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T03:02:55.032Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T03:03:05.745Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T03:03:17.975Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T03:03:26.695Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T03:06:36.034Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T03:06:52.016Z",
+      "feature": "defects",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-02-02T03:07:00.939Z",
+      "feature": "defects",
       "phase": "do",
       "action": "updated"
     }

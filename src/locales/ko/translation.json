@@ -163,7 +163,10 @@
     "inspectionSaved": "검사 완료",
     "inspectionSaveError": "검사 저장 실패",
     "inspectionResult": "검사 결과",
-    "allItemsRequired": "모든 검사 항목을 입력해주세요"
+    "allItemsRequired": "모든 검사 항목을 입력해주세요",
+    "photoSizeError": "사진 크기는 10MB를 초과할 수 없습니다",
+    "photoTypeError": "이미지 파일만 업로드 가능합니다",
+    "uploading": "업로드 중..."
   },
   "defects": {
     "title": "불량 관리",
@@ -190,8 +193,16 @@
     "noPhoto": "등록된 사진이 없습니다",
     "startAction": "조치 시작",
     "completeAction": "조치 완료",
+    "changePhoto": "사진 변경",
+    "uploadPhoto": "사진 업로드",
     "statusChanged": "상태 변경 완료",
     "statusChangeError": "상태 변경 실패",
+    "edit": "수정",
+    "editTitle": "불량 정보 수정",
+    "editSuccess": "불량 정보가 수정되었습니다",
+    "deleteConfirm": "이 불량 기록을 삭제하시겠습니까?",
+    "deleteConfirmDescription": "삭제된 데이터는 복구할 수 없습니다.",
+    "deleteSuccess": "불량 기록이 삭제되었습니다",
     "alert": {
       "pendingCount": "미처리 불량 {{count}}건이 있습니다",
       "pendingWarning": "즉시 조치가 필요합니다",

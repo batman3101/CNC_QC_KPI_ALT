@@ -18,6 +18,11 @@ import {
   Paper,
   useMediaQuery,
   useTheme,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from '@mui/material'
 import {
   Warning as WarningIcon,
@@ -25,9 +30,12 @@ import {
   CheckCircle,
   Schedule,
   PlayArrow,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material'
 import { useSnackbar } from 'notistack'
 import { DefectDetailDialog } from './DefectDetailDialog'
+import { DefectEditDialog } from './DefectEditDialog'
 import { DataTable, type ColumnDef } from '@/components/common/DataTable'
 import type { Database } from '@/types/database'
 
@@ -47,6 +55,9 @@ export function DefectsList() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [selectedDefect, setSelectedDefect] = useState<Defect | null>(null)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [defectToDelete, setDefectToDelete] = useState<Defect | null>(null)
 
   const queryClient = useQueryClient()
   const { enqueueSnackbar } = useSnackbar()
@@ -149,6 +160,35 @@ export function DefectsList() {
     },
   })
 
+  // Delete defect mutation
+  const deleteDefectMutation = useMutation({
+    mutationFn: (id: string) => inspectionService.deleteDefect(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['defects', activeFactoryId] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-defects', activeFactoryId] })
+      enqueueSnackbar(t('defects.deleteSuccess'), { variant: 'success', autoHideDuration: 3000 })
+      setDeleteDialogOpen(false)
+      setDefectToDelete(null)
+    },
+    onError: (error: Error) => {
+      enqueueSnackbar(error.message, { variant: 'error' })
+    },
+  })
+
+  // Edit defect mutation
+  const editDefectMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Record<string, string> }) =>
+      inspectionService.updateDefect(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['defects', activeFactoryId] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-defects', activeFactoryId] })
+      enqueueSnackbar(t('defects.editSuccess'), { variant: 'success', autoHideDuration: 3000 })
+    },
+    onError: (error: Error) => {
+      enqueueSnackbar(error.message, { variant: 'error' })
+    },
+  })
+
   // Filter defects by status
   const filteredDefects = useMemo(() => {
     if (statusFilter === 'all') return defects
@@ -238,13 +278,53 @@ export function DefectsList() {
     setDetailDialogOpen(true)
   }
 
+  const handleEdit = (defect: Defect) => {
+    setSelectedDefect(defect)
+    setEditDialogOpen(true)
+  }
+
+  const handleDeleteClick = (defect: Defect) => {
+    setDefectToDelete(defect)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = () => {
+    if (defectToDelete) {
+      deleteDefectMutation.mutate(defectToDelete.id)
+    }
+  }
+
+  const handleEditSave = (id: string, data: Record<string, string>) => {
+    editDefectMutation.mutate({ id, data })
+  }
+
   const handleStatusChange = (defectId: string, newStatus: Defect['status']) => {
     updateStatusMutation.mutate({ id: defectId, status: newStatus })
   }
 
   // Render actions for each row
   const renderActions = (defect: Defect) => (
-    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+    <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'flex-end' }}>
+      <IconButton
+        size="small"
+        onClick={(e) => {
+          e.stopPropagation()
+          handleEdit(defect)
+        }}
+        color="info"
+      >
+        <EditIcon fontSize="small" />
+      </IconButton>
+      <IconButton
+        size="small"
+        onClick={(e) => {
+          e.stopPropagation()
+          handleDeleteClick(defect)
+        }}
+        color="error"
+      >
+        <DeleteIcon fontSize="small" />
+      </IconButton>
       <IconButton
         size="small"
         onClick={(e) => {
@@ -253,7 +333,7 @@ export function DefectsList() {
         }}
         color="primary"
       >
-        <Visibility />
+        <Visibility fontSize="small" />
       </IconButton>
       {defect.status === 'pending' && (
         <Button
@@ -461,6 +541,41 @@ export function DefectsList() {
         onOpenChange={setDetailDialogOpen}
         onStatusChange={handleStatusChange}
       />
+
+      {/* Edit Dialog */}
+      <DefectEditDialog
+        defect={selectedDefect}
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        onSave={handleEditSave}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>{t('common.delete')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            {t('defects.deleteConfirm')}
+          </DialogContentText>
+          <DialogContentText variant="body2" color="error" sx={{ mt: 1 }}>
+            {t('defects.deleteConfirmDescription')}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>{t('common.cancel')}</Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={deleteDefectMutation.isPending}
+          >
+            {t('common.delete')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   )
 }

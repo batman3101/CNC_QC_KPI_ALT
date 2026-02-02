@@ -45,10 +45,14 @@ export function InspectionPage() {
     })
   }
 
-  const handleSubmit = async (data: InspectionRecordInput) => {
-    // Submit inspection record with factory_id
+  const handleSubmit = async (data: InspectionRecordInput, photoFile: File | null) => {
+    let photoUrl: string | null = null
+    if (photoFile) {
+      photoUrl = await inspectionService.compressAndUploadPhoto(photoFile)
+    }
     await inspectionService.createInspectionRecord({
       ...data,
+      photo_url: photoUrl,
       factory_id: activeFactoryId || undefined,
     })
 

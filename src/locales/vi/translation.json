@@ -163,7 +163,10 @@
     "inspectionSaved": "Kiểm tra hoàn tất",
     "inspectionSaveError": "Lưu kiểm tra thất bại",
     "inspectionResult": "Kết quả kiểm tra",
-    "allItemsRequired": "Vui lòng nhập tất cả hạng mục kiểm tra"
+    "allItemsRequired": "Vui lòng nhập tất cả hạng mục kiểm tra",
+    "photoSizeError": "Kích thước ảnh không được vượt quá 10MB",
+    "photoTypeError": "Chỉ chấp nhận tệp hình ảnh",
+    "uploading": "Đang tải lên..."
   },
   "defects": {
     "title": "Quản lý lỗi",
@@ -190,8 +193,16 @@
     "noPhoto": "Không có hình ảnh",
     "startAction": "Bắt đầu xử lý",
     "completeAction": "Hoàn tất xử lý",
+    "changePhoto": "Thay đổi ảnh",
+    "uploadPhoto": "Tải ảnh lên",
     "statusChanged": "Thay đổi trạng thái thành công",
     "statusChangeError": "Thay đổi trạng thái thất bại",
+    "edit": "Sửa",
+    "editTitle": "Sửa thông tin lỗi",
+    "editSuccess": "Thông tin lỗi đã được cập nhật",
+    "deleteConfirm": "Bạn có chắc chắn muốn xóa bản ghi lỗi này?",
+    "deleteConfirmDescription": "Dữ liệu đã xóa không thể khôi phục.",
+    "deleteSuccess": "Bản ghi lỗi đã được xóa",
     "alert": {
       "pendingCount": "Có {{count}} lỗi chưa xử lý",
       "pendingWarning": "Cần xử lý ngay",

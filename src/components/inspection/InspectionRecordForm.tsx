@@ -48,7 +48,7 @@ interface InspectionRecordFormProps {
   modelName: string
   modelCode: string
   inspectionProcess: InspectionProcess
-  onSubmit: (data: InspectionRecordInput) => Promise<void>
+  onSubmit: (data: InspectionRecordInput, photoFile: File | null) => Promise<void>
   onCancel: () => void
 }
 
@@ -146,13 +146,13 @@ export function InspectionRecordForm({
     // 파일 크기 제한 (10MB)
     const maxSize = 10 * 1024 * 1024 // 10MB in bytes
     if (file.size > maxSize) {
-      setPhotoError('사진 크기는 10MB를 초과할 수 없습니다')
+      setPhotoError(t('inspection.photoSizeError'))
       return
     }
 
     // 이미지 파일 타입 체크
     if (!file.type.startsWith('image/')) {
-      setPhotoError('이미지 파일만 업로드 가능합니다')
+      setPhotoError(t('inspection.photoTypeError'))
       return
     }
 
@@ -204,8 +204,7 @@ export function InspectionRecordForm({
         inspector_id: values.inspectorId,
         inspection_quantity: values.inspectionQuantity,
         defect_quantity: values.defectQuantity,
-        photo_url: photoPreview, // Base64 이미지 데이터
-      })
+      }, photoFile)
     } finally {
       setIsSubmitting(false)
     }
