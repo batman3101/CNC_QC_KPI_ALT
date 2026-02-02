@@ -38,7 +38,6 @@ export function MonitorPage() {
   const { activeFactoryId, setActiveFactory } = useFactoryStore()
 
   const [currentTime, setCurrentTime] = useState(new Date())
-  const [lastUpdated, setLastUpdated] = useState(new Date())
 
   // Real-time clock
   useEffect(() => {
@@ -54,7 +53,6 @@ export function MonitorPage() {
       queryClient.invalidateQueries({ queryKey: ['monitor-defects', activeFactoryId] })
       queryClient.invalidateQueries({ queryKey: ['monitor-inspections', activeFactoryId] })
       queryClient.invalidateQueries({ queryKey: ['machines', activeFactoryId] })
-      setLastUpdated(new Date())
     }, AUTO_REFRESH_INTERVAL)
     return () => clearInterval(interval)
   }, [i18n, queryClient, activeFactoryId])
@@ -195,16 +193,6 @@ export function MonitorPage() {
       .map(([modelId, count]) => ({ modelId, name: getModelCode(modelId), count, percent: Math.round((count / total) * 100) }))
   }, [allDefects, models])
 
-  const handleManualRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['monitor-defects', activeFactoryId] })
-    queryClient.invalidateQueries({ queryKey: ['monitor-inspections', activeFactoryId] })
-    queryClient.invalidateQueries({ queryKey: ['machines', activeFactoryId] })
-    setLastUpdated(new Date())
-  }
-
-  const latestDefect = allDefects.length > 0
-    ? [...allDefects].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
-    : null
 
   // Skeleton block helper
   const Skeleton = ({ className = '' }: { className?: string }) => (
