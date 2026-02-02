@@ -106,6 +106,7 @@ export function InspectionPage() {
                 modelName={selectedModel.name}
                 modelCode={selectedModel.code}
                 inspectionProcess={inspectionState.inspectionProcess!}
+                factoryId={activeFactoryId}
                 onSubmit={handleSubmit}
                 onCancel={handleCancel}
               />

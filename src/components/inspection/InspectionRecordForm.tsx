@@ -48,6 +48,7 @@ interface InspectionRecordFormProps {
   modelName: string
   modelCode: string
   inspectionProcess: InspectionProcess
+  factoryId?: string | null
   onSubmit: (data: InspectionRecordInput, photoFile: File | null) => Promise<void>
   onCancel: () => void
 }
@@ -76,6 +77,7 @@ export function InspectionRecordForm({
   modelName,
   modelCode,
   inspectionProcess,
+  factoryId,
   onSubmit,
   onCancel,
 }: InspectionRecordFormProps) {
@@ -123,8 +125,8 @@ export function InspectionRecordForm({
 
   // Fetch machines based on search input
   const { data: machines = [], isLoading: machinesLoading } = useQuery({
-    queryKey: ['machines-search', machineInputValue],
-    queryFn: () => managementService.searchMachines(machineInputValue),
+    queryKey: ['machines-search', machineInputValue, factoryId],
+    queryFn: () => managementService.searchMachines(machineInputValue, factoryId || undefined),
     staleTime: 1000 * 60, // 1분간 캐시
   })
 
@@ -370,6 +372,7 @@ export function InspectionRecordForm({
                     fullWidth
                     error={!!errors.inspectionQuantity}
                     inputProps={{ min: 1 }}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => field.onChange(Number(e.target.value))}
                   />
                   <Typography
@@ -396,6 +399,7 @@ export function InspectionRecordForm({
                     fullWidth
                     error={!!errors.defectQuantity}
                     inputProps={{ min: 0 }}
+                    onFocus={(e) => e.target.select()}
                     onChange={(e) => field.onChange(Number(e.target.value))}
                   />
                   <Typography
