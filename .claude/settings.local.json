@@ -54,7 +54,15 @@
       "Bash(pyright-langserver:*)",
       "Bash(netstat:*)",
       "Bash(taskkill:*)",
-      "Bash(cmd //c \"taskkill /PID 7408 /F\")"
+      "Bash(cmd //c \"taskkill /PID 7408 /F\")",
+      "Bash(pip show:*)",
+      "Bash(dir:*)",
+      "Bash(where:*)",
+      "Bash(bun pm:*)",
+      "Bash(pip3 show:*)",
+      "Bash(python -m claude_mem:*)",
+      "Bash(npx:*)",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []
