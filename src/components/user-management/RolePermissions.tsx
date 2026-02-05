@@ -57,6 +57,13 @@ export function RolePermissions() {
         inspector: false,
       },
       {
+        feature: t('nav.spc'),
+        featureKey: 'spc',
+        admin: true,
+        manager: true,
+        inspector: false,
+      },
+      {
         feature: t('nav.reports'),
         featureKey: 'reports',
         admin: true,
