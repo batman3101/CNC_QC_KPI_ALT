@@ -4,7 +4,7 @@
  * Auto language switch + data refresh every 2 minutes
  */
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -89,25 +89,27 @@ export function MonitorPage() {
     return map
   }, [inspections])
 
-  const getDefectMachineId = (defect: { inspection_id: string }): string | null => {
+  const getDefectMachineId = useCallback((defect: { inspection_id: string }): string | null => {
     return inspectionMachineMap[defect.inspection_id] ?? null
-  }
+  }, [inspectionMachineMap])
 
   // Helpers
-  const getDefectTypeName = (defectTypeId: string): string => {
+  const getDefectTypeName = useCallback((defectTypeId: string): string => {
     const dt = defectTypes.find(d => d.id === defectTypeId || d.code === defectTypeId)
     return dt ? dt.name : defectTypeId
-  }
-  const getMachineName = (machineId: string | null): string => {
+  }, [defectTypes])
+
+  const getMachineName = useCallback((machineId: string | null): string => {
     if (!machineId) return 'N/A'
     const m = machines.find(mc => mc.id === machineId)
     return m?.name || machineId
-  }
-  const getModelCode = (modelId: string | null): string => {
+  }, [machines])
+
+  const getModelCode = useCallback((modelId: string | null): string => {
     if (!modelId) return 'N/A'
     const m = models.find(md => md.id === modelId)
     return m?.code || modelId
-  }
+  }, [models])
 
   // Computed data
   const totalDefects = allDefects.length
@@ -126,7 +128,7 @@ export function MonitorPage() {
     })
     const sorted = Object.entries(map).sort((a, b) => b[1] - a[1])
     return sorted.length > 0 ? { machineId: sorted[0][0], count: sorted[0][1] } : { machineId: '', count: 0 }
-  }, [allDefects, inspectionMachineMap])
+  }, [allDefects, getDefectMachineId])
 
   const topIssue = useMemo(() => {
     const map: Record<string, number> = {}
@@ -166,7 +168,7 @@ export function MonitorPage() {
       .sort((a, b) => b[1].count - a[1].count)
       .slice(0, 5)
       .map(([machineId, val]) => ({ machineId, ...val }))
-  }, [allDefects, inspectionMachineMap])
+  }, [allDefects, getDefectMachineId])
 
   const defectTypeDistribution = useMemo(() => {
     const map: Record<string, number> = {}
@@ -178,7 +180,7 @@ export function MonitorPage() {
     return Object.entries(map)
       .sort((a, b) => b[1] - a[1])
       .map(([type, count]) => ({ type, name: getDefectTypeName(type), count, percent: Math.round((count / total) * 100) }))
-  }, [allDefects, defectTypes])
+  }, [allDefects, getDefectTypeName])
 
   const modelDefectShare = useMemo(() => {
     const map: Record<string, number> = {}
@@ -191,7 +193,7 @@ export function MonitorPage() {
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
       .map(([modelId, count]) => ({ modelId, name: getModelCode(modelId), count, percent: Math.round((count / total) * 100) }))
-  }, [allDefects, models])
+  }, [allDefects, getModelCode])
 
 
   // Skeleton block helper

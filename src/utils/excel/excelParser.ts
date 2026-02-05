@@ -356,7 +356,7 @@ export async function parseExcelFile<T = Record<string, unknown>>(
             } else {
               break
             }
-          } while (true)
+          } while (seq < 10000)
           codeSeq.set(code, seq)
           reservedCodes.add(newCode.toLowerCase())
 

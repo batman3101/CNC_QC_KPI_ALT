@@ -316,8 +316,16 @@ export async function searchMachines(query: string, factoryId?: string): Promise
     .order('name', { ascending: true })
     .limit(50)
 
+  // 숫자만 입력된 경우 스마트 검색
+  const isNumericOnly = /^\d+$/.test(query)
+
   if (query) {
-    dbQuery = dbQuery.ilike('name', `%${query}%`)
+    if (isNumericOnly) {
+      // 숫자 입력: CNC-XXX 형식으로 검색 (예: "12" → CNC-012, CNC-112, CNC-120...)
+      dbQuery = dbQuery.ilike('name', `%${query}%`)
+    } else {
+      dbQuery = dbQuery.ilike('name', `%${query}%`)
+    }
   }
   if (factoryId) {
     dbQuery = dbQuery.eq('factory_id', factoryId)
@@ -326,7 +334,41 @@ export async function searchMachines(query: string, factoryId?: string): Promise
   const { data, error } = await dbQuery
 
   if (error) throw error
-  return data || []
+
+  let results = data || []
+
+  // 숫자만 입력된 경우 스마트 정렬: 정확히 일치하는 번호 우선
+  if (isNumericOnly && query && results.length > 0) {
+    const paddedQuery = query.padStart(3, '0') // "12" → "012"
+
+    results = results.sort((a, b) => {
+      const aName = a.name || ''
+      const bName = b.name || ''
+
+      // CNC-XXX 형식에서 숫자 부분 추출
+      const aMatch = aName.match(/CNC-(\d+)/i)
+      const bMatch = bName.match(/CNC-(\d+)/i)
+
+      if (aMatch && bMatch) {
+        const aNum = aMatch[1]
+        const bNum = bMatch[1]
+
+        // 정확히 일치하는 번호 우선 (예: "12" 입력 시 CNC-012 먼저)
+        const aExact = aNum === paddedQuery
+        const bExact = bNum === paddedQuery
+
+        if (aExact && !bExact) return -1
+        if (!aExact && bExact) return 1
+
+        // 그 다음은 숫자 순서대로
+        return parseInt(aNum, 10) - parseInt(bNum, 10)
+      }
+
+      return aName.localeCompare(bName)
+    })
+  }
+
+  return results
 }
 
 // ============= Users =============

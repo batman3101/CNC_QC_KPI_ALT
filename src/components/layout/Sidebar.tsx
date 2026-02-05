@@ -10,6 +10,7 @@ import {
   Description as DescriptionIcon,
   AutoAwesome as AutoAwesomeIcon,
   People as PeopleIcon,
+  QueryStats as QueryStatsIcon,
 } from '@mui/icons-material'
 
 interface SidebarProps {
@@ -49,6 +50,13 @@ const getNavItems = (): NavItem[] => [
     titleKey: 'nav.analytics',
     href: '/analytics',
     icon: TrendingUpIcon,
+    roles: ['admin', 'manager'],
+    hideOnMobile: true, // 웹 전용
+  },
+  {
+    titleKey: 'nav.spc',
+    href: '/spc',
+    icon: QueryStatsIcon,
     roles: ['admin', 'manager'],
     hideOnMobile: true, // 웹 전용
   },

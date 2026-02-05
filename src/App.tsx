@@ -16,6 +16,7 @@ import { AIInsightsPage } from '@/pages/AIInsightsPage'
 import { ManagementPage } from '@/pages/ManagementPage'
 import { UserManagementPage } from '@/pages/UserManagementPage'
 import { MonitorPage } from '@/pages/MonitorPage'
+import { SPCPage } from '@/pages/SPCPage'
 import { useAuthStore } from '@/stores/authStore'
 import { InstallPrompt } from '@/components/pwa'
 import '@/i18n/config'
@@ -60,6 +61,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={['admin', 'manager']}>
               <AnalyticsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/spc"
+          element={
+            <ProtectedRoute allowedRoles={['admin', 'manager']}>
+              <SPCPage />
             </ProtectedRoute>
           }
         />

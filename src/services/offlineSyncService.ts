@@ -187,7 +187,7 @@ export async function cacheReferenceData(factoryId?: string): Promise<void> {
         name: m.name,
         model: m.model || null,
         status: m.status,
-        factory_id: (m as any).factory_id || factoryId || '',
+        factory_id: (m as unknown as { factory_id?: string }).factory_id || factoryId || '',
         cached_at: now,
       }))
     )

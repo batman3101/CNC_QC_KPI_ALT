@@ -1,0 +1,475 @@
+{
+  "timestamp": "2026-02-05T06:45:01.962Z",
+  "reason": "compaction",
+  "status": {
+    "version": "2.0",
+    "lastUpdated": "2026-02-05T06:44:52.653Z",
+    "activeFeatures": [
+      "CNC_QC_KPI",
+      "defects",
+      "inspection"
+    ],
+    "primaryFeature": "CNC_QC_KPI",
+    "features": {
+      "CNC_QC_KPI": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-02-02T01:37:51.022Z",
+          "lastUpdated": "2026-02-05T06:44:52.653Z"
+        },
+        "lastFile": "C:\\Work Drive\\APP\\CNC_QC_KPI\\src\\services\\spcService.ts"
+      },
+      "defects": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-02-02T02:29:31.061Z",
+          "lastUpdated": "2026-02-02T03:07:00.939Z"
+        },
+        "lastFile": "C:\\Work Drive\\APP\\CNC_QC_KPI\\src\\components\\defects\\DefectEditDialog.tsx"
+      },
+      "inspection": {
+        "phase": "do",
+        "phaseNumber": 3,
+        "matchRate": null,
+        "iterationCount": 0,
+        "requirements": [],
+        "documents": {},
+        "timestamps": {
+          "started": "2026-02-02T03:02:13.836Z",
+          "lastUpdated": "2026-02-02T03:22:35.498Z"
+        },
+        "lastFile": "C:\\Work Drive\\APP\\CNC_QC_KPI\\src\\components\\inspection\\InspectionRecordForm.tsx"
+      }
+    },
+    "pipeline": {
+      "currentPhase": 1,
+      "level": "Dynamic",
+      "phaseHistory": []
+    },
+    "session": {
+      "startedAt": "2026-02-02T01:12:10.775Z",
+      "onboardingCompleted": false,
+      "lastActivity": "2026-02-05T06:44:52.653Z"
+    },
+    "history": [
+      {
+        "timestamp": "2026-02-02T01:37:51.022Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:38:54.094Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:39:03.958Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:39:10.729Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:39:16.478Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:39:25.632Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:39:32.081Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:39:58.440Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:40:05.915Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:42:06.837Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:42:10.751Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:42:14.298Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:42:27.527Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:42:30.007Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:42:32.708Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:49:18.851Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:49:27.248Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:49:35.056Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:49:42.233Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:53:37.781Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T01:59:22.394Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:05:20.376Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:05:27.459Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:08:08.525Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:08:28.800Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:11:33.400Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:11:39.975Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:11:47.902Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:11:55.692Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:12:12.698Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:12:28.636Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:12:35.989Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:16:16.061Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:16:23.199Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:17:03.448Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:29:31.061Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:29:37.824Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:29:43.158Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:29:49.710Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:29:55.651Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:30:04.821Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:30:20.670Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T02:30:29.646Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:01:56.953Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:02:02.379Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:02:13.836Z",
+        "feature": "inspection",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:02:17.566Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:02:19.288Z",
+        "feature": "inspection",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:02:22.623Z",
+        "feature": "inspection",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:02:40.216Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:02:47.949Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:02:55.032Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:03:05.745Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:03:17.975Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:03:26.695Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:06:36.034Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:06:52.016Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:07:00.939Z",
+        "feature": "defects",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:22:05.240Z",
+        "feature": "inspection",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:22:10.525Z",
+        "feature": "inspection",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:22:15.969Z",
+        "feature": "inspection",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:22:22.159Z",
+        "feature": "inspection",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:22:29.162Z",
+        "feature": "inspection",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:22:35.498Z",
+        "feature": "inspection",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-02T03:22:42.196Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-05T06:42:19.738Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-05T06:43:51.454Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      },
+      {
+        "timestamp": "2026-02-05T06:44:52.653Z",
+        "feature": "CNC_QC_KPI",
+        "phase": "do",
+        "action": "updated"
+      }
+    ]
+  }
+}
