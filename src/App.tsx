@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { useEffect } from 'react'
 import { SnackbarProvider } from 'notistack'
@@ -18,6 +18,9 @@ import { UserManagementPage } from '@/pages/UserManagementPage'
 import { MonitorPage } from '@/pages/MonitorPage'
 import { SPCPage } from '@/pages/SPCPage'
 import { useAuthStore } from '@/stores/authStore'
+import { useFactoryStore } from '@/stores/factoryStore'
+import { supabase } from '@/lib/supabase'
+import { subscribeToRealtime, unsubscribeFromRealtime } from '@/services/realtimeService'
 import { InstallPrompt } from '@/components/pwa'
 import '@/i18n/config'
 
@@ -31,14 +34,79 @@ const queryClient = new QueryClient({
 })
 
 function AppRoutes() {
-  const { profile, setLoading } = useAuthStore()
+  const { profile, user, setUser, setProfile, setLoading } = useAuthStore()
+  const queryClient = useQueryClient()
+  const { activeFactoryId } = useFactoryStore()
 
-  // Initialize auth state on app load
+  // Initialize auth state on app load - 세션 복원
   useEffect(() => {
-    // Auth 초기화는 useAuth hook에서 처리
-    // 여기서는 로딩 상태만 false로 설정
-    setLoading(false)
-  }, [setLoading])
+    const initializeAuth = async () => {
+      try {
+        // Supabase 세션 확인
+        const { data: { session } } = await supabase.auth.getSession()
+
+        if (session?.user) {
+          setUser(session.user)
+
+          // 프로필 정보 가져오기
+          const { data: userData } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single()
+
+          if (userData) {
+            const factoryId = (userData as { factory_id: string | null }).factory_id
+            setProfile({
+              id: (userData as { id: string }).id,
+              email: (userData as { email: string }).email,
+              name: (userData as { name: string }).name,
+              role: (userData as { role: 'admin' | 'manager' | 'inspector' }).role,
+              factory_id: factoryId,
+            })
+            useFactoryStore.getState().initializeFromUser(factoryId)
+          }
+        } else {
+          setUser(null)
+          setProfile(null)
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error)
+        setUser(null)
+        setProfile(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    initializeAuth()
+
+    // Auth 상태 변화 리스너
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === 'SIGNED_OUT') {
+          setUser(null)
+          setProfile(null)
+          unsubscribeFromRealtime()
+        } else if (session?.user) {
+          setUser(session.user)
+        }
+      }
+    )
+
+    return () => subscription.unsubscribe()
+  }, [setUser, setProfile, setLoading])
+
+  // Realtime 구독 - 로그인 상태에서만
+  useEffect(() => {
+    if (user) {
+      subscribeToRealtime(queryClient, activeFactoryId)
+    }
+
+    return () => {
+      unsubscribeFromRealtime()
+    }
+  }, [user, queryClient, activeFactoryId])
 
   return (
     <Routes>
