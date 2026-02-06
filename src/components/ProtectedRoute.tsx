@@ -13,7 +13,8 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, profile, isLoading } = useAuthStore()
 
-  if (isLoading) {
+  // 세션 복원 중이거나, profile이 있지만 아직 user가 복원 안 된 경우 로딩 표시
+  if (isLoading || (!user && profile)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
@@ -24,7 +25,7 @@ export function ProtectedRoute({
     )
   }
 
-  if (!user) {
+  if (!user && !profile) {
     return <Navigate to="/login" replace />
   }
 

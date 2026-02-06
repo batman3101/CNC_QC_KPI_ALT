@@ -40,61 +40,76 @@ function AppRoutes() {
 
   // Initialize auth state on app load - 세션 복원
   useEffect(() => {
-    const initializeAuth = async () => {
+    let isMounted = true
+
+    const fetchUserProfile = async (userId: string) => {
       try {
-        // Supabase 세션 확인
-        const { data: { session } } = await supabase.auth.getSession()
+        const { data: userData } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', userId)
+          .single()
 
-        if (session?.user) {
-          setUser(session.user)
-
-          // 프로필 정보 가져오기
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-
-          if (userData) {
-            const factoryId = (userData as { factory_id: string | null }).factory_id
-            setProfile({
-              id: (userData as { id: string }).id,
-              email: (userData as { email: string }).email,
-              name: (userData as { name: string }).name,
-              role: (userData as { role: 'admin' | 'manager' | 'inspector' }).role,
-              factory_id: factoryId,
-            })
-            useFactoryStore.getState().initializeFromUser(factoryId)
-          }
-        } else {
-          setUser(null)
-          setProfile(null)
+        if (userData && isMounted) {
+          const factoryId = (userData as { factory_id: string | null }).factory_id
+          setProfile({
+            id: (userData as { id: string }).id,
+            email: (userData as { email: string }).email,
+            name: (userData as { name: string }).name,
+            role: (userData as { role: 'admin' | 'manager' | 'inspector' }).role,
+            factory_id: factoryId,
+          })
+          useFactoryStore.getState().initializeFromUser(factoryId)
         }
       } catch (error) {
-        console.error('Auth initialization error:', error)
-        setUser(null)
-        setProfile(null)
-      } finally {
-        setLoading(false)
+        console.error('Error fetching user profile:', error)
       }
     }
 
-    initializeAuth()
-
-    // Auth 상태 변화 리스너
+    // onAuthStateChange가 INITIAL_SESSION 이벤트로 세션 복원 처리
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (event === 'SIGNED_OUT') {
+        if (!isMounted) return
+
+        if (event === 'INITIAL_SESSION') {
+          // 최초 세션 복원
+          if (session?.user) {
+            setUser(session.user)
+            await fetchUserProfile(session.user.id)
+          } else {
+            setUser(null)
+            setProfile(null)
+          }
+          setLoading(false)
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setUser(session?.user ?? null)
+          if (session?.user) {
+            await fetchUserProfile(session.user.id)
+          }
+        } else if (event === 'SIGNED_OUT') {
           setUser(null)
           setProfile(null)
           unsubscribeFromRealtime()
-        } else if (session?.user) {
-          setUser(session.user)
         }
       }
     )
 
-    return () => subscription.unsubscribe()
+    // INITIAL_SESSION 이벤트가 5초 내 발생하지 않으면 타임아웃 처리
+    const timeoutId = setTimeout(() => {
+      if (isMounted) {
+        const state = useAuthStore.getState()
+        if (state.isLoading) {
+          console.warn('Auth initialization timeout - using cached profile')
+          setLoading(false)
+        }
+      }
+    }, 5000)
+
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+      clearTimeout(timeoutId)
+    }
   }, [setUser, setProfile, setLoading])
 
   // Realtime 구독 - 로그인 상태에서만
