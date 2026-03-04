@@ -126,17 +126,18 @@ export function DashboardPage() {
     return inspectionBusinessDate === todayBusinessDate
   })
 
-  // Calculate stats from today's business day data
+  // Calculate stats from today's business day data using quantities
   const todayInspectionsCount = todayInspectionsList.length
-  const passedInspections = todayInspectionsList.filter((i) => i.status === 'pass').length
+  const todayInspectionQty = todayInspectionsList.reduce((sum, i: any) => sum + (i.inspection_quantity || 0), 0)
+  const todayDefectQty = todayInspectionsList.reduce((sum, i: any) => sum + (i.defect_quantity || 0), 0)
   const failedInspections = todayInspectionsList.filter((i) => i.status === 'fail').length
   const passRate =
-    todayInspectionsCount > 0
-      ? ((passedInspections / todayInspectionsCount) * 100).toFixed(1)
+    todayInspectionQty > 0
+      ? (((todayInspectionQty - todayDefectQty) / todayInspectionQty) * 100).toFixed(1)
       : '0.0'
   const defectRate =
-    todayInspectionsCount > 0
-      ? ((failedInspections / todayInspectionsCount) * 100).toFixed(1)
+    todayInspectionQty > 0
+      ? ((todayDefectQty / todayInspectionQty) * 100).toFixed(1)
       : '0.0'
 
   const stats = [

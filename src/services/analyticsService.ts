@@ -34,7 +34,7 @@ export async function getKPISummary(
   // Get total inspections
   let inspectionsQuery = supabase
     .from('inspections')
-    .select('id, status, created_at', { count: 'exact' })
+    .select('id, status, created_at, user_id, inspection_quantity, defect_quantity', { count: 'exact' })
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
 
@@ -51,25 +51,16 @@ export async function getKPISummary(
   const { data: inspections, count: totalInspections } =
     await inspectionsQuery
 
-  // Count defects
-  const defectCount =
-    inspections?.filter((i: { status: string }) => i.status === 'fail').length || 0
-
-  // Get unique inspectors
-  let inspectorsQuery = supabase
-    .from('inspections')
-    .select('user_id')
-    .gte('created_at', dateFilter.gte)
-    .lte('created_at', dateFilter.lte)
-
-  if (factoryId) {
-    inspectorsQuery = inspectorsQuery.eq('factory_id', factoryId)
-  }
-
-  const { data: inspectors } = await inspectorsQuery
-
+  // Calculate defect rate based on quantities (검사수량 대비 불량수량)
+  const totalInspectionQty = inspections?.reduce(
+    (sum: number, i: { inspection_quantity: number }) => sum + (i.inspection_quantity || 0), 0
+  ) || 0
+  const totalDefectQty = inspections?.reduce(
+    (sum: number, i: { defect_quantity: number }) => sum + (i.defect_quantity || 0), 0
+  ) || 0
+  // Get unique inspectors from already fetched inspections
   const uniqueInspectors = new Set(
-    inspectors?.map((i: { user_id: string }) => i.user_id).filter(Boolean)
+    inspections?.map((i: { user_id: string }) => i.user_id).filter(Boolean)
   ).size
 
   // Calculate average inspection time (mock data for now)
@@ -77,60 +68,52 @@ export async function getKPISummary(
   const avgInspectionTime = 4.2
 
   const totalCount = totalInspections || 0
-  const defects = defectCount || 0
-  const defectRate = totalCount > 0 ? (defects / totalCount) * 100 : 0
+  // Defect rate = SUM(defect_quantity) / SUM(inspection_quantity) * 100
+  const defectRate = totalInspectionQty > 0 ? (totalDefectQty / totalInspectionQty) * 100 : 0
   const fpy = 100 - defectRate
 
   // Calculate average resolution time (mock data for now)
   // TODO: Add actual defect resolution time tracking
   const avgResolutionTime = 2.5
 
-  // Get top 3 inspectors by defect count found
-  const inspectorDefects: Record<string, { name: string; count: number; defects: number }> = {}
-  if (inspectors) {
-    const userIds = [...new Set(inspectors.map((i: { user_id: string }) => i.user_id).filter(Boolean))]
+  // Get top 3 inspectors by defect quantity found
+  const inspectorDefects: Record<string, { name: string; inspectionQty: number; defectQty: number }> = {}
+  if (inspections) {
+    const userIds = [...new Set(inspections.map((i: { user_id: string }) => i.user_id).filter(Boolean))]
     const { data: userProfiles } = await supabase
       .from('users')
       .select('id, name')
       .in('id', userIds)
     const userNameMap = new Map(userProfiles?.map((u: { id: string; name: string }) => [u.id, u.name]) || [])
 
-    for (const inspector of inspectors as Array<{ user_id: string }>) {
-      if (inspector.user_id) {
-        if (!inspectorDefects[inspector.user_id]) {
-          inspectorDefects[inspector.user_id] = {
-            name: userNameMap.get(inspector.user_id) || inspector.user_id,
-            count: 0,
-            defects: 0,
+    for (const inspection of inspections as Array<{ user_id: string; inspection_quantity: number; defect_quantity: number }>) {
+      if (inspection.user_id) {
+        if (!inspectorDefects[inspection.user_id]) {
+          inspectorDefects[inspection.user_id] = {
+            name: userNameMap.get(inspection.user_id) || inspection.user_id,
+            inspectionQty: 0,
+            defectQty: 0,
           }
         }
-        inspectorDefects[inspector.user_id].count++
-      }
-    }
-  }
-
-  // Get defects by inspector from the filtered inspections
-  if (inspections) {
-    for (const inspection of inspections as Array<{ status: string; user_id?: string }>) {
-      if (inspection.status === 'fail' && inspection.user_id && inspectorDefects[inspection.user_id]) {
-        inspectorDefects[inspection.user_id].defects++
+        inspectorDefects[inspection.user_id].inspectionQty += (inspection.inspection_quantity || 0)
+        inspectorDefects[inspection.user_id].defectQty += (inspection.defect_quantity || 0)
       }
     }
   }
 
   const topInspectors = Object.entries(inspectorDefects)
-    .sort((a, b) => b[1].defects - a[1].defects)
+    .sort((a, b) => b[1].defectQty - a[1].defectQty)
     .slice(0, 3)
     .map(([, stats], index) => ({
       rank: index + 1,
       name: stats.name,
-      inspectionCount: stats.count,
-      defectCount: stats.defects,
+      inspectionCount: stats.inspectionQty,
+      defectCount: stats.defectQty,
     }))
 
   return {
     totalInspections: totalCount,
-    totalDefects: defects,
+    totalDefects: totalDefectQty,
     overallDefectRate: defectRate,
     fpy,
     avgInspectionTime,
@@ -149,7 +132,7 @@ export async function getDefectRateTrend(
 
   let query = supabase
     .from('inspections')
-    .select('created_at, status')
+    .select('created_at, status, inspection_quantity, defect_quantity')
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
     .order('created_at', { ascending: true })
@@ -168,25 +151,23 @@ export async function getDefectRateTrend(
 
   if (!inspections) return []
 
-  // Group by business date (08:00 ~ next day 07:59)
-  const groupedByDate = inspections.reduce((acc, inspection: { created_at: string; status: string }) => {
+  // Group by business date (08:00 ~ next day 07:59), using quantities
+  const groupedByDate = inspections.reduce((acc, inspection: { created_at: string; status: string; inspection_quantity: number; defect_quantity: number }) => {
     const date = parseBusinessDate(inspection.created_at)
     if (!acc[date]) {
-      acc[date] = { total: 0, defects: 0 }
+      acc[date] = { totalQty: 0, defectQty: 0 }
     }
-    acc[date].total++
-    if (inspection.status === 'fail') {
-      acc[date].defects++
-    }
+    acc[date].totalQty += (inspection.inspection_quantity || 0)
+    acc[date].defectQty += (inspection.defect_quantity || 0)
     return acc
-  }, {} as Record<string, { total: number; defects: number }>)
+  }, {} as Record<string, { totalQty: number; defectQty: number }>)
 
   return Object.entries(groupedByDate).map(([date, stats]) => {
-    const defectRate = (stats.defects / stats.total) * 100
+    const defectRate = stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0
     return {
       date,
-      totalInspections: stats.total,
-      defectCount: stats.defects,
+      totalInspections: stats.totalQty,
+      defectCount: stats.defectQty,
       defectRate,
       passRate: 100 - defectRate,
     }
@@ -206,6 +187,8 @@ export async function getModelDefectDistribution(
       `
       status,
       model_id,
+      inspection_quantity,
+      defect_quantity,
       product_models (
         name,
         code
@@ -223,7 +206,7 @@ export async function getModelDefectDistribution(
 
   if (!inspections) return []
 
-  // Group by model
+  // Group by model using quantities
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const groupedByModel = inspections.reduce((acc, inspection: any) => {
     const modelId = inspection.model_id
@@ -234,14 +217,12 @@ export async function getModelDefectDistribution(
       acc[modelId] = {
         modelName,
         modelCode,
-        total: 0,
-        defects: 0,
+        totalQty: 0,
+        defectQty: 0,
       }
     }
-    acc[modelId].total++
-    if (inspection.status === 'fail') {
-      acc[modelId].defects++
-    }
+    acc[modelId].totalQty += (inspection.inspection_quantity || 0)
+    acc[modelId].defectQty += (inspection.defect_quantity || 0)
     return acc
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }, {} as Record<string, any>)
@@ -250,9 +231,9 @@ export async function getModelDefectDistribution(
   return Object.values(groupedByModel).map((stats: any) => ({
     modelName: stats.modelName,
     modelCode: stats.modelCode,
-    totalInspections: stats.total,
-    defectCount: stats.defects,
-    defectRate: (stats.defects / stats.total) * 100,
+    totalInspections: stats.totalQty,
+    defectCount: stats.defectQty,
+    defectRate: stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0,
   }))
 }
 
@@ -269,6 +250,8 @@ export async function getMachinePerformance(
       `
       status,
       machine_id,
+      inspection_quantity,
+      defect_quantity,
       machines (
         name,
         model
@@ -286,7 +269,7 @@ export async function getMachinePerformance(
 
   if (!inspections) return []
 
-  // Group by machine
+  // Group by machine using quantities
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const groupedByMachine = inspections.reduce((acc, inspection: any) => {
     const machineId = inspection.machine_id
@@ -297,14 +280,12 @@ export async function getMachinePerformance(
       acc[machineId] = {
         machineName,
         machineModel,
-        total: 0,
-        defects: 0,
+        totalQty: 0,
+        defectQty: 0,
       }
     }
-    acc[machineId].total++
-    if (inspection.status === 'fail') {
-      acc[machineId].defects++
-    }
+    acc[machineId].totalQty += (inspection.inspection_quantity || 0)
+    acc[machineId].defectQty += (inspection.defect_quantity || 0)
     return acc
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }, {} as Record<string, any>)
@@ -314,9 +295,9 @@ export async function getMachinePerformance(
     .map((stats: any) => ({
       machineName: stats.machineName,
       machineModel: stats.machineModel,
-      totalInspections: stats.total,
-      defectCount: stats.defects,
-      defectRate: (stats.defects / stats.total) * 100,
+      totalInspections: stats.totalQty,
+      defectCount: stats.defectQty,
+      defectRate: stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0,
       avgInspectionTime: 4.2, // Mock data
     }))
     .sort((a, b) => b.defectCount - a.defectCount) // Sort by defect count (Pareto)
@@ -388,7 +369,7 @@ export async function getHourlyDistribution(
 
   let query = supabase
     .from('inspections')
-    .select('created_at, status')
+    .select('created_at, status, inspection_quantity, defect_quantity')
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
 
@@ -400,26 +381,24 @@ export async function getHourlyDistribution(
 
   if (!inspections) return []
 
-  // Group by hour (Vietnam timezone)
-  const groupedByHour = inspections.reduce((acc, inspection: { created_at: string; status: string }) => {
+  // Group by hour (Vietnam timezone) using quantities
+  const groupedByHour = inspections.reduce((acc, inspection: { created_at: string; status: string; inspection_quantity: number; defect_quantity: number }) => {
     const hour = getVietnamHour(inspection.created_at)
     if (!acc[hour]) {
-      acc[hour] = { inspections: 0, defects: 0 }
+      acc[hour] = { inspectionQty: 0, defectQty: 0 }
     }
-    acc[hour].inspections++
-    if (inspection.status === 'fail') {
-      acc[hour].defects++
-    }
+    acc[hour].inspectionQty += (inspection.inspection_quantity || 0)
+    acc[hour].defectQty += (inspection.defect_quantity || 0)
     return acc
-  }, {} as Record<number, { inspections: number; defects: number }>)
+  }, {} as Record<number, { inspectionQty: number; defectQty: number }>)
 
   // Fill in missing hours with 0
   const result: HourlyDistribution[] = []
   for (let hour = 0; hour < 24; hour++) {
     result.push({
       hour,
-      inspectionCount: groupedByHour[hour]?.inspections || 0,
-      defectCount: groupedByHour[hour]?.defects || 0,
+      inspectionCount: groupedByHour[hour]?.inspectionQty || 0,
+      defectCount: groupedByHour[hour]?.defectQty || 0,
     })
   }
 
@@ -439,6 +418,8 @@ export async function getInspectorPerformance(
       `
       status,
       user_id,
+      inspection_quantity,
+      defect_quantity,
       users (
         name
       )
@@ -455,7 +436,7 @@ export async function getInspectorPerformance(
 
   if (!inspections) return []
 
-  // Group by inspector
+  // Group by inspector using quantities
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const groupedByInspector = inspections.reduce((acc, inspection: any) => {
     const userId = inspection.user_id
@@ -464,14 +445,12 @@ export async function getInspectorPerformance(
     if (!acc[userId]) {
       acc[userId] = {
         userName,
-        total: 0,
-        defects: 0,
+        totalQty: 0,
+        defectQty: 0,
       }
     }
-    acc[userId].total++
-    if (inspection.status === 'fail') {
-      acc[userId].defects++
-    }
+    acc[userId].totalQty += (inspection.inspection_quantity || 0)
+    acc[userId].defectQty += (inspection.defect_quantity || 0)
     return acc
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }, {} as Record<string, any>)
@@ -479,9 +458,9 @@ export async function getInspectorPerformance(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return Object.values(groupedByInspector).map((stats: any) => ({
     inspectorName: stats.userName,
-    totalInspections: stats.total,
-    defectCount: stats.defects,
-    defectRate: (stats.defects / stats.total) * 100,
+    totalInspections: stats.totalQty,
+    defectCount: stats.defectQty,
+    defectRate: stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0,
     avgInspectionTime: 4.2, // Mock data
   }))
 }
@@ -523,7 +502,7 @@ export async function getInspectorDetailedKPI(
   let inspectorQuery = supabase
     .from('inspections')
     .select(`
-      id, status, created_at, model_id, inspection_process,
+      id, status, created_at, model_id, inspection_process, inspection_quantity, defect_quantity,
       product_models (name, code),
       inspection_processes:inspection_process (name, code)
     `)
@@ -540,7 +519,7 @@ export async function getInspectorDetailedKPI(
   // Get all team inspections for comparison
   let teamQuery = supabase
     .from('inspections')
-    .select('user_id, status, created_at')
+    .select('user_id, status, created_at, inspection_quantity, defect_quantity')
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
 
@@ -553,102 +532,104 @@ export async function getInspectorDetailedKPI(
   const myInspections = inspectorInspections || []
   const allTeamInspections = teamInspections || []
 
-  // Calculate basic stats
-  const totalInspections = myInspections.length
-  const defectCount = myInspections.filter(i => i.status === 'fail').length
-  const defectRate = totalInspections > 0 ? (defectCount / totalInspections) * 100 : 0
+  // Calculate basic stats using quantities
+  const totalInspectionQty = myInspections.reduce((sum: number, i: any) => sum + (i.inspection_quantity || 0), 0)
+  const totalDefectQty = myInspections.reduce((sum: number, i: any) => sum + (i.defect_quantity || 0), 0)
+  const totalInspections = totalInspectionQty
+  const defectCount = totalDefectQty
+  const defectRate = totalInspectionQty > 0 ? (totalDefectQty / totalInspectionQty) * 100 : 0
   const passRate = 100 - defectRate
 
-  // Calculate ranking
-  const inspectorStats = new Map<string, { total: number; defects: number }>()
-  allTeamInspections.forEach((insp: { user_id: string; status: string }) => {
-    const stats = inspectorStats.get(insp.user_id) || { total: 0, defects: 0 }
-    stats.total++
-    if (insp.status === 'fail') stats.defects++
+  // Calculate ranking using quantities
+  const inspectorStats = new Map<string, { totalQty: number; defectQty: number }>()
+  allTeamInspections.forEach((insp: { user_id: string; status: string; inspection_quantity: number; defect_quantity: number }) => {
+    const stats = inspectorStats.get(insp.user_id) || { totalQty: 0, defectQty: 0 }
+    stats.totalQty += (insp.inspection_quantity || 0)
+    stats.defectQty += (insp.defect_quantity || 0)
     inspectorStats.set(insp.user_id, stats)
   })
 
   const rankings = Array.from(inspectorStats.entries())
     .map(([userId, stats]) => ({
       userId,
-      defectRate: stats.total > 0 ? (stats.defects / stats.total) * 100 : 0,
+      defectRate: stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0,
     }))
     .sort((a, b) => a.defectRate - b.defectRate)
 
   const rank = rankings.findIndex(r => r.userId === inspectorId) + 1
   const totalInspectors = rankings.length
 
-  // Daily trend (business day based)
-  const dailyMap = new Map<string, { total: number; defects: number }>()
-  myInspections.forEach((insp: { created_at: string; status: string }) => {
+  // Daily trend (business day based) using quantities
+  const dailyMap = new Map<string, { totalQty: number; defectQty: number }>()
+  myInspections.forEach((insp: any) => {
     const date = parseBusinessDate(insp.created_at)
-    const stats = dailyMap.get(date) || { total: 0, defects: 0 }
-    stats.total++
-    if (insp.status === 'fail') stats.defects++
+    const stats = dailyMap.get(date) || { totalQty: 0, defectQty: 0 }
+    stats.totalQty += (insp.inspection_quantity || 0)
+    stats.defectQty += (insp.defect_quantity || 0)
     dailyMap.set(date, stats)
   })
 
   const dailyTrend: InspectorDailyTrend[] = Array.from(dailyMap.entries())
     .map(([date, stats]) => ({
       date,
-      inspectionCount: stats.total,
-      defectCount: stats.defects,
-      defectRate: stats.total > 0 ? (stats.defects / stats.total) * 100 : 0,
+      inspectionCount: stats.totalQty,
+      defectCount: stats.defectQty,
+      defectRate: stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0,
     }))
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  // Model performance
-  const modelMap = new Map<string, { name: string; code: string; total: number; defects: number }>()
+  // Model performance using quantities
+  const modelMap = new Map<string, { name: string; code: string; totalQty: number; defectQty: number }>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   myInspections.forEach((insp: any) => {
     const modelId = insp.model_id
     const modelName = insp.product_models?.name || 'Unknown'
     const modelCode = insp.product_models?.code || 'N/A'
-    const stats = modelMap.get(modelId) || { name: modelName, code: modelCode, total: 0, defects: 0 }
-    stats.total++
-    if (insp.status === 'fail') stats.defects++
+    const stats = modelMap.get(modelId) || { name: modelName, code: modelCode, totalQty: 0, defectQty: 0 }
+    stats.totalQty += (insp.inspection_quantity || 0)
+    stats.defectQty += (insp.defect_quantity || 0)
     modelMap.set(modelId, stats)
   })
 
   const modelPerformance: InspectorModelPerformance[] = Array.from(modelMap.values()).map(stats => ({
     modelName: stats.name,
     modelCode: stats.code,
-    inspectionCount: stats.total,
-    defectCount: stats.defects,
-    defectRate: stats.total > 0 ? (stats.defects / stats.total) * 100 : 0,
+    inspectionCount: stats.totalQty,
+    defectCount: stats.defectQty,
+    defectRate: stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0,
   }))
 
-  // Process performance
-  const processMap = new Map<string, { name: string; code: string; total: number; defects: number }>()
+  // Process performance using quantities
+  const processMap = new Map<string, { name: string; code: string; totalQty: number; defectQty: number }>()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   myInspections.forEach((insp: any) => {
     const processCode = insp.inspection_process
     const processName = insp.inspection_processes?.name || processCode
-    const stats = processMap.get(processCode) || { name: processName, code: processCode, total: 0, defects: 0 }
-    stats.total++
-    if (insp.status === 'fail') stats.defects++
+    const stats = processMap.get(processCode) || { name: processName, code: processCode, totalQty: 0, defectQty: 0 }
+    stats.totalQty += (insp.inspection_quantity || 0)
+    stats.defectQty += (insp.defect_quantity || 0)
     processMap.set(processCode, stats)
   })
 
   const processPerformance: InspectorProcessPerformance[] = Array.from(processMap.values()).map(stats => ({
     processName: stats.name,
     processCode: stats.code,
-    inspectionCount: stats.total,
-    defectCount: stats.defects,
-    defectRate: stats.total > 0 ? (stats.defects / stats.total) * 100 : 0,
+    inspectionCount: stats.totalQty,
+    defectCount: stats.defectQty,
+    defectRate: stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0,
   }))
 
-  // Team comparison
-  const teamTotal = allTeamInspections.length
-  const teamDefects = allTeamInspections.filter((i: { status: string }) => i.status === 'fail').length
-  const avgDefectRate = teamTotal > 0 ? (teamDefects / teamTotal) * 100 : 0
+  // Team comparison using quantities
+  const teamTotalQty = allTeamInspections.reduce((sum: number, i: any) => sum + (i.inspection_quantity || 0), 0)
+  const teamDefectQty = allTeamInspections.reduce((sum: number, i: any) => sum + (i.defect_quantity || 0), 0)
+  const avgDefectRate = teamTotalQty > 0 ? (teamDefectQty / teamTotalQty) * 100 : 0
 
   // Calculate number of active days for average daily inspections (business day based)
   const uniqueDates = new Set(allTeamInspections.map((i: { created_at: string }) =>
     parseBusinessDate(i.created_at)
   ))
   const activeDays = uniqueDates.size || 1
-  const avgDailyInspections = teamTotal / activeDays / (totalInspectors || 1)
+  const avgDailyInspections = teamTotalQty / activeDays / (totalInspectors || 1)
 
   const myDailyInspections = totalInspections / activeDays
 
