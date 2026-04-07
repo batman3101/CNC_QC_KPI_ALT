@@ -100,10 +100,10 @@ export function MonitorPage() {
   }, [defectTypes])
 
   const getMachineName = useCallback((machineId: string | null): string => {
-    if (!machineId) return 'N/A'
+    if (!machineId || machineId === 'unassigned') return t('common.unassigned', '미지정')
     const m = machines.find(mc => mc.id === machineId)
     return m?.name || machineId
-  }, [machines])
+  }, [machines, t])
 
   const getModelCode = useCallback((modelId: string | null): string => {
     if (!modelId) return 'N/A'
@@ -123,7 +123,7 @@ export function MonitorPage() {
   const worstMachine = useMemo(() => {
     const map: Record<string, number> = {}
     allDefects.forEach(d => {
-      const key = getDefectMachineId(d) || 'unknown'
+      const key = getDefectMachineId(d) || 'unassigned'
       map[key] = (map[key] || 0) + 1
     })
     const sorted = Object.entries(map).sort((a, b) => b[1] - a[1])
@@ -158,7 +158,7 @@ export function MonitorPage() {
     // Sort by created_at desc to find recent defect type
     const sorted = [...allDefects].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
     sorted.forEach(d => {
-      const key = getDefectMachineId(d) || 'unknown'
+      const key = getDefectMachineId(d) || 'unassigned'
       if (!map[key]) {
         map[key] = { count: 0, recentDefectType: d.defect_type || '' }
       }
