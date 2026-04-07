@@ -13,6 +13,7 @@ import {
   calculateProcessCapability,
   calculateSPCStatistics,
   calculateHistogramBins,
+  detectNelsonRuleViolations,
   mean,
   getCapabilityRating,
 } from '@/lib/spc-calculations'
@@ -27,6 +28,20 @@ import type {
   SPCFilters,
   CapabilityRating,
 } from '@/types/spc'
+
+// ============================================
+// 항목별 Cpk 결과 타입
+// ============================================
+
+export type ItemCpkResult = {
+  item_id: string
+  model_id: string
+  item_name: string
+  cpk: number
+  cp: number
+  rating: CapabilityRating
+  values_count: number
+}
 
 // ============================================
 // 1. p-chart 데이터 (불량률 관리도)
@@ -129,47 +144,190 @@ export async function getPChartData(
 }
 
 // ============================================
-// 2. SPC 대시보드
+// 2. SPC 대시보드 - 데이터 조회 및 변환
 // ============================================
 
 /**
- * SPC KPI 요약 조회
+ * 전체 numeric 검사항목의 Cpk 값 조회
+ * per-item 쿼리로 Supabase 1000-row 기본 제한 회피
  */
-export async function getSPCKPISummary(factoryId?: string): Promise<SPCKPISummary> {
-  // 현재는 p-chart 기반 Mock 데이터 반환
-  // 실제 구현 시 spc_control_limits 테이블에서 조회
+export async function fetchAllItemCpkValues(
+  factoryId?: string,
+  dateRange?: { from: Date; to: Date }
+): Promise<ItemCpkResult[]> {
+  // 1. numeric 검사항목만 조회
+  const { data: items, error: itemsError } = await supabase
+    .from('inspection_items')
+    .select('id, name, model_id, standard_value, tolerance_min, tolerance_max')
+    .eq('data_type', 'numeric')
 
-  const thirtyDaysAgo = new Date()
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  if (itemsError) throw itemsError
+  if (!items || items.length === 0) return []
 
-  const filters: SPCFilters = {
-    date_from: thirtyDaysAgo,
-    date_to: new Date(),
+  // 2. 날짜 필터 설정
+  const dateFilter = dateRange
+    ? getBusinessDateRangeFilter(dateRange.from, dateRange.to)
+    : getBusinessDateRangeFilter(
+        new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        new Date()
+      )
+
+  // 3. 항목별 inspection_results 조회 및 Cpk 계산 (per-item 쿼리)
+  const results = await Promise.all(
+    items.map(async (item) => {
+      try {
+        let query = supabase
+          .from('inspection_results')
+          .select(`
+            measured_value,
+            inspections!inner (
+              model_id,
+              factory_id,
+              created_at
+            )
+          `)
+          .eq('item_id', item.id)
+          .gte('inspections.created_at', dateFilter.gte)
+          .lte('inspections.created_at', dateFilter.lte)
+
+        if (factoryId) {
+          query = query.eq('inspections.factory_id', factoryId)
+        }
+
+        const { data: measurements, error } = await query
+
+        if (error) {
+          console.warn(`[SPC] Failed to fetch results for item ${item.id}:`, error)
+          return null
+        }
+
+        const values = (measurements || []).map(r => r.measured_value)
+
+        // 최소 2개 측정값 필요 (표준편차 계산 불가)
+        if (values.length < 2) return null
+
+        const usl = item.standard_value + item.tolerance_max
+        const lsl = item.standard_value + item.tolerance_min
+        const capability = calculateProcessCapability(values, usl, lsl)
+
+        return {
+          item_id: item.id,
+          model_id: item.model_id,
+          item_name: item.name,
+          cpk: capability.cpk,
+          cp: capability.cp,
+          rating: capability.rating,
+          values_count: values.length,
+        } as ItemCpkResult
+      } catch (err) {
+        console.warn(`[SPC] Error processing item ${item.id}:`, err)
+        return null
+      }
+    })
+  )
+
+  return results.filter((r): r is ItemCpkResult => r !== null)
+}
+
+/**
+ * ItemCpkResult[] → SPCKPISummary 순수 변환 함수
+ */
+export function transformToKPISummary(
+  items: ItemCpkResult[],
+  pChartTrend?: 'improving' | 'stable' | 'declining'
+): SPCKPISummary {
+  if (items.length === 0) {
+    return {
+      total_monitored_items: 0,
+      avg_cpk: 0,
+      excellent_count: 0,
+      good_count: 0,
+      adequate_count: 0,
+      poor_count: 0,
+      open_alerts: 0, // TODO: Alert 마이그레이션 후 실제 데이터로 교체
+      critical_alerts: 0, // TODO: Alert 마이그레이션 후 실제 데이터로 교체
+      trend: 'stable',
+    }
   }
 
-  try {
-    const { statistics } = await getPChartData(filters, factoryId)
+  const cpkValues = items.map(i => i.cpk)
+  const avgCpk = mean(cpkValues)
 
-    // Mock Cpk 데이터 (실제 구현 시 inspection_results에서 계산)
-    const mockCpkValues = [1.45, 1.32, 1.58, 1.21, 1.67, 0.98, 1.12, 1.78]
-    const avgCpk = mean(mockCpkValues)
+  return {
+    total_monitored_items: items.length,
+    avg_cpk: avgCpk,
+    excellent_count: items.filter(i => i.cpk >= 1.67).length,
+    good_count: items.filter(i => i.cpk >= 1.33 && i.cpk < 1.67).length,
+    adequate_count: items.filter(i => i.cpk >= 1.0 && i.cpk < 1.33).length,
+    poor_count: items.filter(i => i.cpk < 1.0).length, // poor + inadequate 모두 포함
+    open_alerts: 0, // TODO: Alert 마이그레이션 후 실제 데이터로 교체
+    critical_alerts: 0, // TODO: Alert 마이그레이션 후 실제 데이터로 교체
+    trend: pChartTrend || 'stable',
+  }
+}
 
-    const excellent_count = mockCpkValues.filter(c => c >= 1.67).length
-    const good_count = mockCpkValues.filter(c => c >= 1.33 && c < 1.67).length
-    const adequate_count = mockCpkValues.filter(c => c >= 1.0 && c < 1.33).length
-    const poor_count = mockCpkValues.filter(c => c < 1.0).length
+/**
+ * ItemCpkResult[] + 모델 목록 → ModelSPCSummary[] 순수 변환 함수
+ */
+export function transformToModelSummary(
+  items: ItemCpkResult[],
+  models: { id: string; name: string; code: string }[]
+): ModelSPCSummary[] {
+  return models.map((model) => {
+    const modelItems = items.filter(i => i.model_id === model.id)
+
+    if (modelItems.length === 0) {
+      return {
+        model_id: model.id,
+        model_name: model.name,
+        model_code: model.code,
+        items_count: 0,
+        avg_cpk: 0,
+        min_cpk: 0,
+        max_cpk: 0,
+        overall_rating: 'inadequate' as CapabilityRating,
+        open_alerts_count: 0, // TODO: Alert 마이그레이션 후 실제 데이터로 교체
+        critical_alerts_count: 0, // TODO: Alert 마이그레이션 후 실제 데이터로 교체
+      }
+    }
+
+    const cpkValues = modelItems.map(i => i.cpk)
+    const avgCpk = mean(cpkValues)
+    const { rating } = getCapabilityRating(avgCpk)
 
     return {
-      total_monitored_items: mockCpkValues.length,
+      model_id: model.id,
+      model_name: model.name,
+      model_code: model.code,
+      items_count: modelItems.length,
       avg_cpk: avgCpk,
-      excellent_count,
-      good_count,
-      adequate_count,
-      poor_count,
-      open_alerts: Math.floor(statistics.avgDefectRate / 2),
-      critical_alerts: Math.floor(statistics.avgDefectRate / 5),
-      trend: statistics.avgDefectRate < 3 ? 'improving' : statistics.avgDefectRate < 5 ? 'stable' : 'declining',
+      min_cpk: Math.min(...cpkValues),
+      max_cpk: Math.max(...cpkValues),
+      overall_rating: rating,
+      open_alerts_count: 0, // TODO: Alert 마이그레이션 후 실제 데이터로 교체
+      critical_alerts_count: 0, // TODO: Alert 마이그레이션 후 실제 데이터로 교체
     }
+  })
+}
+
+/**
+ * SPC KPI 요약 조회 (실제 데이터 기반)
+ */
+export async function getSPCKPISummary(factoryId?: string): Promise<SPCKPISummary> {
+  try {
+    // p-chart 기반 추세 판단
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    const { statistics } = await getPChartData(
+      { date_from: thirtyDaysAgo, date_to: new Date() },
+      factoryId
+    )
+    const trend: SPCKPISummary['trend'] =
+      statistics.avgDefectRate < 3 ? 'improving' : statistics.avgDefectRate < 5 ? 'stable' : 'declining'
+
+    // 실제 Cpk 데이터 조회
+    const items = await fetchAllItemCpkValues(factoryId)
+    return transformToKPISummary(items, trend)
   } catch (error) {
     console.error('Failed to get SPC KPI summary:', error)
     return {
@@ -189,9 +347,7 @@ export async function getSPCKPISummary(factoryId?: string): Promise<SPCKPISummar
 /**
  * 모델별 SPC 요약 조회
  */
-export async function getModelSPCSummary(_factoryId?: string): Promise<ModelSPCSummary[]> {
-  // TODO: _factoryId를 활용한 공장별 필터링 추가 예정
-  void _factoryId
+export async function getModelSPCSummary(factoryId?: string): Promise<ModelSPCSummary[]> {
   // 제품 모델 목록 조회
   const { data: models, error } = await supabase
     .from('product_models')
@@ -201,25 +357,9 @@ export async function getModelSPCSummary(_factoryId?: string): Promise<ModelSPCS
   if (error) throw error
   if (!models) return []
 
-  // 각 모델별 요약 생성 (Mock)
-  return models.map((model) => {
-    // Mock Cpk 값 (실제 구현 시 계산)
-    const mockCpk = 1.2 + Math.random() * 0.6
-    const { rating } = getCapabilityRating(mockCpk)
-
-    return {
-      model_id: model.id,
-      model_name: model.name,
-      model_code: model.code,
-      items_count: 3 + Math.floor(Math.random() * 5),
-      avg_cpk: mockCpk,
-      min_cpk: mockCpk - 0.2,
-      max_cpk: mockCpk + 0.3,
-      overall_rating: rating,
-      open_alerts_count: Math.floor(Math.random() * 3),
-      critical_alerts_count: Math.floor(Math.random() * 2),
-    }
-  })
+  // 실제 Cpk 데이터 조회 및 모델별 변환
+  const items = await fetchAllItemCpkValues(factoryId)
+  return transformToModelSummary(items, models)
 }
 
 // ============================================
@@ -227,115 +367,211 @@ export async function getModelSPCSummary(_factoryId?: string): Promise<ModelSPCS
 // ============================================
 
 /**
- * SPC 알림 목록 조회 (Mock)
+ * p-chart 위반을 감지하고 spc_alerts 테이블에 upsert
+ * 모델별로 p-chart 분석 → Nelson Rule 위반 감지 → DB 저장
+ */
+export async function generateAndUpsertAlerts(factoryId?: string): Promise<void> {
+  const thirtyDaysAgo = new Date()
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+  // 전체 모델 목록 조회
+  const { data: models } = await supabase
+    .from('product_models')
+    .select('id, name')
+
+  if (!models || models.length === 0) return
+
+  // 모델별 p-chart 분석 및 위반 감지 (병렬 실행)
+  type AlertRow = {
+    model_id: string
+    alert_type: string
+    rule_code: string
+    rule_description: string
+    measured_value: number | null
+    control_limit_value: number | null
+    severity: string
+    factory_id: string | null
+    created_at: string
+  }
+
+  const perModelResults = await Promise.all(
+    models.map(async (model): Promise<AlertRow[]> => {
+      try {
+        const { points, limits } = await getPChartData(
+          { model_id: model.id, date_from: thirtyDaysAgo, date_to: new Date() },
+          factoryId
+        )
+
+        if (points.length < 7) return []
+
+        const defectRates = points.map(p => p.defect_rate)
+        const violations = detectNelsonRuleViolations(
+          defectRates,
+          limits.p_bar,
+          limits.ucl,
+          limits.lcl
+        )
+
+        return violations.map(v => {
+          const point = points[v.index]
+          return {
+            model_id: model.id,
+            alert_type: v.type,
+            rule_code: v.rule_code || 'R1',
+            rule_description: v.description,
+            measured_value: v.point_value,
+            control_limit_value: v.type === 'ucl_exceeded' ? limits.ucl
+              : v.type === 'lcl_exceeded' ? limits.lcl : limits.p_bar,
+            severity: v.severity,
+            factory_id: factoryId || null,
+            created_at: point?.date
+              ? new Date(point.date).toISOString()
+              : new Date().toISOString(),
+          }
+        })
+      } catch {
+        return []
+      }
+    })
+  )
+
+  const newAlerts = perModelResults.flat()
+  if (newAlerts.length === 0) return
+
+  // 기존 open 알림 정리 후 새 알림 삽입 (트랜잭션 보호)
+  try {
+    const { error: deleteError } = await supabase
+      .from('spc_alerts')
+      .delete()
+      .eq('status', 'open')
+      .gte('created_at', thirtyDaysAgo.toISOString())
+
+    if (deleteError) {
+      console.error('[SPC] Failed to delete old alerts:', deleteError)
+      return
+    }
+
+    const { error: insertError } = await supabase
+      .from('spc_alerts')
+      .insert(newAlerts)
+
+    if (insertError) {
+      console.error('[SPC] Failed to insert new alerts:', insertError)
+    }
+  } catch (err) {
+    console.error('[SPC] Alert generation failed:', err)
+  }
+}
+
+/**
+ * SPC 알림 목록 조회 (Supabase)
  */
 export async function getSPCAlerts(
   filters?: SPCAlertFilters,
   factoryId?: string
 ): Promise<SPCAlert[]> {
-  // Mock 알림 데이터
-  const mockAlerts: SPCAlert[] = [
-    {
-      id: '1',
-      model_id: 'model-1',
-      alert_type: 'ucl_exceeded',
-      rule_code: 'R1',
-      rule_description: 'Point exceeds Upper Control Limit',
-      measured_value: 0.058,
-      control_limit_value: 0.045,
-      severity: 'critical',
-      status: 'open',
-      factory_id: factoryId,
-      created_at: new Date().toISOString(),
-      model_name: 'Model A',
-    },
-    {
-      id: '2',
-      model_id: 'model-2',
-      alert_type: 'run_above',
-      rule_code: 'R2',
-      rule_description: '7 consecutive points above center line',
-      severity: 'warning',
-      status: 'open',
-      factory_id: factoryId,
-      created_at: new Date(Date.now() - 3600000).toISOString(),
-      model_name: 'Model B',
-    },
-    {
-      id: '3',
-      model_id: 'model-1',
-      alert_type: 'trend_up',
-      rule_code: 'R3',
-      rule_description: '6 consecutive points increasing',
-      severity: 'warning',
-      status: 'acknowledged',
-      acknowledged_at: new Date().toISOString(),
-      factory_id: factoryId,
-      created_at: new Date(Date.now() - 7200000).toISOString(),
-      model_name: 'Model A',
-    },
-  ]
+  let query = supabase
+    .from('spc_alerts')
+    .select(`
+      *,
+      product_models!inner (name)
+    `)
+    .order('created_at', { ascending: false })
 
-  // 필터 적용
-  let filteredAlerts = mockAlerts
-
+  if (factoryId) {
+    query = query.eq('factory_id', factoryId)
+  }
   if (filters?.status && filters.status.length > 0) {
-    filteredAlerts = filteredAlerts.filter(a => filters.status!.includes(a.status))
+    query = query.in('status', filters.status)
   }
   if (filters?.severity && filters.severity.length > 0) {
-    filteredAlerts = filteredAlerts.filter(a => filters.severity!.includes(a.severity))
+    query = query.in('severity', filters.severity)
   }
   if (filters?.model_id) {
-    filteredAlerts = filteredAlerts.filter(a => a.model_id === filters.model_id)
+    query = query.eq('model_id', filters.model_id)
   }
 
-  return filteredAlerts
+  const { data, error } = await query
+
+  if (error) {
+    console.error('[SPC] Failed to fetch alerts:', error)
+    return []
+  }
+
+  return (data || []).map((row: Record<string, unknown>) => {
+    const models = row.product_models as { name: string } | null
+    return {
+      ...row,
+      model_name: models?.name,
+      product_models: undefined,
+    } as unknown as SPCAlert
+  })
 }
 
 /**
- * 미조치 알림 수 조회
+ * 미조치 알림 수 조회 (Supabase)
  */
 export async function getOpenAlertsCount(
   factoryId?: string
 ): Promise<{ total: number; critical: number }> {
-  const alerts = await getSPCAlerts({ status: ['open'] }, factoryId)
+  let query = supabase
+    .from('spc_alerts')
+    .select('id, severity')
+    .eq('status', 'open')
+
+  if (factoryId) {
+    query = query.eq('factory_id', factoryId)
+  }
+
+  const { data, error } = await query
+  if (error || !data) return { total: 0, critical: 0 }
+
   return {
-    total: alerts.length,
-    critical: alerts.filter(a => a.severity === 'critical').length,
+    total: data.length,
+    critical: data.filter(a => a.severity === 'critical').length,
   }
 }
 
 /**
- * 최근 SPC 알림 조회
+ * 최근 SPC 알림 조회 (Supabase)
  */
 export async function getRecentSPCAlerts(
   limit: number = 5,
   factoryId?: string
 ): Promise<SPCAlert[]> {
-  const alerts = await getSPCAlerts(undefined, factoryId)
-  return alerts.slice(0, limit)
+  return getSPCAlerts(undefined, factoryId).then(alerts => alerts.slice(0, limit))
 }
 
 /**
- * 알림 상태 업데이트 (Mock)
+ * 알림 상태 업데이트 (Supabase)
  */
 export async function updateSPCAlertStatus(
   id: string,
   resolution: SPCAlertResolution
 ): Promise<SPCAlert> {
-  // Mock 업데이트
-  return {
-    id,
-    model_id: 'model-1',
-    alert_type: 'ucl_exceeded',
-    severity: 'critical',
+  const updateData: Record<string, unknown> = {
     status: resolution.status,
     resolution_note: resolution.resolution_note,
     root_cause: resolution.root_cause,
     corrective_action: resolution.corrective_action,
-    resolved_at: resolution.status === 'resolved' ? new Date().toISOString() : undefined,
-    created_at: new Date().toISOString(),
   }
+
+  if (resolution.status === 'resolved') {
+    updateData.resolved_at = new Date().toISOString()
+  }
+  if (resolution.status === 'acknowledged') {
+    updateData.acknowledged_at = new Date().toISOString()
+  }
+
+  const { data, error } = await supabase
+    .from('spc_alerts')
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .single()
+
+  if (error) throw error
+  return data as unknown as SPCAlert
 }
 
 // ============================================

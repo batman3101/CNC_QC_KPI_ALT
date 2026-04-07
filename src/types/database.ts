@@ -279,6 +279,75 @@ export type Database = {
         }
         Relationships: []
       }
+      spc_alerts: {
+        Row: {
+          id: string
+          model_id: string
+          item_id: string | null
+          alert_type: string
+          rule_code: string | null
+          rule_description: string | null
+          measured_value: number | null
+          control_limit_value: number | null
+          severity: string
+          status: string
+          factory_id: string | null
+          acknowledged_by: string | null
+          acknowledged_at: string | null
+          resolved_by: string | null
+          resolved_at: string | null
+          resolution_note: string | null
+          root_cause: string | null
+          corrective_action: string | null
+          created_at: string
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          model_id: string
+          item_id?: string | null
+          alert_type: string
+          rule_code?: string | null
+          rule_description?: string | null
+          measured_value?: number | null
+          control_limit_value?: number | null
+          severity?: string
+          status?: string
+          factory_id?: string | null
+          acknowledged_by?: string | null
+          acknowledged_at?: string | null
+          resolved_by?: string | null
+          resolved_at?: string | null
+          resolution_note?: string | null
+          root_cause?: string | null
+          corrective_action?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          model_id?: string
+          item_id?: string | null
+          alert_type?: string
+          rule_code?: string | null
+          rule_description?: string | null
+          measured_value?: number | null
+          control_limit_value?: number | null
+          severity?: string
+          status?: string
+          factory_id?: string | null
+          acknowledged_by?: string | null
+          acknowledged_at?: string | null
+          resolved_by?: string | null
+          resolved_at?: string | null
+          resolution_note?: string | null
+          root_cause?: string | null
+          corrective_action?: string | null
+          created_at?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       product_models: {
         Row: {
           code: string

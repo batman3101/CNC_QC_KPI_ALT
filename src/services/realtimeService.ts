@@ -39,8 +39,7 @@ export function subscribeToRealtime(queryClient: QueryClient, _factoryId?: strin
         queryClient.invalidateQueries({ queryKey: ['dashboard'] })
         queryClient.invalidateQueries({ queryKey: ['monitor-inspections'] })
         queryClient.invalidateQueries({ queryKey: ['spc-pchart'] })
-        queryClient.invalidateQueries({ queryKey: ['spc-kpi-summary'] })
-        queryClient.invalidateQueries({ queryKey: ['spc-model-summary'] })
+        queryClient.invalidateQueries({ queryKey: ['spc-all-cpk-data'] })
       }
     )
     // 검사 결과 (inspection_results) 테이블 구독
@@ -55,6 +54,7 @@ export function subscribeToRealtime(queryClient: QueryClient, _factoryId?: strin
         console.log('[Realtime] inspection_results changed:', payload.eventType)
         queryClient.invalidateQueries({ queryKey: ['inspections'] })
         queryClient.invalidateQueries({ queryKey: ['inspection-results'] })
+        queryClient.invalidateQueries({ queryKey: ['spc-all-cpk-data'] })
       }
     )
     // 불량 (defects) 테이블 구독
@@ -84,7 +84,6 @@ export function subscribeToRealtime(queryClient: QueryClient, _factoryId?: strin
       (payload) => {
         console.log('[Realtime] spc_alerts changed:', payload.eventType)
         queryClient.invalidateQueries({ queryKey: ['spc-alerts'] })
-        queryClient.invalidateQueries({ queryKey: ['spc-kpi-summary'] })
       }
     )
     // 사용자 (users) 테이블 구독

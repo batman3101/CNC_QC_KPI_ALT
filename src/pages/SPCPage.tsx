@@ -3,7 +3,7 @@
  * Statistical Process Control Dashboard
  */
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { Box, Typography, Tabs, Tab, Grid, useTheme, useMediaQuery } from '@mui/material'
@@ -28,8 +28,10 @@ import type { SPCAlert } from '@/types/spc'
 // SPC Services
 import {
   getPChartData,
-  getSPCKPISummary,
-  getModelSPCSummary,
+  fetchAllItemCpkValues,
+  transformToKPISummary,
+  transformToModelSummary,
+  generateAndUpsertAlerts,
   getSPCAlerts,
   getProcessCapabilityData,
   getProductModels,
@@ -119,16 +121,10 @@ export function SPCPage() {
     enabled: !!selectedModelId,
   })
 
-  // Fetch SPC KPI Summary
-  const { data: kpiSummary } = useQuery({
-    queryKey: ['spc-kpi-summary', activeFactoryId],
-    queryFn: () => getSPCKPISummary(activeFactoryId || undefined),
-  })
-
-  // Fetch Model SPC Summary
-  const { data: modelSummary = [] } = useQuery({
-    queryKey: ['spc-model-summary', activeFactoryId],
-    queryFn: () => getModelSPCSummary(activeFactoryId || undefined),
+  // Fetch all item Cpk data (shared single query for KPI + Model summary)
+  const { data: allCpkData } = useQuery({
+    queryKey: ['spc-all-cpk-data', activeFactoryId],
+    queryFn: () => fetchAllItemCpkValues(activeFactoryId || undefined),
   })
 
   // Fetch P-Chart Data
@@ -146,7 +142,15 @@ export function SPCPage() {
       ),
   })
 
-  // Fetch SPC Alerts
+  // 알림 생성: p-chart 위반을 감지하여 spc_alerts 테이블에 저장
+  const { isSuccess: alertsGenerated } = useQuery({
+    queryKey: ['spc-generate-alerts', activeFactoryId],
+    queryFn: () => generateAndUpsertAlerts(activeFactoryId || undefined),
+    staleTime: 5 * 60 * 1000, // 5분마다 재생성
+    refetchOnWindowFocus: false,
+  })
+
+  // Fetch SPC Alerts (알림 생성 완료 후 실행)
   const { data: alerts = [] } = useQuery({
     queryKey: ['spc-alerts', selectedModelId, activeFactoryId],
     queryFn: () =>
@@ -154,7 +158,43 @@ export function SPCPage() {
         selectedModelId ? { model_id: selectedModelId } : undefined,
         activeFactoryId || undefined
       ),
+    enabled: alertsGenerated,
   })
+
+  // 전체 알림 (필터 없이) - KPI/Model 카운트용
+  const { data: allAlerts = [] } = useQuery({
+    queryKey: ['spc-alerts-all', activeFactoryId],
+    queryFn: () => getSPCAlerts(undefined, activeFactoryId || undefined),
+    enabled: alertsGenerated,
+  })
+
+  // Derive KPI summary from shared Cpk data + p-chart trend + real alert counts
+  const kpiSummary = useMemo(() => {
+    if (!allCpkData) return undefined
+    const trend: 'improving' | 'stable' | 'declining' = pChartData
+      ? pChartData.statistics.avgDefectRate < 3 ? 'improving'
+        : pChartData.statistics.avgDefectRate < 5 ? 'stable' : 'declining'
+      : 'stable'
+    const summary = transformToKPISummary(allCpkData, trend)
+    const openAlerts = allAlerts.filter(a => a.status === 'open')
+    summary.open_alerts = openAlerts.length
+    summary.critical_alerts = openAlerts.filter(a => a.severity === 'critical').length
+    return summary
+  }, [allCpkData, pChartData, allAlerts])
+
+  // Derive Model summary from shared Cpk data + real alert counts
+  const modelSummary = useMemo(() => {
+    if (!allCpkData) return []
+    const summaries = transformToModelSummary(allCpkData, productModels)
+    // 모델별 알림 카운트 연결
+    const openAlerts = allAlerts.filter(a => a.status === 'open')
+    for (const s of summaries) {
+      const modelAlerts = openAlerts.filter(a => a.model_id === s.model_id)
+      s.open_alerts_count = modelAlerts.length
+      s.critical_alerts_count = modelAlerts.filter(a => a.severity === 'critical').length
+    }
+    return summaries
+  }, [allCpkData, productModels, allAlerts])
 
   // Fetch Process Capability (when item is selected)
   const { data: capabilityData } = useQuery({
