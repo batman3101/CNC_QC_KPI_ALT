@@ -1,11 +1,13 @@
 /**
  * Model SPC Summary Table 컴포넌트
- * 모델별 SPC 요약 테이블
+ * 모델별 SPC 요약 테이블 (정렬 + 페이지네이션)
  */
 
+import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Table,
   TableBody,
@@ -14,8 +16,17 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { AlertTriangle, TrendingUp } from 'lucide-react'
+import { AlertTriangle, TrendingUp, ArrowUpDown, ArrowUp, ArrowDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import type { ModelSPCSummary, CapabilityRating } from '@/types/spc'
+
+type SortKey = 'model_name' | 'items_count' | 'avg_cpk' | 'overall_rating' | 'open_alerts_count'
+type SortDir = 'asc' | 'desc'
+
+const RATING_ORDER: Record<CapabilityRating, number> = {
+  excellent: 4, good: 3, adequate: 2, poor: 1, inadequate: 0,
+}
+
+const PAGE_SIZE = 10
 
 interface ModelSPCSummaryTableProps {
   data: ModelSPCSummary[]
@@ -24,6 +35,44 @@ interface ModelSPCSummaryTableProps {
 
 export function ModelSPCSummaryTable({ data, onRowClick }: ModelSPCSummaryTableProps) {
   const { t } = useTranslation()
+  const [sortKey, setSortKey] = useState<SortKey>('avg_cpk')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  const [page, setPage] = useState(0)
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(key)
+      setSortDir('desc')
+    }
+    setPage(0)
+  }
+
+  const sortedData = useMemo(() => {
+    const sorted = [...data].sort((a, b) => {
+      let cmp = 0
+      switch (sortKey) {
+        case 'model_name': cmp = a.model_name.localeCompare(b.model_name); break
+        case 'items_count': cmp = a.items_count - b.items_count; break
+        case 'avg_cpk': cmp = a.avg_cpk - b.avg_cpk; break
+        case 'overall_rating': cmp = RATING_ORDER[a.overall_rating] - RATING_ORDER[b.overall_rating]; break
+        case 'open_alerts_count': cmp = a.open_alerts_count - b.open_alerts_count; break
+      }
+      return sortDir === 'asc' ? cmp : -cmp
+    })
+    return sorted
+  }, [data, sortKey, sortDir])
+
+  const totalPages = Math.ceil(sortedData.length / PAGE_SIZE)
+  const pagedData = sortedData.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
+
+  const SortIcon = ({ col }: { col: SortKey }) => {
+    if (sortKey !== col) return <ArrowUpDown className="ml-1 inline h-3 w-3 opacity-40" />
+    return sortDir === 'asc'
+      ? <ArrowUp className="ml-1 inline h-3 w-3" />
+      : <ArrowDown className="ml-1 inline h-3 w-3" />
+  }
 
   const getRatingBadge = (rating: CapabilityRating) => {
     const configs: Record<CapabilityRating, { className: string }> = {
@@ -81,16 +130,26 @@ export function ModelSPCSummaryTable({ data, onRowClick }: ModelSPCSummaryTableP
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{t('dashboard.model')}</TableHead>
-                <TableHead className="text-center">{t('spc.kpi.totalMonitored')}</TableHead>
-                <TableHead className="text-center">{t('spc.kpi.avgCpk')}</TableHead>
+                <TableHead className="cursor-pointer select-none" onClick={() => handleSort('model_name')}>
+                  {t('dashboard.model')}<SortIcon col="model_name" />
+                </TableHead>
+                <TableHead className="cursor-pointer select-none text-center" onClick={() => handleSort('items_count')}>
+                  {t('spc.kpi.totalMonitored')}<SortIcon col="items_count" />
+                </TableHead>
+                <TableHead className="cursor-pointer select-none text-center" onClick={() => handleSort('avg_cpk')}>
+                  {t('spc.kpi.avgCpk')}<SortIcon col="avg_cpk" />
+                </TableHead>
                 <TableHead className="text-center">Min / Max Cpk</TableHead>
-                <TableHead className="text-center">{t('dashboard.status')}</TableHead>
-                <TableHead className="text-center">{t('spc.alertsTitle')}</TableHead>
+                <TableHead className="cursor-pointer select-none text-center" onClick={() => handleSort('overall_rating')}>
+                  {t('dashboard.status')}<SortIcon col="overall_rating" />
+                </TableHead>
+                <TableHead className="cursor-pointer select-none text-center" onClick={() => handleSort('open_alerts_count')}>
+                  {t('spc.alertsTitle')}<SortIcon col="open_alerts_count" />
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((model) => (
+              {pagedData.map((model) => (
                 <TableRow
                   key={model.model_id}
                   className={onRowClick ? 'cursor-pointer hover:bg-muted/50' : ''}
@@ -152,6 +211,42 @@ export function ModelSPCSummaryTable({ data, onRowClick }: ModelSPCSummaryTableP
             </TableBody>
           </Table>
         </div>
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between border-t pt-3 mt-3">
+            <span className="text-sm text-muted-foreground">
+              {sortedData.length}{t('common.count', '개')} {t('common.of', '중')} {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, sortedData.length)}
+            </span>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => p - 1)}
+                disabled={page === 0}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              {Array.from({ length: totalPages }, (_, i) => (
+                <Button
+                  key={i}
+                  variant={page === i ? 'default' : 'outline'}
+                  size="sm"
+                  className="w-8 h-8 p-0"
+                  onClick={() => setPage(i)}
+                >
+                  {i + 1}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => p + 1)}
+                disabled={page >= totalPages - 1}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   )
