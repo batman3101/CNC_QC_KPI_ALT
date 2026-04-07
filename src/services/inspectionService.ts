@@ -36,6 +36,7 @@ export async function getInspections(filters?: {
     .from('inspections')
     .select('*')
     .order('created_at', { ascending: false })
+    .range(0, 9999)
 
   if (filters?.startDate) {
     query = query.gte('created_at', filters.startDate)
@@ -158,6 +159,7 @@ export async function getDefects(filters?: {
     .from('defects')
     .select('*')
     .order('created_at', { ascending: false })
+    .range(0, 9999)
 
   if (filters?.status && filters.status !== 'all') {
     query = query.eq('status', filters.status as 'pending' | 'in_progress' | 'resolved')
