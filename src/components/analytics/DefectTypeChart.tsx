@@ -25,20 +25,27 @@ const COLORS = [
 export function DefectTypeChart({ data }: DefectTypeChartProps) {
   const { t } = useTranslation()
 
+  // Calculate dynamic legend height based on data count
+  const legendRowHeight = 22
+  const legendColumns = 2
+  const legendRows = Math.ceil(data.length / legendColumns)
+  const legendHeight = Math.max(36, legendRows * legendRowHeight + 8)
+  const chartHeight = 280 + legendHeight
+
   return (
-    <Card 
+    <Card
       className="shadow-md transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-lg"
     >
       <CardHeader>
         <CardTitle>{t('charts.defectTypeDistribution')}</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={350}>
+        <ResponsiveContainer width="100%" height={chartHeight}>
           <PieChart>
             <Pie
               data={data}
               cx="50%"
-              cy="50%"
+              cy={130}
               labelLine={false}
               label={({
                 cx,
@@ -65,7 +72,7 @@ export function DefectTypeChart({ data }: DefectTypeChartProps) {
                   </text>
                 )
               }}
-              outerRadius={120}
+              outerRadius={110}
               dataKey="count"
             >
               {data.map((_, index) => (
@@ -76,7 +83,7 @@ export function DefectTypeChart({ data }: DefectTypeChartProps) {
               ))}
             </Pie>
             <Tooltip
-              contentStyle={{ 
+              contentStyle={{
                 backgroundColor: 'hsl(var(--background))',
                 borderColor: 'hsl(var(--border))',
                 color: 'hsl(var(--foreground))'
@@ -114,10 +121,12 @@ export function DefectTypeChart({ data }: DefectTypeChartProps) {
             />
             <Legend
               verticalAlign="bottom"
-              height={36}
-              wrapperStyle={{ 
+              height={legendHeight}
+              wrapperStyle={{
                 color: 'hsl(var(--foreground))',
-                fontSize: '14px'
+                fontSize: '11px',
+                lineHeight: '20px',
+                paddingTop: '8px',
               }}
               formatter={(_value, entry) => {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any

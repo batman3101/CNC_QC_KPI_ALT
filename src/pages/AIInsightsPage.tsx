@@ -103,36 +103,37 @@ export function AIInsightsPage() {
       return inspectionBusinessDate === todayBusinessDate
     })
 
-    const todayPassed = todayInspections.filter(i => i.status === 'pass').length
-    const todayFailed = todayInspections.filter(i => i.status === 'fail').length
-    const todayTotal = todayInspections.length
-    const todayPassRate = todayTotal > 0 ? (todayPassed / todayTotal) * 100 : 0
+    // 수량 기반 계산 (검사수량 대비 불량수량)
+    const todayInspectionQty = todayInspections.reduce((sum, i) => sum + (i.inspection_quantity || 0), 0)
+    const todayDefectQty = todayInspections.reduce((sum, i) => sum + (i.defect_quantity || 0), 0)
+    const todayPassQty = todayInspectionQty - todayDefectQty
+    const todayPassRate = todayInspectionQty > 0 ? (todayPassQty / todayInspectionQty) * 100 : 0
 
-    // 주간 트렌드
-    const weeklyMap = new Map<string, { total: number; passed: number; failed: number }>()
+    // 주간 트렌드 (수량 기반)
+    const weeklyMap = new Map<string, { inspectionQty: number; defectQty: number; records: number }>()
     for (let i = 6; i >= 0; i--) {
       const date = new Date()
       date.setDate(date.getDate() - i)
       const dateStr = formatDateString(date)
-      weeklyMap.set(dateStr, { total: 0, passed: 0, failed: 0 })
+      weeklyMap.set(dateStr, { inspectionQty: 0, defectQty: 0, records: 0 })
     }
 
     inspections.forEach(inspection => {
       const dateStr = formatDateString(new Date(inspection.created_at))
       const existing = weeklyMap.get(dateStr)
       if (existing) {
-        existing.total++
-        if (inspection.status === 'pass') existing.passed++
-        else existing.failed++
+        existing.records++
+        existing.inspectionQty += (inspection.inspection_quantity || 0)
+        existing.defectQty += (inspection.defect_quantity || 0)
       }
     })
 
     const weeklyTrend = Array.from(weeklyMap.entries()).map(([date, stats]) => ({
       date,
-      total: stats.total,
-      passed: stats.passed,
-      failed: stats.failed,
-      passRate: stats.total > 0 ? (stats.passed / stats.total) * 100 : 0,
+      total: stats.inspectionQty,
+      passed: stats.inspectionQty - stats.defectQty,
+      failed: stats.defectQty,
+      passRate: stats.inspectionQty > 0 ? ((stats.inspectionQty - stats.defectQty) / stats.inspectionQty) * 100 : 0,
     }))
 
     // 불량 유형 분포
@@ -151,12 +152,12 @@ export function AIInsightsPage() {
       passRate: 100 - m.defectRate,
     }))
 
-    // 모델별 불량률
-    const modelMap = new Map<string, { total: number; failed: number }>()
+    // 모델별 불량률 (수량 기반)
+    const modelMap = new Map<string, { inspectionQty: number; defectQty: number }>()
     inspections.forEach(inspection => {
-      const existing = modelMap.get(inspection.model_id) || { total: 0, failed: 0 }
-      existing.total++
-      if (inspection.status === 'fail') existing.failed++
+      const existing = modelMap.get(inspection.model_id) || { inspectionQty: 0, defectQty: 0 }
+      existing.inspectionQty += (inspection.inspection_quantity || 0)
+      existing.defectQty += (inspection.defect_quantity || 0)
       modelMap.set(inspection.model_id, existing)
     })
 
@@ -165,8 +166,8 @@ export function AIInsightsPage() {
       return {
         modelId,
         modelCode: model?.code || modelId,
-        total: stats.total,
-        defectRate: stats.total > 0 ? (stats.failed / stats.total) * 100 : 0,
+        total: stats.inspectionQty,
+        defectRate: stats.inspectionQty > 0 ? (stats.defectQty / stats.inspectionQty) * 100 : 0,
       }
     })
 
@@ -187,9 +188,9 @@ export function AIInsightsPage() {
 
     return {
       todayInspections: {
-        total: todayTotal,
-        passed: todayPassed,
-        failed: todayFailed,
+        total: todayInspectionQty,
+        passed: todayPassQty,
+        failed: todayDefectQty,
         passRate: todayPassRate,
       },
       weeklyTrend,
@@ -211,8 +212,9 @@ export function AIInsightsPage() {
       setInsights(results)
       setLastUpdated(new Date().toLocaleTimeString())
     } catch (error) {
-      console.error('Failed to generate insights:', error)
-      setErrorMessage(t('aiInsights.generateError'))
+      const errMsg = error instanceof Error ? error.message : String(error)
+      console.error('Failed to generate insights:', errMsg)
+      setErrorMessage(`${t('aiInsights.generateError')} (${errMsg})`)
     } finally {
       setIsGenerating(false)
     }
@@ -294,7 +296,7 @@ export function AIInsightsPage() {
 
         {/* AI Chatbot */}
         <Grid size={{ xs: 12, lg: 4 }}>
-          <Box sx={{ height: { xs: 400, lg: '100%' }, minHeight: 400 }}>
+          <Box sx={{ minHeight: 500 }}>
             <AIChatbot analyticsData={analyticsData} />
           </Box>
         </Grid>

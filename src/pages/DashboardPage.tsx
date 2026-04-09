@@ -128,8 +128,8 @@ export function DashboardPage() {
 
   // Calculate stats from today's business day data using quantities
   const todayInspectionsCount = todayInspectionsList.length
-  const todayInspectionQty = todayInspectionsList.reduce((sum, i: any) => sum + (i.inspection_quantity || 0), 0)
-  const todayDefectQty = todayInspectionsList.reduce((sum, i: any) => sum + (i.defect_quantity || 0), 0)
+  const todayInspectionQty = todayInspectionsList.reduce((sum, i) => sum + (i.inspection_quantity || 0), 0)
+  const todayDefectQty = todayInspectionsList.reduce((sum, i) => sum + (i.defect_quantity || 0), 0)
   const failedInspections = todayInspectionsList.filter((i) => i.status === 'fail').length
   const passRate =
     todayInspectionQty > 0

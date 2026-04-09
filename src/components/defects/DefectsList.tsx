@@ -53,6 +53,7 @@ export function DefectsList() {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [defectTypeFilter, setDefectTypeFilter] = useState<string>('all')
   const [selectedDefect, setSelectedDefect] = useState<Defect | null>(null)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
   const [editDialogOpen, setEditDialogOpen] = useState(false)
@@ -189,11 +190,17 @@ export function DefectsList() {
     },
   })
 
-  // Filter defects by status
+  // Filter defects by status and defect type
   const filteredDefects = useMemo(() => {
-    if (statusFilter === 'all') return defects
-    return defects.filter((defect) => defect.status === statusFilter)
-  }, [defects, statusFilter])
+    let result = defects
+    if (statusFilter !== 'all') {
+      result = result.filter((defect) => defect.status === statusFilter)
+    }
+    if (defectTypeFilter !== 'all') {
+      result = result.filter((defect) => defect.defect_type === defectTypeFilter)
+    }
+    return result
+  }, [defects, statusFilter, defectTypeFilter])
 
   // Column definitions - 새로운 컬럼 순서
   // 1. 등록일시 2. 모델 코드 3. 불량 유형 4. 설명 5. 상태 6. 작업
@@ -364,21 +371,38 @@ export function DefectsList() {
     </Box>
   )
 
-  // Toolbar with status filter
+  // Toolbar with defect type and status filters
   const toolbarActions = (
-    <FormControl size="small" sx={{ minWidth: 150 }}>
-      <InputLabel>{t('defects.filterByStatus')}</InputLabel>
-      <Select
-        value={statusFilter}
-        label={t('defects.filterByStatus')}
-        onChange={(e) => setStatusFilter(e.target.value)}
-      >
-        <MenuItem value="all">{t('common.all')}</MenuItem>
-        <MenuItem value="pending">{t('defects.statusPending')}</MenuItem>
-        <MenuItem value="in_progress">{t('defects.statusInProgress')}</MenuItem>
-        <MenuItem value="resolved">{t('defects.statusResolved')}</MenuItem>
-      </Select>
-    </FormControl>
+    <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+      <FormControl size="small" sx={{ minWidth: 200 }}>
+        <InputLabel>{t('defects.defectType')}</InputLabel>
+        <Select
+          value={defectTypeFilter}
+          label={t('defects.defectType')}
+          onChange={(e) => setDefectTypeFilter(e.target.value)}
+        >
+          <MenuItem value="all">{t('common.all')}</MenuItem>
+          {defectTypes.map((dt) => (
+            <MenuItem key={dt.id} value={dt.id}>
+              {dt.name}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      <FormControl size="small" sx={{ minWidth: 150 }}>
+        <InputLabel>{t('defects.filterByStatus')}</InputLabel>
+        <Select
+          value={statusFilter}
+          label={t('defects.filterByStatus')}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <MenuItem value="all">{t('common.all')}</MenuItem>
+          <MenuItem value="pending">{t('defects.statusPending')}</MenuItem>
+          <MenuItem value="in_progress">{t('defects.statusInProgress')}</MenuItem>
+          <MenuItem value="resolved">{t('defects.statusResolved')}</MenuItem>
+        </Select>
+      </FormControl>
+    </Box>
   )
 
   // Calculate counts
@@ -511,7 +535,7 @@ export function DefectsList() {
         getRowId={(row) => row.id}
         renderActions={renderActions}
         toolbarActions={toolbarActions}
-        searchPlaceholder={t('defects.defectType')}
+        enableSearch={false}
         pageSize={isMobile ? 5 : 20}
         enableFilters={true}
         renderMobileCard={(defect) => {

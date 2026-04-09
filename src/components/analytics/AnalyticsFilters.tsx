@@ -124,7 +124,7 @@ export function AnalyticsFilters({
             </Select>
           </FormControl>
 
-          {/* Process Filter - 공정 코드 기준 */}
+          {/* Process Filter - 공정 코드 기준 (inspections 테이블에 코드로 저장됨) */}
           <FormControl fullWidth>
             <InputLabel>{t('inspection.process')}</InputLabel>
             <Select
@@ -139,7 +139,7 @@ export function AnalyticsFilters({
             >
               <MenuItem value="all">{t('analytics.allProcesses')}</MenuItem>
               {processes.map((process) => (
-                <MenuItem key={process.id} value={process.id}>
+                <MenuItem key={process.id} value={process.code}>
                   {process.code} - {process.name}
                 </MenuItem>
               ))}

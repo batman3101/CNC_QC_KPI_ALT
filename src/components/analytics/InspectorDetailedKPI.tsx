@@ -56,7 +56,14 @@ export function InspectorDetailedKPI({ filters }: InspectorDetailedKPIProps) {
 
   // Fetch detailed KPI for selected inspector
   const { data: inspectorKPI, isLoading: isLoadingKPI } = useQuery({
-    queryKey: ['inspector-detailed-kpi', selectedInspectorId, filters],
+    queryKey: [
+      'inspector-detailed-kpi',
+      selectedInspectorId,
+      filters.dateRange.from?.toISOString(),
+      filters.dateRange.to?.toISOString(),
+      filters.modelId,
+      filters.processId,
+    ],
     queryFn: () => analyticsService.getInspectorDetailedKPI(selectedInspectorId, filters),
     enabled: !!selectedInspectorId,
   })

@@ -281,6 +281,7 @@
     "modelDefectDistribution": "Phân bố lỗi theo mẫu",
     "defectTypeDistribution": "Phân bố loại lỗi",
     "machinePerformance": "Hiệu suất theo thiết bị (Biểu đồ Pareto)",
+    "cumulativePercent": "Tỷ lệ tích lũy (%)",
     "inspectorPerformance": "Hiệu suất theo người kiểm tra",
     "hourlyDistribution": "Phân bố kiểm tra theo giờ"
   },

@@ -281,6 +281,7 @@
     "modelDefectDistribution": "모델별 불량 분포",
     "defectTypeDistribution": "불량 유형 분포",
     "machinePerformance": "설비별 성능 (파레토 차트)",
+    "cumulativePercent": "누적 비율 (%)",
     "inspectorPerformance": "검사자별 성능",
     "hourlyDistribution": "시간대별 검사 분포"
   },

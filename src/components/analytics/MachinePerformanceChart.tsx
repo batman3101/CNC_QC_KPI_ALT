@@ -1,5 +1,5 @@
+import { useState, useMemo } from 'react'
 import {
-  BarChart,
   Bar,
   XAxis,
   YAxis,
@@ -7,9 +7,18 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  Line,
+  ComposedChart,
 } from 'recharts'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import type { MachinePerformance } from '@/types/analytics'
 
 interface MachinePerformanceChartProps {
@@ -20,49 +29,77 @@ export function MachinePerformanceChart({
   data,
 }: MachinePerformanceChartProps) {
   const { t } = useTranslation()
+  const [topN, setTopN] = useState<string>('10')
+
+  // Sort by defect count desc and take top N, add cumulative %
+  const chartData = useMemo(() => {
+    const limit = topN === 'all' ? data.length : parseInt(topN)
+    const sorted = [...data]
+      .sort((a, b) => b.defectCount - a.defectCount)
+      .slice(0, limit)
+
+    const totalDefects = sorted.reduce((sum, d) => sum + d.defectCount, 0)
+    let cumulative = 0
+
+    return sorted.map((item) => {
+      cumulative += item.defectCount
+      return {
+        ...item,
+        cumulativePercent: totalDefects > 0
+          ? Math.round((cumulative / totalDefects) * 100)
+          : 0,
+      }
+    })
+  }, [data, topN])
+
+  const chartHeight = Math.max(350, chartData.length * 36)
 
   return (
-    <Card 
+    <Card
       className="shadow-md transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-lg"
     >
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle>{t('charts.machinePerformance')}</CardTitle>
+        <Select value={topN} onValueChange={setTopN}>
+          <SelectTrigger className="w-[130px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="5">Top 5</SelectItem>
+            <SelectItem value="10">Top 10</SelectItem>
+            <SelectItem value="15">Top 15</SelectItem>
+            <SelectItem value="all">{t('common.all')}</SelectItem>
+          </SelectContent>
+        </Select>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={350}>
-          <BarChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+        <ResponsiveContainer width="100%" height={chartHeight}>
+          <ComposedChart data={chartData} layout="vertical" margin={{ left: 10, right: 20 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" horizontal={false} />
             <XAxis
+              type="number"
+              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
+              stroke="hsl(var(--border))"
+            />
+            <XAxis
+              xAxisId="percent"
+              type="number"
+              orientation="top"
+              domain={[0, 100]}
+              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+              tickFormatter={(v) => `${v}%`}
+              stroke="hsl(var(--border))"
+              hide
+            />
+            <YAxis
+              type="category"
               dataKey="machineName"
               tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-              stroke="hsl(var(--border))"
-            />
-            <YAxis
-              yAxisId="left"
-              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-              label={{ 
-                value: t('charts.defectCount'), 
-                angle: -90, 
-                position: 'insideLeft',
-                style: { fill: 'hsl(var(--muted-foreground))' }
-              }}
-              stroke="hsl(var(--border))"
-            />
-            <YAxis
-              yAxisId="right"
-              orientation="right"
-              tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-              label={{ 
-                value: t('charts.defectRate') + ' (%)', 
-                angle: 90, 
-                position: 'insideRight',
-                style: { fill: 'hsl(var(--muted-foreground))' }
-              }}
-              domain={[0, 100]}
+              width={90}
               stroke="hsl(var(--border))"
             />
             <Tooltip
-              contentStyle={{ 
+              contentStyle={{
                 backgroundColor: 'hsl(var(--background))',
                 borderColor: 'hsl(var(--border))',
                 color: 'hsl(var(--foreground))'
@@ -110,10 +147,10 @@ export function MachinePerformanceChart({
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-[0.70rem] uppercase text-muted-foreground">
-                          {t('dashboard.avgInspectionTime')}
+                          {t('charts.cumulativePercent') || '누적 비율'}
                         </span>
                         <span className="font-bold">
-                          {data.avgInspectionTime.toFixed(1)}
+                          {data.cumulativePercent}%
                         </span>
                       </div>
                     </div>
@@ -121,28 +158,29 @@ export function MachinePerformanceChart({
                 )
               }}
             />
-            <Legend 
-              wrapperStyle={{ 
+            <Legend
+              wrapperStyle={{
                 color: 'hsl(var(--foreground))',
                 fontSize: '14px'
               }}
             />
             <Bar
-              yAxisId="left"
               dataKey="defectCount"
               name={t('charts.defectCount')}
               fill="hsl(var(--chart-1))"
-              radius={[8, 8, 0, 0]}
+              radius={[0, 4, 4, 0]}
+              barSize={20}
             />
-            <Bar
-              yAxisId="right"
-              dataKey="defectRate"
-              name={t('charts.defectRate') + ' (%)'}
-              fill="hsl(var(--chart-2))"
-              opacity={0.3}
-              radius={[8, 8, 0, 0]}
+            <Line
+              xAxisId="percent"
+              type="monotone"
+              dataKey="cumulativePercent"
+              name={t('charts.cumulativePercent') || '누적 비율 (%)'}
+              stroke="hsl(var(--chart-2))"
+              strokeWidth={2}
+              dot={{ r: 3, fill: 'hsl(var(--chart-2))' }}
             />
-          </BarChart>
+          </ComposedChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>

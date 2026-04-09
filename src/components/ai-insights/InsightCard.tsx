@@ -45,7 +45,6 @@ export function InsightCard({ type, title, content, isLoading }: InsightCardProp
     <Card
       elevation={3}
       sx={{
-        height: '100%',
         display: 'flex',
         flexDirection: 'column',
         transition: 'all 0.3s ease-in-out',

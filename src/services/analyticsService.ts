@@ -39,7 +39,7 @@ export async function getKPISummary(
     .lte('created_at', dateFilter.lte)
 
   if (filters.processId) {
-    inspectionsQuery = inspectionsQuery.eq('process_id', filters.processId)
+    inspectionsQuery = inspectionsQuery.eq('inspection_process', filters.processId)
   }
   if (filters.modelId) {
     inspectionsQuery = inspectionsQuery.eq('model_id', filters.modelId)
@@ -138,7 +138,7 @@ export async function getDefectRateTrend(
     .order('created_at', { ascending: true })
 
   if (filters.processId) {
-    query = query.eq('process_id', filters.processId)
+    query = query.eq('inspection_process', filters.processId)
   }
   if (filters.modelId) {
     query = query.eq('model_id', filters.modelId)
@@ -198,6 +198,12 @@ export async function getModelDefectDistribution(
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
 
+  if (filters.processId) {
+    query = query.eq('inspection_process', filters.processId)
+  }
+  if (filters.modelId) {
+    query = query.eq('model_id', filters.modelId)
+  }
   if (factoryId) {
     query = query.eq('factory_id', factoryId)
   }
@@ -261,6 +267,12 @@ export async function getMachinePerformance(
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
 
+  if (filters.processId) {
+    query = query.eq('inspection_process', filters.processId)
+  }
+  if (filters.modelId) {
+    query = query.eq('model_id', filters.modelId)
+  }
   if (factoryId) {
     query = query.eq('factory_id', factoryId)
   }
@@ -323,6 +335,12 @@ export async function getDefectTypeDistribution(
     .gte('inspections.created_at', dateFilter.gte)
     .lte('inspections.created_at', dateFilter.lte)
 
+  if (filters.processId) {
+    query = query.eq('inspections.inspection_process', filters.processId)
+  }
+  if (filters.modelId) {
+    query = query.eq('inspections.model_id', filters.modelId)
+  }
   if (factoryId) {
     query = query.eq('factory_id', factoryId)
   }
@@ -373,6 +391,12 @@ export async function getHourlyDistribution(
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
 
+  if (filters.processId) {
+    query = query.eq('inspection_process', filters.processId)
+  }
+  if (filters.modelId) {
+    query = query.eq('model_id', filters.modelId)
+  }
   if (factoryId) {
     query = query.eq('factory_id', factoryId)
   }
@@ -428,6 +452,12 @@ export async function getInspectorPerformance(
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
 
+  if (filters.processId) {
+    query = query.eq('inspection_process', filters.processId)
+  }
+  if (filters.modelId) {
+    query = query.eq('model_id', filters.modelId)
+  }
   if (factoryId) {
     query = query.eq('factory_id', factoryId)
   }
@@ -498,18 +528,31 @@ export async function getInspectorDetailedKPI(
 
   if (inspectorError || !inspector) return null
 
+  // Fetch process code-to-name mapping
+  const { data: processesData } = await supabase
+    .from('inspection_processes')
+    .select('code, name')
+  const processNameMap = new Map<string, string>(
+    processesData?.map((p: { code: string; name: string }) => [p.code, p.name]) || []
+  )
+
   // Get all inspections for this inspector in the date range
   let inspectorQuery = supabase
     .from('inspections')
     .select(`
       id, status, created_at, model_id, inspection_process, inspection_quantity, defect_quantity,
-      product_models (name, code),
-      inspection_processes:inspection_process (name, code)
+      product_models (name, code)
     `)
     .eq('user_id', inspectorId)
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
 
+  if (filters.processId) {
+    inspectorQuery = inspectorQuery.eq('inspection_process', filters.processId)
+  }
+  if (filters.modelId) {
+    inspectorQuery = inspectorQuery.eq('model_id', filters.modelId)
+  }
   if (factoryId) {
     inspectorQuery = inspectorQuery.eq('factory_id', factoryId)
   }
@@ -523,6 +566,12 @@ export async function getInspectorDetailedKPI(
     .gte('created_at', dateFilter.gte)
     .lte('created_at', dateFilter.lte)
 
+  if (filters.processId) {
+    teamQuery = teamQuery.eq('inspection_process', filters.processId)
+  }
+  if (filters.modelId) {
+    teamQuery = teamQuery.eq('model_id', filters.modelId)
+  }
   if (factoryId) {
     teamQuery = teamQuery.eq('factory_id', factoryId)
   }
@@ -533,7 +582,9 @@ export async function getInspectorDetailedKPI(
   const allTeamInspections = teamInspections || []
 
   // Calculate basic stats using quantities
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalInspectionQty = myInspections.reduce((sum: number, i: any) => sum + (i.inspection_quantity || 0), 0)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalDefectQty = myInspections.reduce((sum: number, i: any) => sum + (i.defect_quantity || 0), 0)
   const totalInspections = totalInspectionQty
   const defectCount = totalDefectQty
@@ -561,6 +612,7 @@ export async function getInspectorDetailedKPI(
 
   // Daily trend (business day based) using quantities
   const dailyMap = new Map<string, { totalQty: number; defectQty: number }>()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   myInspections.forEach((insp: any) => {
     const date = parseBusinessDate(insp.created_at)
     const stats = dailyMap.get(date) || { totalQty: 0, defectQty: 0 }
@@ -604,7 +656,7 @@ export async function getInspectorDetailedKPI(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   myInspections.forEach((insp: any) => {
     const processCode = insp.inspection_process
-    const processName = insp.inspection_processes?.name || processCode
+    const processName = processNameMap.get(processCode) || processCode
     const stats = processMap.get(processCode) || { name: processName, code: processCode, totalQty: 0, defectQty: 0 }
     stats.totalQty += (insp.inspection_quantity || 0)
     stats.defectQty += (insp.defect_quantity || 0)
@@ -620,7 +672,9 @@ export async function getInspectorDetailedKPI(
   }))
 
   // Team comparison using quantities
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const teamTotalQty = allTeamInspections.reduce((sum: number, i: any) => sum + (i.inspection_quantity || 0), 0)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const teamDefectQty = allTeamInspections.reduce((sum: number, i: any) => sum + (i.defect_quantity || 0), 0)
   const avgDefectRate = teamTotalQty > 0 ? (teamDefectQty / teamTotalQty) * 100 : 0
 

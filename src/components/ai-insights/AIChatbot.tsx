@@ -129,8 +129,8 @@ export function AIChatbot({ analyticsData }: AIChatbotProps) {
           flex: 1,
           display: 'flex',
           flexDirection: 'column',
-          overflow: 'hidden',
           pt: 1,
+          overflow: 'auto',
         }}
       >
         {/* Messages Container */}
