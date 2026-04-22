@@ -57,17 +57,19 @@ export function DefectDetailDialog({
     queryFn: getUsers,
   })
 
-  // Fetch machines for machine name
-  const { data: machines = [] } = useQuery({
-    queryKey: ['machines'],
-    queryFn: () => getMachines(),
-  })
-
   // Fetch related inspection data
   const { data: inspection, isLoading: inspectionLoading } = useQuery({
     queryKey: ['inspection', defect?.inspection_id],
     queryFn: () => getInspectionById(defect!.inspection_id),
     enabled: !!defect?.inspection_id,
+  })
+
+  // Fetch machines scoped to the inspection's factory (matches input-side scope)
+  // Falls back to unfiltered fetch only when the inspection has no factory_id
+  const { data: machines = [] } = useQuery({
+    queryKey: ['machines', inspection?.factory_id ?? 'all'],
+    queryFn: () => getMachines(inspection?.factory_id || undefined),
+    enabled: !!inspection,
   })
 
   // Helper function to get model info
@@ -89,10 +91,13 @@ export function DefectDetailDialog({
   }
 
   // Helper function to get machine name
+  // When machine_id exists but lookup fails (e.g. machine became inactive or
+  // belongs to a different factory than the current one loaded), keep the raw
+  // identifier visible instead of silently showing '-' which hides the bug.
   const getMachineName = (machineId: string | null): string => {
-    if (!machineId) return '-'
+    if (!machineId) return t('common.unassigned', '미지정')
     const machine = machines.find((m) => m.id === machineId)
-    return machine ? machine.name : '-'
+    return machine?.name || machineId
   }
 
   if (!defect) return null

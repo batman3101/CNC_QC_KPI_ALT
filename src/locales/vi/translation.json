@@ -25,7 +25,8 @@
     "paginationInfo": "{{from}}-{{to}} / Tổng {{count}}",
     "toggleTheme": "Đổi giao diện",
     "manager": "Quản lý",
-    "inspector": "Kiểm tra viên"
+    "inspector": "Kiểm tra viên",
+    "unassigned": "Chưa chỉ định"
   },
   "auth": {
     "login": "Đăng nhập",

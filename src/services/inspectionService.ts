@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { paginatedFetch } from '@/lib/supabasePagination'
 import type { Database } from '@/types/database'
 import imageCompression from 'browser-image-compression'
 
@@ -32,48 +33,23 @@ export async function getInspections(filters?: {
   userId?: string
   factoryId?: string
 }): Promise<Inspection[]> {
-  const PAGE_SIZE = 1000
-  const allRows: Inspection[] = []
-  let from = 0
-
-  while (true) {
+  return paginatedFetch<Inspection>((from, to) => {
     let query = supabase
       .from('inspections')
       .select('*')
       .order('created_at', { ascending: false })
-      .range(from, from + PAGE_SIZE - 1)
+      .range(from, to)
 
-    if (filters?.startDate) {
-      query = query.gte('created_at', filters.startDate)
-    }
-    if (filters?.endDate) {
-      query = query.lte('created_at', filters.endDate)
-    }
-    if (filters?.status) {
-      query = query.eq('status', filters.status as 'pending' | 'pass' | 'fail')
-    }
-    if (filters?.modelId) {
-      query = query.eq('model_id', filters.modelId)
-    }
-    if (filters?.machineId) {
-      query = query.eq('machine_id', filters.machineId)
-    }
-    if (filters?.userId) {
-      query = query.eq('user_id', filters.userId)
-    }
-    if (filters?.factoryId) {
-      query = query.eq('factory_id', filters.factoryId)
-    }
+    if (filters?.startDate) query = query.gte('created_at', filters.startDate)
+    if (filters?.endDate) query = query.lte('created_at', filters.endDate)
+    if (filters?.status) query = query.eq('status', filters.status as 'pending' | 'pass' | 'fail')
+    if (filters?.modelId) query = query.eq('model_id', filters.modelId)
+    if (filters?.machineId) query = query.eq('machine_id', filters.machineId)
+    if (filters?.userId) query = query.eq('user_id', filters.userId)
+    if (filters?.factoryId) query = query.eq('factory_id', filters.factoryId)
 
-    const { data, error } = await query
-    if (error) throw error
-    if (!data || data.length === 0) break
-    allRows.push(...data)
-    if (data.length < PAGE_SIZE) break
-    from += PAGE_SIZE
-  }
-
-  return allRows
+    return query
+  })
 }
 
 export async function getInspectionById(id: string): Promise<Inspection | null> {
@@ -165,42 +141,23 @@ export async function getDefects(filters?: {
   endDate?: string
   factoryId?: string
 }): Promise<Defect[]> {
-  const PAGE_SIZE = 1000
-  const allRows: Defect[] = []
-  let from = 0
-
-  while (true) {
+  return paginatedFetch<Defect>((from, to) => {
     let query = supabase
       .from('defects')
       .select('*')
       .order('created_at', { ascending: false })
-      .range(from, from + PAGE_SIZE - 1)
+      .range(from, to)
 
     if (filters?.status && filters.status !== 'all') {
       query = query.eq('status', filters.status as 'pending' | 'in_progress' | 'resolved')
     }
-    if (filters?.modelId) {
-      query = query.eq('model_id', filters.modelId)
-    }
-    if (filters?.startDate) {
-      query = query.gte('created_at', filters.startDate)
-    }
-    if (filters?.endDate) {
-      query = query.lte('created_at', filters.endDate)
-    }
-    if (filters?.factoryId) {
-      query = query.eq('factory_id', filters.factoryId)
-    }
+    if (filters?.modelId) query = query.eq('model_id', filters.modelId)
+    if (filters?.startDate) query = query.gte('created_at', filters.startDate)
+    if (filters?.endDate) query = query.lte('created_at', filters.endDate)
+    if (filters?.factoryId) query = query.eq('factory_id', filters.factoryId)
 
-    const { data, error } = await query
-    if (error) throw error
-    if (!data || data.length === 0) break
-    allRows.push(...data)
-    if (data.length < PAGE_SIZE) break
-    from += PAGE_SIZE
-  }
-
-  return allRows
+    return query
+  })
 }
 
 export async function getDefectById(id: string): Promise<Defect | null> {
@@ -327,41 +284,18 @@ export async function getDefectStats(factoryId?: string): Promise<{
   inProgress: number
   resolved: number
 }> {
-  const PAGE_SIZE = 1000
-  const allRows: { status: string | null }[] = []
-  let from = 0
+  const allRows = await paginatedFetch<{ status: string | null }>((from, to) => {
+    let query = supabase.from('defects').select('status').range(from, to)
+    if (factoryId) query = query.eq('factory_id', factoryId)
+    return query
+  })
 
-  while (true) {
-    let query = supabase
-      .from('defects')
-      .select('status')
-      .range(from, from + PAGE_SIZE - 1)
-
-    if (factoryId) {
-      query = query.eq('factory_id', factoryId)
-    }
-
-    const { data, error } = await query
-    if (error) throw error
-    if (!data || data.length === 0) break
-    allRows.push(...data)
-    if (data.length < PAGE_SIZE) break
-    from += PAGE_SIZE
-  }
-
-  const stats = {
-    total: allRows.length,
-    pending: 0,
-    inProgress: 0,
-    resolved: 0,
-  }
-
+  const stats = { total: allRows.length, pending: 0, inProgress: 0, resolved: 0 }
   allRows.forEach(d => {
     if (d.status === 'pending') stats.pending++
     else if (d.status === 'in_progress') stats.inProgress++
     else if (d.status === 'resolved') stats.resolved++
   })
-
   return stats
 }
 

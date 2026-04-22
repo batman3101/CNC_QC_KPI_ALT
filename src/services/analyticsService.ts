@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { paginatedFetch } from '@/lib/supabasePagination'
 import {
   getBusinessDateRangeFilter,
   parseBusinessDate,
@@ -32,24 +33,22 @@ export async function getKPISummary(
   const dateFilter = buildDateFilter(filters)
 
   // Get total inspections
-  let inspectionsQuery = supabase
-    .from('inspections')
-    .select('id, status, created_at, user_id, inspection_quantity, defect_quantity', { count: 'exact' })
-    .gte('created_at', dateFilter.gte)
-    .lte('created_at', dateFilter.lte)
-
-  if (filters.processId) {
-    inspectionsQuery = inspectionsQuery.eq('inspection_process', filters.processId)
-  }
-  if (filters.modelId) {
-    inspectionsQuery = inspectionsQuery.eq('model_id', filters.modelId)
-  }
-  if (factoryId) {
-    inspectionsQuery = inspectionsQuery.eq('factory_id', factoryId)
-  }
-
-  const { data: inspections, count: totalInspections } =
-    await inspectionsQuery
+  const inspections = await paginatedFetch<{
+    id: string; status: string; created_at: string;
+    user_id: string; inspection_quantity: number; defect_quantity: number
+  }>((from, to) => {
+    let q = supabase
+      .from('inspections')
+      .select('id, status, created_at, user_id, inspection_quantity, defect_quantity')
+      .gte('created_at', dateFilter.gte)
+      .lte('created_at', dateFilter.lte)
+      .range(from, to)
+    if (filters.processId) q = q.eq('inspection_process', filters.processId)
+    if (filters.modelId) q = q.eq('model_id', filters.modelId)
+    if (factoryId) q = q.eq('factory_id', factoryId)
+    return q
+  })
+  const totalInspections = inspections.length
 
   // Calculate defect rate based on quantities (검사수량 대비 불량수량)
   const totalInspectionQty = inspections?.reduce(
@@ -130,26 +129,23 @@ export async function getDefectRateTrend(
 ): Promise<DefectRateTrend[]> {
   const dateFilter = buildDateFilter(filters)
 
-  let query = supabase
-    .from('inspections')
-    .select('created_at, status, inspection_quantity, defect_quantity')
-    .gte('created_at', dateFilter.gte)
-    .lte('created_at', dateFilter.lte)
-    .order('created_at', { ascending: true })
+  const inspections = await paginatedFetch<{
+    created_at: string; status: string; inspection_quantity: number; defect_quantity: number
+  }>((from, to) => {
+    let q = supabase
+      .from('inspections')
+      .select('created_at, status, inspection_quantity, defect_quantity')
+      .gte('created_at', dateFilter.gte)
+      .lte('created_at', dateFilter.lte)
+      .order('created_at', { ascending: true })
+      .range(from, to)
+    if (filters.processId) q = q.eq('inspection_process', filters.processId)
+    if (filters.modelId) q = q.eq('model_id', filters.modelId)
+    if (factoryId) q = q.eq('factory_id', factoryId)
+    return q
+  })
 
-  if (filters.processId) {
-    query = query.eq('inspection_process', filters.processId)
-  }
-  if (filters.modelId) {
-    query = query.eq('model_id', filters.modelId)
-  }
-  if (factoryId) {
-    query = query.eq('factory_id', factoryId)
-  }
-
-  const { data: inspections } = await query
-
-  if (!inspections) return []
+  if (inspections.length === 0) return []
 
   // Group by business date (08:00 ~ next day 07:59), using quantities
   const groupedByDate = inspections.reduce((acc, inspection: { created_at: string; status: string; inspection_quantity: number; defect_quantity: number }) => {
@@ -181,36 +177,30 @@ export async function getModelDefectDistribution(
 ): Promise<ModelDefectDistribution[]> {
   const dateFilter = buildDateFilter(filters)
 
-  let query = supabase
-    .from('inspections')
-    .select(
-      `
-      status,
-      model_id,
-      inspection_quantity,
-      defect_quantity,
-      product_models (
-        name,
-        code
-      )
-    `
-    )
-    .gte('created_at', dateFilter.gte)
-    .lte('created_at', dateFilter.lte)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inspections = await paginatedFetch<any>((from, to) => {
+    let q = supabase
+      .from('inspections')
+      .select(`
+        status,
+        model_id,
+        inspection_quantity,
+        defect_quantity,
+        product_models (
+          name,
+          code
+        )
+      `)
+      .gte('created_at', dateFilter.gte)
+      .lte('created_at', dateFilter.lte)
+      .range(from, to)
+    if (filters.processId) q = q.eq('inspection_process', filters.processId)
+    if (filters.modelId) q = q.eq('model_id', filters.modelId)
+    if (factoryId) q = q.eq('factory_id', factoryId)
+    return q
+  })
 
-  if (filters.processId) {
-    query = query.eq('inspection_process', filters.processId)
-  }
-  if (filters.modelId) {
-    query = query.eq('model_id', filters.modelId)
-  }
-  if (factoryId) {
-    query = query.eq('factory_id', factoryId)
-  }
-
-  const { data: inspections } = await query
-
-  if (!inspections) return []
+  if (inspections.length === 0) return []
 
   // Group by model using quantities
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -250,36 +240,30 @@ export async function getMachinePerformance(
 ): Promise<MachinePerformance[]> {
   const dateFilter = buildDateFilter(filters)
 
-  let query = supabase
-    .from('inspections')
-    .select(
-      `
-      status,
-      machine_id,
-      inspection_quantity,
-      defect_quantity,
-      machines (
-        name,
-        model
-      )
-    `
-    )
-    .gte('created_at', dateFilter.gte)
-    .lte('created_at', dateFilter.lte)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inspections = await paginatedFetch<any>((from, to) => {
+    let q = supabase
+      .from('inspections')
+      .select(`
+        status,
+        machine_id,
+        inspection_quantity,
+        defect_quantity,
+        machines (
+          name,
+          model
+        )
+      `)
+      .gte('created_at', dateFilter.gte)
+      .lte('created_at', dateFilter.lte)
+      .range(from, to)
+    if (filters.processId) q = q.eq('inspection_process', filters.processId)
+    if (filters.modelId) q = q.eq('model_id', filters.modelId)
+    if (factoryId) q = q.eq('factory_id', factoryId)
+    return q
+  })
 
-  if (filters.processId) {
-    query = query.eq('inspection_process', filters.processId)
-  }
-  if (filters.modelId) {
-    query = query.eq('model_id', filters.modelId)
-  }
-  if (factoryId) {
-    query = query.eq('factory_id', factoryId)
-  }
-
-  const { data: inspections } = await query
-
-  if (!inspections) return []
+  if (inspections.length === 0) return []
 
   // Group by machine using quantities
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -322,52 +306,40 @@ export async function getDefectTypeDistribution(
 ): Promise<DefectTypeDistribution[]> {
   const dateFilter = buildDateFilter(filters)
 
-  let query = supabase
-    .from('defects')
-    .select(
-      `
-      defect_type,
-      inspections!inner (
-        created_at
-      )
-    `
-    )
-    .gte('inspections.created_at', dateFilter.gte)
-    .lte('inspections.created_at', dateFilter.lte)
-
-  if (filters.processId) {
-    query = query.eq('inspections.inspection_process', filters.processId)
-  }
-  if (filters.modelId) {
-    query = query.eq('inspections.model_id', filters.modelId)
-  }
-  if (factoryId) {
-    query = query.eq('factory_id', factoryId)
-  }
-
-  const { data: defects } = await query
-
-  if (!defects) return []
-
-  // Fetch defect types for name mapping
-  const { data: defectTypesData } = await supabase
-    .from('defect_types')
-    .select('id, name')
-
-  // Create a map for quick lookup
-  const defectTypeMap = new Map<string, string>()
-  defectTypesData?.forEach(dt => {
-    defectTypeMap.set(dt.id, dt.name)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const defects = await paginatedFetch<any>((from, to) => {
+    let q = supabase
+      .from('defects')
+      .select(`
+        defect_type,
+        inspections!inner (
+          created_at
+        )
+      `)
+      .gte('inspections.created_at', dateFilter.gte)
+      .lte('inspections.created_at', dateFilter.lte)
+      .range(from, to)
+    if (filters.processId) q = q.eq('inspections.inspection_process', filters.processId)
+    if (filters.modelId) q = q.eq('inspections.model_id', filters.modelId)
+    if (factoryId) q = q.eq('factory_id', factoryId)
+    return q
   })
 
+  if (defects.length === 0) return []
+
+  // Fetch defect types for name mapping (paginated to bypass 1000-row cap)
+  const defectTypesData = await paginatedFetch<{ id: string; name: string }>((from, to) =>
+    supabase.from('defect_types').select('id, name').range(from, to)
+  )
+  const defectTypeMap = new Map<string, string>(defectTypesData.map(dt => [dt.id, dt.name]))
+
   // Group by defect type (using name from defect_types table)
+  const groupedByType: Record<string, number> = {}
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const groupedByType = defects.reduce((acc, defect: any) => {
-    // Use the name from defect_types map, fallback to ID if not found
+  defects.forEach((defect: any) => {
     const typeName = defectTypeMap.get(defect.defect_type) || defect.defect_type
-    acc[typeName] = (acc[typeName] || 0) + 1
-    return acc
-  }, {} as Record<string, number>)
+    groupedByType[typeName] = (groupedByType[typeName] || 0) + 1
+  })
 
   const total = Object.values(groupedByType).reduce((sum, count) => sum + count, 0)
 
@@ -385,25 +357,22 @@ export async function getHourlyDistribution(
 ): Promise<HourlyDistribution[]> {
   const dateFilter = buildDateFilter(filters)
 
-  let query = supabase
-    .from('inspections')
-    .select('created_at, status, inspection_quantity, defect_quantity')
-    .gte('created_at', dateFilter.gte)
-    .lte('created_at', dateFilter.lte)
+  const inspections = await paginatedFetch<{
+    created_at: string; status: string; inspection_quantity: number; defect_quantity: number
+  }>((from, to) => {
+    let q = supabase
+      .from('inspections')
+      .select('created_at, status, inspection_quantity, defect_quantity')
+      .gte('created_at', dateFilter.gte)
+      .lte('created_at', dateFilter.lte)
+      .range(from, to)
+    if (filters.processId) q = q.eq('inspection_process', filters.processId)
+    if (filters.modelId) q = q.eq('model_id', filters.modelId)
+    if (factoryId) q = q.eq('factory_id', factoryId)
+    return q
+  })
 
-  if (filters.processId) {
-    query = query.eq('inspection_process', filters.processId)
-  }
-  if (filters.modelId) {
-    query = query.eq('model_id', filters.modelId)
-  }
-  if (factoryId) {
-    query = query.eq('factory_id', factoryId)
-  }
-
-  const { data: inspections } = await query
-
-  if (!inspections) return []
+  if (inspections.length === 0) return []
 
   // Group by hour (Vietnam timezone) using quantities
   const groupedByHour = inspections.reduce((acc, inspection: { created_at: string; status: string; inspection_quantity: number; defect_quantity: number }) => {
@@ -436,35 +405,29 @@ export async function getInspectorPerformance(
 ): Promise<InspectorPerformance[]> {
   const dateFilter = buildDateFilter(filters)
 
-  let query = supabase
-    .from('inspections')
-    .select(
-      `
-      status,
-      user_id,
-      inspection_quantity,
-      defect_quantity,
-      users (
-        name
-      )
-    `
-    )
-    .gte('created_at', dateFilter.gte)
-    .lte('created_at', dateFilter.lte)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const inspections = await paginatedFetch<any>((from, to) => {
+    let q = supabase
+      .from('inspections')
+      .select(`
+        status,
+        user_id,
+        inspection_quantity,
+        defect_quantity,
+        users (
+          name
+        )
+      `)
+      .gte('created_at', dateFilter.gte)
+      .lte('created_at', dateFilter.lte)
+      .range(from, to)
+    if (filters.processId) q = q.eq('inspection_process', filters.processId)
+    if (filters.modelId) q = q.eq('model_id', filters.modelId)
+    if (factoryId) q = q.eq('factory_id', factoryId)
+    return q
+  })
 
-  if (filters.processId) {
-    query = query.eq('inspection_process', filters.processId)
-  }
-  if (filters.modelId) {
-    query = query.eq('model_id', filters.modelId)
-  }
-  if (factoryId) {
-    query = query.eq('factory_id', factoryId)
-  }
-
-  const { data: inspections } = await query
-
-  if (!inspections) return []
+  if (inspections.length === 0) return []
 
   // Group by inspector using quantities
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -497,18 +460,15 @@ export async function getInspectorPerformance(
 
 // 8. Get Inspector List
 export async function getInspectorList(): Promise<{ id: string; name: string }[]> {
-  const { data: users, error } = await supabase
-    .from('users')
-    .select('id, name, role')
-    .eq('role', 'inspector')
-    .order('name')
-
-  if (error) throw error
-
-  return (users || []).map(user => ({
-    id: user.id,
-    name: user.name,
-  }))
+  const rows = await paginatedFetch<{ id: string; name: string; role: string }>((from, to) =>
+    supabase
+      .from('users')
+      .select('id, name, role')
+      .eq('role', 'inspector')
+      .order('name')
+      .range(from, to)
+  )
+  return rows.map(user => ({ id: user.id, name: user.name }))
 }
 
 // 9. Get Inspector Detailed KPI
@@ -528,58 +488,47 @@ export async function getInspectorDetailedKPI(
 
   if (inspectorError || !inspector) return null
 
-  // Fetch process code-to-name mapping
-  const { data: processesData } = await supabase
-    .from('inspection_processes')
-    .select('code, name')
-  const processNameMap = new Map<string, string>(
-    processesData?.map((p: { code: string; name: string }) => [p.code, p.name]) || []
+  // Fetch process code-to-name mapping (paginated to bypass 1000-row cap)
+  const processesData = await paginatedFetch<{ code: string; name: string }>((from, to) =>
+    supabase.from('inspection_processes').select('code, name').range(from, to)
   )
+  const processNameMap = new Map<string, string>(processesData.map(p => [p.code, p.name]))
 
   // Get all inspections for this inspector in the date range
-  let inspectorQuery = supabase
-    .from('inspections')
-    .select(`
-      id, status, created_at, model_id, inspection_process, inspection_quantity, defect_quantity,
-      product_models (name, code)
-    `)
-    .eq('user_id', inspectorId)
-    .gte('created_at', dateFilter.gte)
-    .lte('created_at', dateFilter.lte)
-
-  if (filters.processId) {
-    inspectorQuery = inspectorQuery.eq('inspection_process', filters.processId)
-  }
-  if (filters.modelId) {
-    inspectorQuery = inspectorQuery.eq('model_id', filters.modelId)
-  }
-  if (factoryId) {
-    inspectorQuery = inspectorQuery.eq('factory_id', factoryId)
-  }
-
-  const { data: inspectorInspections } = await inspectorQuery
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const myInspections = await paginatedFetch<any>((from, to) => {
+    let q = supabase
+      .from('inspections')
+      .select(`
+        id, status, created_at, model_id, inspection_process, inspection_quantity, defect_quantity,
+        product_models (name, code)
+      `)
+      .eq('user_id', inspectorId)
+      .gte('created_at', dateFilter.gte)
+      .lte('created_at', dateFilter.lte)
+      .range(from, to)
+    if (filters.processId) q = q.eq('inspection_process', filters.processId)
+    if (filters.modelId) q = q.eq('model_id', filters.modelId)
+    if (factoryId) q = q.eq('factory_id', factoryId)
+    return q
+  })
 
   // Get all team inspections for comparison
-  let teamQuery = supabase
-    .from('inspections')
-    .select('user_id, status, created_at, inspection_quantity, defect_quantity')
-    .gte('created_at', dateFilter.gte)
-    .lte('created_at', dateFilter.lte)
-
-  if (filters.processId) {
-    teamQuery = teamQuery.eq('inspection_process', filters.processId)
-  }
-  if (filters.modelId) {
-    teamQuery = teamQuery.eq('model_id', filters.modelId)
-  }
-  if (factoryId) {
-    teamQuery = teamQuery.eq('factory_id', factoryId)
-  }
-
-  const { data: teamInspections } = await teamQuery
-
-  const myInspections = inspectorInspections || []
-  const allTeamInspections = teamInspections || []
+  const allTeamInspections = await paginatedFetch<{
+    user_id: string; status: string; created_at: string;
+    inspection_quantity: number; defect_quantity: number
+  }>((from, to) => {
+    let q = supabase
+      .from('inspections')
+      .select('user_id, status, created_at, inspection_quantity, defect_quantity')
+      .gte('created_at', dateFilter.gte)
+      .lte('created_at', dateFilter.lte)
+      .range(from, to)
+    if (filters.processId) q = q.eq('inspection_process', filters.processId)
+    if (filters.modelId) q = q.eq('model_id', filters.modelId)
+    if (factoryId) q = q.eq('factory_id', factoryId)
+    return q
+  })
 
   // Calculate basic stats using quantities
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

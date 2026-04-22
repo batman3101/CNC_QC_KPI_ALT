@@ -25,7 +25,8 @@
     "paginationInfo": "{{from}}-{{to}} / 총 {{count}}건",
     "toggleTheme": "테마 변경",
     "manager": "관리자",
-    "inspector": "검사자"
+    "inspector": "검사자",
+    "unassigned": "미지정"
   },
   "auth": {
     "login": "로그인",

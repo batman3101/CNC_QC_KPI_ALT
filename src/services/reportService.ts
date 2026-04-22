@@ -6,9 +6,14 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { paginatedFetch } from '@/lib/supabasePagination'
 import { getBusinessDateRangeFilter } from '@/lib/dateUtils'
 import { generatePDFReport, generateExcelReport } from '@/utils/reportGenerators'
 import type { Report, ReportFilters, ReportSummary } from '@/types/report'
+import type { Database } from '@/types/database'
+
+type Inspection = Database['public']['Tables']['inspections']['Row']
+type Defect = Database['public']['Tables']['defects']['Row']
 
 // In-memory storage for generated reports (will reset on page refresh)
 const generatedReports: Report[] = []
@@ -28,53 +33,42 @@ export async function getReportSummary(filters: ReportFilters, factoryId?: strin
   // Use business day range (08:00 ~ next day 07:59)
   const dateFilter = getBusinessDateRangeFilter(filters.dateRange.from, filters.dateRange.to)
 
-  // Fetch inspections for the date range
-  let query = supabase
-    .from('inspections')
-    .select('*')
-    .gte('created_at', dateFilter.gte)
-    .lte('created_at', dateFilter.lte)
-
-  if (filters.modelId) {
-    query = query.eq('model_id', filters.modelId)
-  }
-  if (factoryId) {
-    query = query.eq('factory_id', factoryId)
-  }
-
-  const { data: inspections, error } = await query
-
-  if (error) {
+  // Fetch inspections for the date range (paginated)
+  let inspectionData: Inspection[]
+  try {
+    inspectionData = await paginatedFetch<Inspection>((from, to) => {
+      let q = supabase
+        .from('inspections')
+        .select('*')
+        .gte('created_at', dateFilter.gte)
+        .lte('created_at', dateFilter.lte)
+        .range(from, to)
+      if (filters.modelId) q = q.eq('model_id', filters.modelId)
+      if (factoryId) q = q.eq('factory_id', factoryId)
+      return q
+    })
+  } catch (error) {
     console.error('Error fetching inspections for summary:', error)
+    inspectionData = []
   }
 
-  const inspectionData = inspections || []
-
-  // Fetch defects for the date range (using business day range)
-  let defectsQuery = supabase
-    .from('defects')
-    .select('*')
-    .gte('created_at', dateFilter.gte)
-    .lte('created_at', dateFilter.lte)
-
-  if (factoryId) {
-    defectsQuery = defectsQuery.eq('factory_id', factoryId)
-  }
-
-  const { data: defects } = await defectsQuery
-
-  const defectData = defects || []
-
-  // Fetch defect types for name mapping
-  const { data: defectTypesData } = await supabase
-    .from('defect_types')
-    .select('id, name')
-
-  // Create a map for quick lookup
-  const defectTypeMap = new Map<string, string>()
-  defectTypesData?.forEach(dt => {
-    defectTypeMap.set(dt.id, dt.name)
+  // Fetch defects for the date range (paginated)
+  const defectData = await paginatedFetch<Defect>((from, to) => {
+    let q = supabase
+      .from('defects')
+      .select('*')
+      .gte('created_at', dateFilter.gte)
+      .lte('created_at', dateFilter.lte)
+      .range(from, to)
+    if (factoryId) q = q.eq('factory_id', factoryId)
+    return q
   })
+
+  // Fetch defect types for name mapping (paginated to bypass 1000-row cap)
+  const defectTypesData = await paginatedFetch<{ id: string; name: string }>((from, to) =>
+    supabase.from('defect_types').select('id, name').range(from, to)
+  )
+  const defectTypeMap = new Map<string, string>(defectTypesData.map(dt => [dt.id, dt.name]))
 
   // Calculate statistics
   const total_inspections = inspectionData.length

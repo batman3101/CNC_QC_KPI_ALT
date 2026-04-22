@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { paginatedFetch } from '@/lib/supabasePagination'
 import type { Database } from '@/types/database'
 
 type ProductModel = Database['public']['Tables']['product_models']['Row']
@@ -28,13 +29,13 @@ type User = Database['public']['Tables']['users']['Row']
 // ============= Product Models CRUD =============
 
 export async function getProductModels(): Promise<ProductModel[]> {
-  const { data, error } = await supabase
-    .from('product_models')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
-  return data || []
+  return paginatedFetch<ProductModel>((from, to) =>
+    supabase
+      .from('product_models')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, to)
+  )
 }
 
 export async function getProductModelById(id: string): Promise<ProductModel | null> {
@@ -96,19 +97,17 @@ export async function deleteProductModel(id: string): Promise<void> {
 // ============= Inspection Items CRUD =============
 
 export async function getInspectionItems(modelId?: string): Promise<InspectionItem[]> {
-  let query = supabase
-    .from('inspection_items')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (modelId) {
-    query = query.eq('model_id', modelId)
-  }
-
-  const { data, error } = await query
-
-  if (error) throw error
-  return data || []
+  return paginatedFetch<InspectionItem>((from, to) => {
+    let query = supabase
+      .from('inspection_items')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, to)
+    if (modelId) {
+      query = query.eq('model_id', modelId)
+    }
+    return query
+  })
 }
 
 export async function getInspectionItemById(id: string): Promise<InspectionItem | null> {
@@ -164,13 +163,13 @@ export async function getInspectionItemsByModelId(modelId: string): Promise<Insp
 // ============= Inspection Processes CRUD =============
 
 export async function getInspectionProcesses(): Promise<InspectionProcess[]> {
-  const { data, error } = await supabase
-    .from('inspection_processes')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
-  return data || []
+  return paginatedFetch<InspectionProcess>((from, to) =>
+    supabase
+      .from('inspection_processes')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, to)
+  )
 }
 
 export async function getInspectionProcessById(id: string): Promise<InspectionProcess | null> {
@@ -222,13 +221,13 @@ export async function deleteInspectionProcess(id: string): Promise<void> {
 // ============= Defect Types CRUD =============
 
 export async function getDefectTypesRows(): Promise<DefectTypeRow[]> {
-  const { data, error } = await supabase
-    .from('defect_types')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
-  return data || []
+  return paginatedFetch<DefectTypeRow>((from, to) =>
+    supabase
+      .from('defect_types')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, to)
+  )
 }
 
 export async function getDefectTypeRowById(id: string): Promise<DefectTypeRow | null> {
@@ -292,20 +291,20 @@ export async function getDefectTypes() {
 // ============= Machines =============
 
 export async function getMachines(factoryId?: string): Promise<Machine[]> {
-  let query = supabase
-    .from('machines')
-    .select('*')
-    .eq('status', 'active')
-    .order('name', { ascending: true })
-
-  if (factoryId) {
-    query = query.eq('factory_id', factoryId)
-  }
-
-  const { data, error } = await query
-
-  if (error) throw error
-  return data || []
+  // Paginated to bypass Supabase's 1000-row default; without this, factories
+  // with >1000 active machines silently truncate and UI lookups fall back to '-'.
+  return paginatedFetch<Machine>((from, to) => {
+    let query = supabase
+      .from('machines')
+      .select('*')
+      .eq('status', 'active')
+      .order('name', { ascending: true })
+      .range(from, to)
+    if (factoryId) {
+      query = query.eq('factory_id', factoryId)
+    }
+    return query
+  })
 }
 
 export async function searchMachines(query: string, factoryId?: string): Promise<Machine[]> {
@@ -374,13 +373,13 @@ export async function searchMachines(query: string, factoryId?: string): Promise
 // ============= Users =============
 
 export async function getUsers(): Promise<User[]> {
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
-  return data || []
+  return paginatedFetch<User>((from, to) =>
+    supabase
+      .from('users')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, to)
+  )
 }
 
 // ============= Bulk Import Functions =============

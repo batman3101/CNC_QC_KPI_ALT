@@ -581,46 +581,19 @@ export async function updateSPCAlertStatus(
 /**
  * 검사 항목 목록 조회
  */
-export async function getInspectionItems(modelId?: string) {
-  let query = supabase
-    .from('inspection_items')
-    .select('id, name, model_id, standard_value, tolerance_min, tolerance_max, unit, data_type')
-    .order('name')
+// SPC-specific list helpers — thin wrappers over managementService so pagination,
+// caching, and filters live in one place. Kept as re-exports for backward
+// compatibility with existing SPCPage imports.
+export { getInspectionItems, getProductModels } from './managementService'
 
-  if (modelId) {
-    query = query.eq('model_id', modelId)
-  }
-
-  const { data, error } = await query
-  if (error) throw error
-  return data || []
-}
+import { getInspectionProcesses as _getInspectionProcesses } from './managementService'
 
 /**
- * 제품 모델 목록 조회
- */
-export async function getProductModels() {
-  const { data, error } = await supabase
-    .from('product_models')
-    .select('id, name, code')
-    .order('name')
-
-  if (error) throw error
-  return data || []
-}
-
-/**
- * 검사 공정 목록 조회
+ * 검사 공정 목록 조회 (active only) — SPC는 활성 공정만 다루므로 필터링.
  */
 export async function getInspectionProcesses() {
-  const { data, error } = await supabase
-    .from('inspection_processes')
-    .select('id, name, code')
-    .eq('is_active', true)
-    .order('name')
-
-  if (error) throw error
-  return data || []
+  const all = await _getInspectionProcesses()
+  return all.filter(p => p.is_active)
 }
 
 // ============================================

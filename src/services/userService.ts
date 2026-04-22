@@ -3,6 +3,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { paginatedFetch } from '@/lib/supabasePagination'
 import type { Database } from '@/types/database'
 
 type User = Database['public']['Tables']['users']['Row']
@@ -27,23 +28,22 @@ export interface UpdateUserInput {
  * 모든 사용자 조회
  */
 export async function getUsers(factoryId?: string): Promise<User[]> {
-  let query = supabase
-    .from('users')
-    .select('*')
-    .order('created_at', { ascending: false })
-
-  if (factoryId) {
-    query = query.eq('factory_id', factoryId)
-  }
-
-  const { data, error } = await query
-
-  if (error) {
+  try {
+    return await paginatedFetch<User>((from, to) => {
+      let query = supabase
+        .from('users')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .range(from, to)
+      if (factoryId) {
+        query = query.eq('factory_id', factoryId)
+      }
+      return query
+    })
+  } catch (error) {
     console.error('Error fetching users:', error)
     throw error
   }
-
-  return data || []
 }
 
 /**
@@ -187,42 +187,37 @@ export async function deleteUser(id: string): Promise<void> {
  * 사용자 이메일 목록 조회 (중복 체크용)
  */
 export async function getUserEmails(): Promise<string[]> {
-  const { data, error } = await supabase
-    .from('users')
-    .select('email')
-
-  if (error) {
+  try {
+    const rows = await paginatedFetch<{ email: string }>((from, to) =>
+      supabase.from('users').select('email').range(from, to)
+    )
+    return rows.map(u => u.email)
+  } catch (error) {
     console.error('Error fetching user emails:', error)
     return []
   }
-
-  return data?.map(u => u.email) || []
 }
 
 /**
  * 역할별 사용자 수 조회
  */
 export async function getUserCountsByRole(factoryId?: string): Promise<Record<string, number>> {
-  let query = supabase
-    .from('users')
-    .select('role')
-
-  if (factoryId) {
-    query = query.eq('factory_id', factoryId)
-  }
-
-  const { data, error } = await query
-
-  if (error) {
+  try {
+    const rows = await paginatedFetch<{ role: string }>((from, to) => {
+      let query = supabase.from('users').select('role').range(from, to)
+      if (factoryId) {
+        query = query.eq('factory_id', factoryId)
+      }
+      return query
+    })
+    return {
+      admin: rows.filter(u => u.role === 'admin').length,
+      manager: rows.filter(u => u.role === 'manager').length,
+      inspector: rows.filter(u => u.role === 'inspector').length,
+      total: rows.length,
+    }
+  } catch (error) {
     console.error('Error fetching user counts:', error)
     return { admin: 0, manager: 0, inspector: 0, total: 0 }
-  }
-
-  const users = data || []
-  return {
-    admin: users.filter(u => u.role === 'admin').length,
-    manager: users.filter(u => u.role === 'manager').length,
-    inspector: users.filter(u => u.role === 'inspector').length,
-    total: users.length,
   }
 }
