@@ -32,38 +32,48 @@ export async function getInspections(filters?: {
   userId?: string
   factoryId?: string
 }): Promise<Inspection[]> {
-  let query = supabase
-    .from('inspections')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .range(0, 9999)
+  const PAGE_SIZE = 1000
+  const allRows: Inspection[] = []
+  let from = 0
 
-  if (filters?.startDate) {
-    query = query.gte('created_at', filters.startDate)
-  }
-  if (filters?.endDate) {
-    query = query.lte('created_at', filters.endDate)
-  }
-  if (filters?.status) {
-    query = query.eq('status', filters.status as 'pending' | 'pass' | 'fail')
-  }
-  if (filters?.modelId) {
-    query = query.eq('model_id', filters.modelId)
-  }
-  if (filters?.machineId) {
-    query = query.eq('machine_id', filters.machineId)
-  }
-  if (filters?.userId) {
-    query = query.eq('user_id', filters.userId)
-  }
-  if (filters?.factoryId) {
-    query = query.eq('factory_id', filters.factoryId)
+  while (true) {
+    let query = supabase
+      .from('inspections')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, from + PAGE_SIZE - 1)
+
+    if (filters?.startDate) {
+      query = query.gte('created_at', filters.startDate)
+    }
+    if (filters?.endDate) {
+      query = query.lte('created_at', filters.endDate)
+    }
+    if (filters?.status) {
+      query = query.eq('status', filters.status as 'pending' | 'pass' | 'fail')
+    }
+    if (filters?.modelId) {
+      query = query.eq('model_id', filters.modelId)
+    }
+    if (filters?.machineId) {
+      query = query.eq('machine_id', filters.machineId)
+    }
+    if (filters?.userId) {
+      query = query.eq('user_id', filters.userId)
+    }
+    if (filters?.factoryId) {
+      query = query.eq('factory_id', filters.factoryId)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    if (!data || data.length === 0) break
+    allRows.push(...data)
+    if (data.length < PAGE_SIZE) break
+    from += PAGE_SIZE
   }
 
-  const { data, error } = await query
-
-  if (error) throw error
-  return data || []
+  return allRows
 }
 
 export async function getInspectionById(id: string): Promise<Inspection | null> {
@@ -155,32 +165,42 @@ export async function getDefects(filters?: {
   endDate?: string
   factoryId?: string
 }): Promise<Defect[]> {
-  let query = supabase
-    .from('defects')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .range(0, 9999)
+  const PAGE_SIZE = 1000
+  const allRows: Defect[] = []
+  let from = 0
 
-  if (filters?.status && filters.status !== 'all') {
-    query = query.eq('status', filters.status as 'pending' | 'in_progress' | 'resolved')
-  }
-  if (filters?.modelId) {
-    query = query.eq('model_id', filters.modelId)
-  }
-  if (filters?.startDate) {
-    query = query.gte('created_at', filters.startDate)
-  }
-  if (filters?.endDate) {
-    query = query.lte('created_at', filters.endDate)
-  }
-  if (filters?.factoryId) {
-    query = query.eq('factory_id', filters.factoryId)
+  while (true) {
+    let query = supabase
+      .from('defects')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .range(from, from + PAGE_SIZE - 1)
+
+    if (filters?.status && filters.status !== 'all') {
+      query = query.eq('status', filters.status as 'pending' | 'in_progress' | 'resolved')
+    }
+    if (filters?.modelId) {
+      query = query.eq('model_id', filters.modelId)
+    }
+    if (filters?.startDate) {
+      query = query.gte('created_at', filters.startDate)
+    }
+    if (filters?.endDate) {
+      query = query.lte('created_at', filters.endDate)
+    }
+    if (filters?.factoryId) {
+      query = query.eq('factory_id', filters.factoryId)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    if (!data || data.length === 0) break
+    allRows.push(...data)
+    if (data.length < PAGE_SIZE) break
+    from += PAGE_SIZE
   }
 
-  const { data, error } = await query
-
-  if (error) throw error
-  return data || []
+  return allRows
 }
 
 export async function getDefectById(id: string): Promise<Defect | null> {
@@ -307,26 +327,36 @@ export async function getDefectStats(factoryId?: string): Promise<{
   inProgress: number
   resolved: number
 }> {
-  let query = supabase
-    .from('defects')
-    .select('status')
+  const PAGE_SIZE = 1000
+  const allRows: { status: string | null }[] = []
+  let from = 0
 
-  if (factoryId) {
-    query = query.eq('factory_id', factoryId)
+  while (true) {
+    let query = supabase
+      .from('defects')
+      .select('status')
+      .range(from, from + PAGE_SIZE - 1)
+
+    if (factoryId) {
+      query = query.eq('factory_id', factoryId)
+    }
+
+    const { data, error } = await query
+    if (error) throw error
+    if (!data || data.length === 0) break
+    allRows.push(...data)
+    if (data.length < PAGE_SIZE) break
+    from += PAGE_SIZE
   }
 
-  const { data, error } = await query
-
-  if (error) throw error
-
   const stats = {
-    total: data?.length || 0,
+    total: allRows.length,
     pending: 0,
     inProgress: 0,
     resolved: 0,
   }
 
-  data?.forEach(d => {
+  allRows.forEach(d => {
     if (d.status === 'pending') stats.pending++
     else if (d.status === 'in_progress') stats.inProgress++
     else if (d.status === 'resolved') stats.resolved++
