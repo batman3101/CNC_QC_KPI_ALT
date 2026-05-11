@@ -7,6 +7,7 @@ import {
   Skeleton,
   Box,
 } from '@mui/material'
+import { alpha, useTheme } from '@mui/material/styles'
 import {
   Summarize,
   Warning,
@@ -30,16 +31,17 @@ const INSIGHT_ICONS: Record<InsightType, React.ElementType> = {
   'risk-alerts': NotificationsActive,
 }
 
-const INSIGHT_COLORS: Record<InsightType, string> = {
-  'daily-summary': '#2196f3',
-  'key-issues': '#ff9800',
-  'performance': '#4caf50',
-  'risk-alerts': '#f44336',
+const INSIGHT_COLOR_KEYS: Record<InsightType, 'info' | 'warning' | 'success' | 'error'> = {
+  'daily-summary': 'info',
+  'key-issues': 'warning',
+  'performance': 'success',
+  'risk-alerts': 'error',
 }
 
 export function InsightCard({ type, title, content, isLoading }: InsightCardProps) {
+  const theme = useTheme()
   const Icon = useMemo(() => INSIGHT_ICONS[type], [type])
-  const color = useMemo(() => INSIGHT_COLORS[type], [type])
+  const color = useMemo(() => theme.palette[INSIGHT_COLOR_KEYS[type]].main, [theme, type])
 
   return (
     <Card
@@ -61,7 +63,7 @@ export function InsightCard({ type, title, content, isLoading }: InsightCardProp
               width: 40,
               height: 40,
               borderRadius: 2,
-              backgroundColor: `${color}20`,
+              backgroundColor: alpha(color, 0.12),
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
