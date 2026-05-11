@@ -358,7 +358,10 @@ export function AIInsightsPage() {
         {/* AI Chatbot */}
         <Grid size={{ xs: 12, lg: 4 }}>
           <Box sx={{ minHeight: 500 }}>
-            <AIChatbot analyticsData={analyticsData} />
+            <AIChatbot
+              analyticsData={analyticsData}
+              cacheScope={activeFactoryId || 'all'}
+            />
           </Box>
         </Grid>
       </Grid>

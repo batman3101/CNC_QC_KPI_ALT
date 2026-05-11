@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Card,
@@ -18,11 +18,36 @@ import { chatWithAI } from '@/services/geminiService'
 
 interface AIChatbotProps {
   analyticsData: AnalyticsDataForAI | null
+  cacheScope?: string
 }
 
-export function AIChatbot({ analyticsData }: AIChatbotProps) {
+const AI_CHATBOT_CACHE_PREFIX = 'cnc-qc-kpi:ai-chatbot'
+
+function readStoredMessages(storageKey: string): ChatMessage[] {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const raw = window.sessionStorage.getItem(storageKey)
+    return raw ? JSON.parse(raw) as ChatMessage[] : []
+  } catch {
+    return []
+  }
+}
+
+function writeStoredMessages(storageKey: string, messages: ChatMessage[]) {
+  if (typeof window === 'undefined') return
+  window.sessionStorage.setItem(storageKey, JSON.stringify(messages))
+}
+
+export function AIChatbot({ analyticsData, cacheScope = 'default' }: AIChatbotProps) {
   const { t, i18n } = useTranslation()
-  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const language = i18n.language === 'vi' ? 'vi' : 'ko'
+  const storageKey = useMemo(
+    () => `${AI_CHATBOT_CACHE_PREFIX}:${cacheScope}:${language}`,
+    [cacheScope, language]
+  )
+
+  const [messages, setMessages] = useState<ChatMessage[]>(() => readStoredMessages(storageKey))
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -35,17 +60,29 @@ export function AIChatbot({ analyticsData }: AIChatbotProps) {
     scrollToBottom()
   }, [messages])
 
+  useEffect(() => {
+    setMessages(readStoredMessages(storageKey))
+    setInput('')
+  }, [storageKey])
+
+  const commitMessages = useCallback((nextMessages: ChatMessage[]) => {
+    setMessages(nextMessages)
+    writeStoredMessages(storageKey, nextMessages)
+  }, [storageKey])
+
   const handleSend = async () => {
     if (!input.trim() || isLoading || !analyticsData) return
 
+    const currentMessages = messages
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       role: 'user',
       content: input.trim(),
       timestamp: new Date().toISOString(),
     }
+    const messagesWithUser = [...currentMessages, userMessage]
 
-    setMessages(prev => [...prev, userMessage])
+    commitMessages(messagesWithUser)
     setInput('')
     setIsLoading(true)
 
@@ -53,8 +90,8 @@ export function AIChatbot({ analyticsData }: AIChatbotProps) {
       const response = await chatWithAI({
         message: userMessage.content,
         context: analyticsData,
-        history: messages,
-        language: i18n.language === 'vi' ? 'vi' : 'ko',
+        history: currentMessages,
+        language,
       })
 
       const assistantMessage: ChatMessage = {
@@ -64,17 +101,17 @@ export function AIChatbot({ analyticsData }: AIChatbotProps) {
         timestamp: new Date().toISOString(),
       }
 
-      setMessages(prev => [...prev, assistantMessage])
+      commitMessages([...messagesWithUser, assistantMessage])
     } catch {
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: i18n.language === 'vi'
+        content: language === 'vi'
           ? 'Xin lỗi, đã xảy ra lỗi. Vui lòng thử lại.'
           : '죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.',
         timestamp: new Date().toISOString(),
       }
-      setMessages(prev => [...prev, errorMessage])
+      commitMessages([...messagesWithUser, errorMessage])
     } finally {
       setIsLoading(false)
     }
