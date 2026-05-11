@@ -228,9 +228,9 @@ export function MonitorPage() {
 
   // Section title with red left border
   const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-    <div className="flex items-center gap-2 mb-2">
-      <div className="w-1 h-5 bg-red-500 rounded-full" />
-      <h3 className="text-lg font-bold text-slate-200">{children}</h3>
+    <div className="flex items-center gap-2.5 mb-3">
+      <div className="w-1 h-6 bg-red-500 rounded-full" />
+      <h3 className="text-xl font-bold text-slate-100">{children}</h3>
     </div>
   )
 
@@ -249,74 +249,74 @@ export function MonitorPage() {
       {/* HEADER ~8vh */}
       <header className="flex items-center justify-between" style={{ height: '8vh' }}>
         <div className="flex items-center gap-3">
-          <img src="/A symbol BLUE-02.png" className="w-10 h-10" alt="logo" />
+          <img src="/A symbol BLUE-02.png" className="w-12 h-12" alt="logo" />
           <div>
-            <h1 className="text-xl font-bold text-white">{activeFactoryId === 'ALV' ? 'ALMUS VINA' : 'ALMUS TECH'} {t('monitor.title')}</h1>
-            <p className="text-sm text-slate-400">{t('monitor.teamName').replace('ALMUS TECH', activeFactoryId === 'ALV' ? 'ALMUS VINA' : 'ALMUS TECH')}</p>
+            <h1 className="text-2xl font-bold text-white">{activeFactoryId === 'ALV' ? 'ALMUS VINA' : 'ALMUS TECH'} {t('monitor.title')}</h1>
+            <p className="text-base text-slate-400">{t('monitor.teamName').replace('ALMUS TECH', activeFactoryId === 'ALV' ? 'ALMUS VINA' : 'ALMUS TECH')}</p>
           </div>
           <div className="flex gap-1 ml-2">
             <button
               onClick={() => setActiveFactory('ALT')}
-              className={`px-2 py-0.5 rounded text-xs font-bold ${activeFactoryId === 'ALT' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}
+              className={`px-3 py-1 rounded text-sm font-bold ${activeFactoryId === 'ALT' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}
             >ALT</button>
             <button
               onClick={() => setActiveFactory('ALV')}
-              className={`px-2 py-0.5 rounded text-xs font-bold ${activeFactoryId === 'ALV' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}
+              className={`px-3 py-1 rounded text-sm font-bold ${activeFactoryId === 'ALV' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}
             >ALV</button>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-xl font-mono font-bold text-white">{timeStr}</div>
-          <div className="text-sm text-slate-400">{dateStr}</div>
+          <div className="text-2xl font-mono font-bold text-white">{timeStr}</div>
+          <div className="text-base text-slate-400">{dateStr}</div>
         </div>
       </header>
 
       {/* KPI CARDS ~12vh */}
       <section className="grid grid-cols-4 gap-3" style={{ height: '12vh' }}>
         {/* Total Defects */}
-        <div className="bg-[#1e293b] rounded-xl p-4 border border-[#334155] flex items-center gap-3">
-          <div className="text-3xl">&#128293;</div>
+        <div className="bg-[#1e293b] rounded-xl p-4 border border-[#334155] flex items-center gap-4">
+          <div className="text-4xl">&#128293;</div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-slate-400 truncate">{t('monitor.totalDefects')}</p>
+            <p className="text-sm font-medium text-slate-300 truncate">{t('monitor.totalDefects')}</p>
             {defectsLoading ? <Skeleton className="h-10 w-20 mt-1" /> : (
-              <p className="text-4xl font-bold text-red-500 leading-tight">{totalDefects.toLocaleString()}</p>
+              <p className="text-5xl font-bold text-red-500 leading-none">{totalDefects.toLocaleString()}</p>
             )}
-            <p className="text-xs text-slate-500 mt-0.5">{t('monitor.totalDefectsDesc')}</p>
+            <p className="text-sm text-slate-400 mt-1">{t('monitor.totalDefectsDesc')}</p>
           </div>
         </div>
         {/* Today Defects */}
-        <div className="bg-[#1e293b] rounded-xl p-4 border border-[#334155] flex items-center gap-3">
-          <div className="text-3xl">&#128197;</div>
+        <div className="bg-[#1e293b] rounded-xl p-4 border border-[#334155] flex items-center gap-4">
+          <div className="text-4xl">&#128197;</div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-slate-400 truncate">{t('monitor.todayDefects')}</p>
+            <p className="text-sm font-medium text-slate-300 truncate">{t('monitor.todayDefects')}</p>
             {defectsLoading ? <Skeleton className="h-10 w-20 mt-1" /> : (
-              <p className="text-4xl font-bold text-green-500 leading-tight">{todayDefects.length.toLocaleString()}</p>
+              <p className="text-5xl font-bold text-green-500 leading-none">{todayDefects.length.toLocaleString()}</p>
             )}
-            <p className="text-xs text-slate-500 mt-0.5">{t('monitor.todayDefectsDesc')}</p>
+            <p className="text-sm text-slate-400 mt-1">{t('monitor.todayDefectsDesc')}</p>
           </div>
         </div>
         {/* Worst Machine */}
-        <div className="bg-[#1e293b] rounded-xl p-4 border border-[#334155] flex items-center gap-3">
-          <div className="text-3xl">&#127981;</div>
+        <div className="bg-[#1e293b] rounded-xl p-4 border border-[#334155] flex items-center gap-4">
+          <div className="text-4xl">&#127981;</div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-slate-400 truncate">{t('monitor.worstMachine')}</p>
+            <p className="text-sm font-medium text-slate-300 truncate">{t('monitor.worstMachine')}</p>
             {defectsLoading ? <Skeleton className="h-10 w-20 mt-1" /> : (
               <>
-                <p className="text-3xl font-bold text-white leading-tight truncate">{getMachineName(worstMachine.machineId)}</p>
-                <p className="text-xs text-slate-500 mt-0.5">{worstMachine.count} {t('monitor.count')} - {t('monitor.worstMachineDesc')}</p>
+                <p className="text-4xl font-bold text-white leading-none truncate">{getMachineName(worstMachine.machineId)}</p>
+                <p className="text-sm text-slate-400 mt-1">{worstMachine.count} {t('monitor.count')} - {t('monitor.worstMachineDesc')}</p>
               </>
             )}
           </div>
         </div>
         {/* Top Issue */}
-        <div className="bg-[#1e293b] rounded-xl p-4 border border-[#334155] flex items-center gap-3">
-          <div className="text-3xl">&#128203;</div>
+        <div className="bg-[#1e293b] rounded-xl p-4 border border-[#334155] flex items-center gap-4">
+          <div className="text-4xl">&#128203;</div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-slate-400 truncate">{t('monitor.topIssue')}</p>
+            <p className="text-sm font-medium text-slate-300 truncate">{t('monitor.topIssue')}</p>
             {defectsLoading ? <Skeleton className="h-10 w-20 mt-1" /> : (
-              <p className="text-2xl font-bold text-purple-500 leading-tight truncate">{topIssue ? getDefectTypeName(topIssue) : '-'}</p>
+              <p className="text-3xl font-bold text-purple-500 leading-tight truncate">{topIssue ? getDefectTypeName(topIssue) : '-'}</p>
             )}
-            <p className="text-xs text-slate-500 mt-0.5">{t('monitor.topIssueDesc')}</p>
+            <p className="text-sm text-slate-400 mt-1">{t('monitor.topIssueDesc')}</p>
           </div>
         </div>
       </section>
@@ -331,15 +331,15 @@ export function MonitorPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dailyDefectTrend} margin={{ top: 20, right: 10, left: -10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-                  <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} allowDecimals={false} />
+                  <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 13 }} />
+                  <YAxis tick={{ fill: '#94a3b8', fontSize: 13 }} allowDecimals={false} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
                     labelStyle={{ color: '#e2e8f0' }}
                     itemStyle={{ color: '#f97316' }}
                   />
                   <Bar dataKey="count" fill="#f97316" radius={[4, 4, 0, 0]}>
-                    <LabelList dataKey="count" position="top" fill="#e2e8f0" fontSize={11} />
+                    <LabelList dataKey="count" position="top" fill="#e2e8f0" fontSize={13} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -354,19 +354,19 @@ export function MonitorPage() {
             {defectsLoading ? (
               Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-14 w-full" />)
             ) : topMachines.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">{t('monitor.noData')}</div>
+              <div className="flex-1 flex items-center justify-center text-slate-500 text-base">{t('monitor.noData')}</div>
             ) : (
               topMachines.map((m, i) => (
                 <div key={m.machineId} className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
                       style={{ backgroundColor: RANK_COLORS[i] }}
                     >
                       {i + 1}
                     </div>
-                    <span className="font-bold text-white text-sm truncate flex-1">{getMachineName(m.machineId)}</span>
-                    <span className="text-slate-300 text-sm font-mono shrink-0">{m.count} {t('monitor.count')}</span>
+                    <span className="font-bold text-white text-base truncate flex-1">{getMachineName(m.machineId)}</span>
+                    <span className="text-slate-300 text-base font-mono shrink-0">{m.count} {t('monitor.count')}</span>
                   </div>
                   <div className="ml-8">
                     <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
@@ -375,7 +375,7 @@ export function MonitorPage() {
                         style={{ width: `${(m.count / maxMachineCount) * 100}%`, backgroundColor: RANK_COLORS[i] }}
                       />
                     </div>
-                    <p className="text-xs text-slate-500 mt-0.5">{t('monitor.recentIssue')}: {getDefectTypeName(m.recentDefectType)}</p>
+                    <p className="text-sm text-slate-400 mt-1">{t('monitor.recentIssue')}: {getDefectTypeName(m.recentDefectType)}</p>
                   </div>
                 </div>
               ))
@@ -388,7 +388,7 @@ export function MonitorPage() {
           <SectionTitle>{t('monitor.defectTypeAnalysis')}</SectionTitle>
           <div className="flex-1 min-h-0 flex">
             {defectsLoading ? <Skeleton className="w-full h-full" /> : defectTypeDistribution.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">{t('monitor.noData')}</div>
+              <div className="flex-1 flex items-center justify-center text-slate-500 text-base">{t('monitor.noData')}</div>
             ) : (
               <>
                 <div className="w-1/2 min-h-0">
@@ -403,7 +403,7 @@ export function MonitorPage() {
                         outerRadius="80%"
                         label={({ percent }) => `${percent}%`}
                         labelLine={false}
-                        fontSize={10}
+                        fontSize={13}
                         fill="#8884d8"
                       >
                         {defectTypeDistribution.map((_, idx) => (
@@ -419,10 +419,10 @@ export function MonitorPage() {
                 </div>
                 <div className="w-1/2 flex flex-col justify-center gap-1 pl-2 overflow-hidden">
                   {defectTypeDistribution.slice(0, 7).map((d, idx) => (
-                    <div key={d.type} className="flex items-center gap-2 text-xs">
-                      <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
+                    <div key={d.type} className="flex items-center gap-2 text-sm">
+                      <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }} />
                       <span className="text-slate-300 truncate flex-1">{d.name}</span>
-                      <span className="text-slate-400 shrink-0">{d.percent}%</span>
+                      <span className="text-slate-300 font-medium shrink-0">{d.percent}%</span>
                     </div>
                   ))}
                 </div>
@@ -436,13 +436,13 @@ export function MonitorPage() {
           <SectionTitle>{t('monitor.modelDefectShare')}</SectionTitle>
           <div className="flex-1 min-h-0">
             {defectsLoading ? <Skeleton className="w-full h-full" /> : modelDefectShare.length === 0 ? (
-              <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">{t('monitor.noData')}</div>
+              <div className="flex-1 flex items-center justify-center text-slate-500 text-base">{t('monitor.noData')}</div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={modelDefectShare} layout="vertical" margin={{ top: 5, right: 40, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                  <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 10 }} allowDecimals={false} />
-                  <YAxis dataKey="name" type="category" tick={{ fill: '#94a3b8', fontSize: 10 }} width={70} />
+                  <XAxis type="number" tick={{ fill: '#94a3b8', fontSize: 13 }} allowDecimals={false} />
+                  <YAxis dataKey="name" type="category" tick={{ fill: '#94a3b8', fontSize: 13 }} width={95} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
                     labelStyle={{ color: '#e2e8f0' }}
@@ -451,7 +451,7 @@ export function MonitorPage() {
                     {modelDefectShare.map((_, idx) => (
                       <Cell key={idx} fill={idx % 2 === 0 ? '#a855f7' : '#3b82f6'} />
                     ))}
-                    <LabelList dataKey="percent" position="right" fill="#e2e8f0" fontSize={10} formatter={(v: number) => `${v}%`} />
+                    <LabelList dataKey="percent" position="right" fill="#e2e8f0" fontSize={13} formatter={(v: number) => `${v}%`} />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
@@ -469,26 +469,26 @@ export function MonitorPage() {
                 {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
               </div>
             ) : allDefects.length === 0 ? (
-              <p className="text-slate-500 text-xs text-center py-4">{t('monitor.noData')}</p>
+              <p className="text-slate-500 text-base text-center py-4">{t('monitor.noData')}</p>
             ) : (
-              <table className="w-full text-xs">
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="text-slate-400 border-b border-slate-700">
-                    <th className="text-left py-1.5 font-medium">{t('monitor.defectTime')}</th>
-                    <th className="text-left py-1.5 font-medium">{t('monitor.defectMachine')}</th>
-                    <th className="text-left py-1.5 font-medium">{t('monitor.defectModel')}</th>
-                    <th className="text-left py-1.5 font-medium">{t('monitor.defectType')}</th>
+                    <th className="text-left py-2 font-medium">{t('monitor.defectTime')}</th>
+                    <th className="text-left py-2 font-medium">{t('monitor.defectMachine')}</th>
+                    <th className="text-left py-2 font-medium">{t('monitor.defectModel')}</th>
+                    <th className="text-left py-2 font-medium">{t('monitor.defectType')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {allDefects.slice(0, 5).map((defect, idx) => (
                     <tr key={defect.id} className={`border-b border-slate-700/50 ${idx === 0 ? 'text-orange-300' : 'text-slate-300'}`}>
-                      <td className="py-1.5 font-mono whitespace-nowrap">
+                      <td className="py-2 font-mono whitespace-nowrap">
                         {new Date(defect.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Ho_Chi_Minh', hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </td>
-                      <td className="py-1.5 truncate max-w-[100px]">{getMachineName(getDefectMachineId(defect))}</td>
-                      <td className="py-1.5 truncate max-w-[80px]">{getModelCode(defect.model_id)}</td>
-                      <td className="py-1.5 truncate max-w-[120px]">{getDefectTypeName(defect.defect_type || '')}</td>
+                      <td className="py-2 truncate max-w-[120px]">{getMachineName(getDefectMachineId(defect))}</td>
+                      <td className="py-2 truncate max-w-[100px]">{getModelCode(defect.model_id)}</td>
+                      <td className="py-2 truncate max-w-[160px]">{getDefectTypeName(defect.defect_type || '')}</td>
                     </tr>
                   ))}
                 </tbody>
