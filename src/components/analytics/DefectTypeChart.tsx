@@ -3,7 +3,6 @@ import {
   Pie,
   Cell,
   ResponsiveContainer,
-  Legend,
   Tooltip,
 } from 'recharts'
 import { useTranslation } from 'react-i18next'
@@ -25,12 +24,11 @@ const COLORS = [
 export function DefectTypeChart({ data }: DefectTypeChartProps) {
   const { t } = useTranslation()
 
-  // Calculate dynamic legend height based on data count
-  const legendRowHeight = 22
-  const legendColumns = 2
-  const legendRows = Math.ceil(data.length / legendColumns)
-  const legendHeight = Math.max(36, legendRows * legendRowHeight + 8)
-  const chartHeight = 280 + legendHeight
+  const sortedData = [...data].sort((a, b) =>
+    b.percentage - a.percentage ||
+    b.count - a.count ||
+    a.defectType.localeCompare(b.defectType)
+  )
 
   return (
     <Card
@@ -40,12 +38,12 @@ export function DefectTypeChart({ data }: DefectTypeChartProps) {
         <CardTitle>{t('charts.defectTypeDistribution')}</CardTitle>
       </CardHeader>
       <CardContent>
-        <ResponsiveContainer width="100%" height={chartHeight}>
+        <ResponsiveContainer width="100%" height={300}>
           <PieChart>
             <Pie
-              data={data}
+              data={sortedData}
               cx="50%"
-              cy={130}
+              cy="50%"
               labelLine={false}
               label={({
                 cx,
@@ -55,6 +53,7 @@ export function DefectTypeChart({ data }: DefectTypeChartProps) {
                 outerRadius,
                 percentage,
               }) => {
+                if (percentage < 4) return null
                 const radius = innerRadius + (outerRadius - innerRadius) * 0.5
                 const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180))
                 const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180))
@@ -75,7 +74,7 @@ export function DefectTypeChart({ data }: DefectTypeChartProps) {
               outerRadius={110}
               dataKey="count"
             >
-              {data.map((_, index) => (
+              {sortedData.map((_, index) => (
                 <Cell
                   key={`cell-${index}`}
                   fill={COLORS[index % COLORS.length]}
@@ -119,23 +118,33 @@ export function DefectTypeChart({ data }: DefectTypeChartProps) {
                 )
               }}
             />
-            <Legend
-              verticalAlign="bottom"
-              height={legendHeight}
-              wrapperStyle={{
-                color: 'hsl(var(--foreground))',
-                fontSize: '11px',
-                lineHeight: '20px',
-                paddingTop: '8px',
-              }}
-              formatter={(_value, entry) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const data = (entry as any).payload
-                return `${data.defectType} (${data.count})`
-              }}
-            />
           </PieChart>
         </ResponsiveContainer>
+        <div className="mt-4 grid max-h-56 grid-cols-1 gap-2 overflow-auto pr-1 text-sm sm:grid-cols-2">
+          {sortedData.map((item, index) => (
+            <div
+              key={item.defectType}
+              className="flex min-w-0 items-center gap-2 rounded-md border border-border/60 bg-muted/20 px-2.5 py-2"
+            >
+              <span className="w-5 shrink-0 text-right font-mono text-xs text-muted-foreground">
+                {index + 1}
+              </span>
+              <span
+                className="h-3 w-3 shrink-0 rounded-full"
+                style={{ backgroundColor: COLORS[index % COLORS.length] }}
+              />
+              <span className="min-w-0 flex-1 truncate font-medium text-foreground">
+                {item.defectType}
+              </span>
+              <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                {item.percentage.toFixed(1)}%
+              </span>
+              <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                {item.count}
+              </span>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   )
