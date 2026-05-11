@@ -343,11 +343,17 @@ export async function getDefectTypeDistribution(
 
   const total = Object.values(groupedByType).reduce((sum, count) => sum + count, 0)
 
-  return Object.entries(groupedByType).map(([type, count]) => ({
-    defectType: type,
-    count,
-    percentage: (count / total) * 100,
-  }))
+  return Object.entries(groupedByType)
+    .map(([type, count]) => ({
+      defectType: type,
+      count,
+      percentage: (count / total) * 100,
+    }))
+    .sort((a, b) =>
+      b.percentage - a.percentage ||
+      b.count - a.count ||
+      a.defectType.localeCompare(b.defectType)
+    )
 }
 
 // 6. Hourly Distribution
