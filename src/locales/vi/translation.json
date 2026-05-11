@@ -500,7 +500,7 @@
     "teamName": "ALMUS TECH / Đội Chất lượng",
     "lastUpdated": "Cập nhật lần cuối",
     "totalDefects": "Tổng lỗi phát sinh (TOTAL)",
-    "totalDefectsDesc": "Tổng tích lũy",
+    "totalDefectsDesc": "Tổng trong tháng",
     "todayDefects": "Lỗi hôm nay (TODAY)",
     "todayDefectsDesc": "Sau 08:00 hôm nay",
     "worstMachine": "Thiết bị lỗi nhiều nhất (WORST)",

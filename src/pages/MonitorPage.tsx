@@ -23,7 +23,12 @@ import {
 
 import * as inspectionService from '@/services/inspectionService'
 import { getMachines, getProductModels, getDefectTypes } from '@/services/managementService'
-import { getBusinessDate, getTodayBusinessDate } from '@/lib/dateUtils'
+import {
+  getBusinessDate,
+  getBusinessDayEnd,
+  getBusinessDayStart,
+  getTodayBusinessDate,
+} from '@/lib/dateUtils'
 import { useFactoryStore } from '@/stores/factoryStore'
 
 const AUTO_REFRESH_INTERVAL = 2 * 60 * 1000
@@ -59,11 +64,28 @@ export function MonitorPage() {
 
   const timeStr = currentTime.toLocaleTimeString('ko-KR', { timeZone: 'Asia/Ho_Chi_Minh', hour12: false })
   const dateStr = currentTime.toLocaleDateString('ko-KR', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
+  const todayBusinessDate = getTodayBusinessDate()
+  const currentBusinessMonth = todayBusinessDate.slice(0, 7)
+  const businessMonthStartDate = `${currentBusinessMonth}-01`
+  const businessMonthEndDay = new Date(
+    Number(currentBusinessMonth.slice(0, 4)),
+    Number(currentBusinessMonth.slice(5, 7)),
+    0
+  ).getDate()
+  const businessMonthEndDate = `${currentBusinessMonth}-${String(businessMonthEndDay).padStart(2, '0')}`
+  const businessMonthRange = useMemo(() => ({
+    startDate: getBusinessDayStart(businessMonthStartDate).toISOString(),
+    endDate: getBusinessDayEnd(businessMonthEndDate).toISOString(),
+  }), [businessMonthStartDate, businessMonthEndDate])
 
   // Queries
   const { data: allDefects = [], isLoading: defectsLoading, isError } = useQuery({
-    queryKey: ['monitor-defects', activeFactoryId],
-    queryFn: () => inspectionService.getDefects({ factoryId: activeFactoryId || undefined }),
+    queryKey: ['monitor-defects', activeFactoryId, currentBusinessMonth],
+    queryFn: () => inspectionService.getDefects({
+      factoryId: activeFactoryId || undefined,
+      startDate: businessMonthRange.startDate,
+      endDate: businessMonthRange.endDate,
+    }),
   })
   const { data: machines = [] } = useQuery({
     queryKey: ['machines', activeFactoryId],
@@ -78,8 +100,12 @@ export function MonitorPage() {
     queryFn: getDefectTypes,
   })
   const { data: inspections = [] } = useQuery({
-    queryKey: ['monitor-inspections', activeFactoryId],
-    queryFn: () => inspectionService.getInspections({ factoryId: activeFactoryId || undefined }),
+    queryKey: ['monitor-inspections', activeFactoryId, currentBusinessMonth],
+    queryFn: () => inspectionService.getInspections({
+      factoryId: activeFactoryId || undefined,
+      startDate: businessMonthRange.startDate,
+      endDate: businessMonthRange.endDate,
+    }),
   })
 
   // Build inspection_id -> machine_id map
@@ -113,7 +139,6 @@ export function MonitorPage() {
 
   // Computed data
   const totalDefects = allDefects.length
-  const todayBusinessDate = getTodayBusinessDate()
 
   const todayDefects = useMemo(() =>
     allDefects.filter(d => getBusinessDate(new Date(d.created_at)) === todayBusinessDate),
@@ -142,16 +167,16 @@ export function MonitorPage() {
 
   const dailyDefectTrend = useMemo(() => {
     const days: { date: string; count: number }[] = []
-    for (let i = 13; i >= 0; i--) {
-      const d = new Date()
-      d.setDate(d.getDate() - i)
-      const bd = getBusinessDate(d)
+    const [year, month, todayDay] = todayBusinessDate.split('-').map(Number)
+
+    for (let day = 1; day <= todayDay; day++) {
+      const bd = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
       const count = allDefects.filter(def => getBusinessDate(new Date(def.created_at)) === bd).length
-      const label = `${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}.`
+      const label = `${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}.`
       days.push({ date: label, count })
     }
     return days
-  }, [allDefects])
+  }, [allDefects, todayBusinessDate])
 
   const topMachines = useMemo(() => {
     const map: Record<string, { count: number; recentDefectType: string }> = {}

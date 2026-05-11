@@ -500,7 +500,7 @@
     "teamName": "ALMUS TECH / 품질 TEAM",
     "lastUpdated": "마지막 업데이트",
     "totalDefects": "총 불량 발생 (TOTAL)",
-    "totalDefectsDesc": "누적 집계",
+    "totalDefectsDesc": "당월 누적 집계",
     "todayDefects": "금일 불량 (TODAY)",
     "todayDefectsDesc": "오늘 08:00 이후",
     "worstMachine": "최다 불량 설비 (WORST)",
