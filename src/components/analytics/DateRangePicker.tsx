@@ -34,9 +34,9 @@ export function DateRangePicker({
             variant="outline"
             className={cn(
               'w-[300px] justify-start text-left font-normal',
-              'bg-[#1e1e1e] dark:bg-[#1e1e1e] text-white border-[#404040]',
-              'hover:bg-[#2a2a2a] hover:text-white hover:border-[#505050]',
-              !value && 'text-gray-400'
+              'border-input bg-popover text-popover-foreground',
+              'hover:bg-accent hover:text-accent-foreground',
+              !value && 'text-muted-foreground'
             )}
           >
             <CalendarIcon className="mr-2 h-4 w-4" />

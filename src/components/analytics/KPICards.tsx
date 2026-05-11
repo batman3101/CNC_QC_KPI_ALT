@@ -12,9 +12,9 @@ import type { KPISummary } from '@/types/analytics'
 
 // 순위별 메달 색상
 const rankColors = {
-  1: '#FFD700', // Gold
-  2: '#C0C0C0', // Silver
-  3: '#CD7F32', // Bronze
+  1: 'warning.main',
+  2: 'text.secondary',
+  3: 'warning.dark',
 }
 
 // 카드 공통 스타일
@@ -162,7 +162,7 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
               <Typography variant="body2" fontWeight={500} color="text.secondary">
                 {t('analytics.bestInspectors')}
               </Typography>
-              <EmojiEvents sx={{ color: '#FFD700', fontSize: 20 }} />
+              <EmojiEvents sx={{ color: 'warning.main', fontSize: 20 }} />
             </Box>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
               {data.topInspectors.map((inspector) => (

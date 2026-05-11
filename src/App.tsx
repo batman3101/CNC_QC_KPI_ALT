@@ -1,28 +1,29 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { useEffect } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { SnackbarProvider } from 'notistack'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { Layout } from '@/components/layout/Layout'
 import { LoginPage } from '@/pages/LoginPage'
-import { DashboardPage } from '@/pages/DashboardPage'
-import { InspectionPage } from '@/pages/InspectionPage'
-import { DefectsPage } from '@/pages/DefectsPage'
-import { AnalyticsPage } from '@/pages/AnalyticsPage'
-import { ReportsPage } from '@/pages/ReportsPage'
-import { AIInsightsPage } from '@/pages/AIInsightsPage'
-import { ManagementPage } from '@/pages/ManagementPage'
-import { UserManagementPage } from '@/pages/UserManagementPage'
 import { MonitorPage } from '@/pages/MonitorPage'
-import { SPCPage } from '@/pages/SPCPage'
 import { useAuthStore } from '@/stores/authStore'
 import { useFactoryStore } from '@/stores/factoryStore'
 import { supabase } from '@/lib/supabase'
 import { subscribeToRealtime, unsubscribeFromRealtime } from '@/services/realtimeService'
 import { InstallPrompt } from '@/components/pwa'
 import '@/i18n/config'
+
+const DashboardPage = lazy(() => import('@/pages/DashboardPage').then((module) => ({ default: module.DashboardPage })))
+const InspectionPage = lazy(() => import('@/pages/InspectionPage').then((module) => ({ default: module.InspectionPage })))
+const DefectsPage = lazy(() => import('@/pages/DefectsPage').then((module) => ({ default: module.DefectsPage })))
+const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage').then((module) => ({ default: module.AnalyticsPage })))
+const ReportsPage = lazy(() => import('@/pages/ReportsPage').then((module) => ({ default: module.ReportsPage })))
+const AIInsightsPage = lazy(() => import('@/pages/AIInsightsPage').then((module) => ({ default: module.AIInsightsPage })))
+const ManagementPage = lazy(() => import('@/pages/ManagementPage').then((module) => ({ default: module.ManagementPage })))
+const UserManagementPage = lazy(() => import('@/pages/UserManagementPage').then((module) => ({ default: module.UserManagementPage })))
+const SPCPage = lazy(() => import('@/pages/SPCPage').then((module) => ({ default: module.SPCPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -109,7 +110,8 @@ function AppRoutes() {
   }, [user, queryClient, activeFactoryId])
 
   return (
-    <Routes>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">Loading...</div>}>
+      <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/monitor" element={<MonitorPage />} />
 
@@ -173,7 +175,8 @@ function AppRoutes() {
           }
         />
       </Route>
-    </Routes>
+      </Routes>
+    </Suspense>
   )
 }
 
