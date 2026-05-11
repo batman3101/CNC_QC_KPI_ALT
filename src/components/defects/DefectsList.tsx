@@ -421,10 +421,9 @@ export function DefectsList() {
           <Card
             elevation={3}
             sx={{
-              transition: 'all 0.3s ease-in-out',
+              transition: 'box-shadow 0.2s ease-out',
               '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 6,
+                boxShadow: 4,
               },
             }}
           >
@@ -448,10 +447,9 @@ export function DefectsList() {
           <Card
             elevation={3}
             sx={{
-              transition: 'all 0.3s ease-in-out',
+              transition: 'box-shadow 0.2s ease-out',
               '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 6,
+                boxShadow: 4,
               },
             }}
           >
@@ -475,10 +473,9 @@ export function DefectsList() {
           <Card
             elevation={3}
             sx={{
-              transition: 'all 0.3s ease-in-out',
+              transition: 'box-shadow 0.2s ease-out',
               '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 6,
+                boxShadow: 4,
               },
             }}
           >
@@ -502,10 +499,9 @@ export function DefectsList() {
           <Card
             elevation={3}
             sx={{
-              transition: 'all 0.3s ease-in-out',
+              transition: 'box-shadow 0.2s ease-out',
               '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 6,
+                boxShadow: 4,
               },
             }}
           >
@@ -542,7 +538,15 @@ export function DefectsList() {
           const config = statusConfig[defect.status]
           const Icon = config.icon
           return (
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 1, borderLeft: 4, borderLeftColor: defect.status === 'resolved' ? 'success.main' : defect.status === 'in_progress' ? 'primary.main' : 'error.main' }}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                borderRadius: 1,
+                borderColor: defect.status === 'resolved' ? 'success.main' : defect.status === 'in_progress' ? 'primary.main' : 'error.main',
+                bgcolor: defect.status === 'resolved' ? 'rgba(46, 125, 50, 0.06)' : defect.status === 'in_progress' ? 'rgba(25, 118, 210, 0.06)' : 'rgba(211, 47, 47, 0.06)',
+              }}
+            >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                 <Typography variant="subtitle2" fontWeight={600}>{getDefectTypeName(defect.defect_type)}</Typography>
                 <Chip icon={<Icon />} label={config.label} color={config.color} size="small" />

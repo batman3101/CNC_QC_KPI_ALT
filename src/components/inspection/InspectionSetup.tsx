@@ -178,7 +178,7 @@ export function InspectionSetup({ onStart }: InspectionSetupProps) {
             {selectedModel && selectedProcess && (
               <Paper variant="outlined" sx={{ p: 2, bgcolor: 'action.hover' }}>
                 <Typography variant="subtitle2" fontWeight={600} gutterBottom>
-                  검사 정보 확인
+                  {t('inspection.setupConfirmTitle')}
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>

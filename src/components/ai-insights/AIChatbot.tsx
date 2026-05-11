@@ -94,10 +94,9 @@ export function AIChatbot({ analyticsData }: AIChatbotProps) {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'all 0.3s ease-in-out',
+        transition: 'box-shadow 0.2s ease-out',
         '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: 6,
+          boxShadow: 4,
         },
       }}
     >
@@ -191,11 +190,10 @@ export function AIChatbot({ analyticsData }: AIChatbotProps) {
                       border: '1px solid',
                       borderColor: 'divider',
                       borderRadius: 2,
-                      transition: 'all 0.2s ease-in-out',
+                      transition: 'background-color 0.2s ease-out, border-color 0.2s ease-out',
                       '&:hover': {
                         borderColor: 'primary.main',
-                        backgroundColor: 'primary.50',
-                        transform: 'translateX(4px)',
+                        backgroundColor: 'action.hover',
                       },
                     }}
                   >

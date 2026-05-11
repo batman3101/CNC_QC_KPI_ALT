@@ -207,10 +207,9 @@ export function DashboardPage() {
               <Card 
                 elevation={3}
                 sx={{
-                  transition: 'all 0.3s ease-in-out',
+                  transition: 'box-shadow 0.2s ease-out',
                   '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: 6,
+                    boxShadow: 4,
                   },
                 }}
               >
@@ -252,10 +251,9 @@ export function DashboardPage() {
             elevation={3} 
             sx={{ 
               height: '100%',
-              transition: 'all 0.3s ease-in-out',
+              transition: 'box-shadow 0.2s ease-out',
               '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 6,
+                boxShadow: 4,
               },
             }}
           >
@@ -293,8 +291,8 @@ export function DashboardPage() {
                       sx={{
                         p: 2,
                         borderRadius: 1,
-                        borderLeft: 4,
-                        borderLeftColor: inspection.status === 'pass' ? 'success.main' : 'error.main',
+                        borderColor: inspection.status === 'pass' ? 'success.main' : 'error.main',
+                        bgcolor: inspection.status === 'pass' ? 'rgba(46, 125, 50, 0.06)' : 'rgba(211, 47, 47, 0.06)',
                       }}
                     >
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
@@ -390,10 +388,9 @@ export function DashboardPage() {
             elevation={3} 
             sx={{ 
               height: '100%',
-              transition: 'all 0.3s ease-in-out',
+              transition: 'box-shadow 0.2s ease-out',
               '&:hover': {
-                transform: 'translateY(-4px)',
-                boxShadow: 6,
+                boxShadow: 4,
               },
             }}
           >
@@ -432,10 +429,9 @@ export function DashboardPage() {
                         bgcolor: 'background.default',
                         border: 1,
                         borderColor: 'divider',
-                        transition: 'all 0.2s ease-in-out',
+                        transition: 'background-color 0.2s ease-out, border-color 0.2s ease-out',
                         cursor: 'pointer',
                         '&:hover': {
-                          transform: 'translateX(4px)',
                           borderColor: 'primary.main',
                           bgcolor: 'action.hover',
                         },

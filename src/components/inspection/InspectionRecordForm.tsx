@@ -25,6 +25,8 @@ import {
   Menu,
   ListItemIcon,
   ListItemText,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material'
 import {
   Save as SaveIcon,
@@ -82,6 +84,8 @@ export function InspectionRecordForm({
   onCancel,
 }: InspectionRecordFormProps) {
   const { t } = useTranslation()
+  const theme = useTheme()
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const { profile } = useAuth()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [photoFile, setPhotoFile] = useState<File | null>(null)
@@ -139,6 +143,52 @@ export function InspectionRecordForm({
 
   const selectedDefectType = defectTypes.find((dt) => dt.id === watchedValues.defectTypeId)
   const selectedInspector = users.find((u) => u.id === watchedValues.inspectorId)
+  const submitDisabled = isSubmitting || inspectionQuantity === 0 || defectQuantity > inspectionQuantity
+  const completedInputCount = [
+    selectedDefectType,
+    selectedMachine || !watchedValues.machineId,
+    watchedValues.inspectorId,
+    inspectionQuantity > 0,
+    defectQuantity <= inspectionQuantity,
+  ].filter(Boolean).length
+
+  const SectionHeader = ({
+    step,
+    title,
+    description,
+  }: {
+    step: number
+    title: string
+    description: string
+  }) => (
+    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+      <Box
+        sx={{
+          width: 28,
+          height: 28,
+          borderRadius: '50%',
+          bgcolor: 'primary.main',
+          color: 'primary.contrastText',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 13,
+          fontWeight: 700,
+          flexShrink: 0,
+        }}
+      >
+        {step}
+      </Box>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography variant="subtitle1" fontWeight={700}>
+          {title}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          {description}
+        </Typography>
+      </Box>
+    </Box>
+  )
 
   // 사진 업로드 핸들러
   const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -249,172 +299,199 @@ export function InspectionRecordForm({
 
         <form onSubmit={handleSubmit(handleFormSubmit)}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-            {/* Defect Type Selection */}
-            <Controller
-              name="defectTypeId"
-              control={control}
-              render={({ field }) => (
-                <FormControl fullWidth error={!!errors.defectTypeId} disabled={isLoading}>
-                  <InputLabel>{t('inspection.defectType')} *</InputLabel>
-                  <Select
-                    {...field}
-                    value={field.value || ''}
-                    label={`${t('inspection.defectType')} *`}
-                  >
-                    {defectTypes.map((type) => (
-                      <MenuItem key={type.id} value={type.id}>
-                        {type.name}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                  <FormHelperText error={!!errors.defectTypeId}>
-                    {errors.defectTypeId?.message || t('inspection.defectTypeHelper')}
-                  </FormHelperText>
-                </FormControl>
-              )}
-            />
-
-            {/* Machine Number - Searchable Dropdown */}
-            <Box>
-              <Autocomplete
-                options={machines}
-                getOptionLabel={(option) => option.name}
-                value={selectedMachine}
-                onChange={(_event, newValue) => {
-                  setSelectedMachine(newValue)
-                  setValue('machineId', newValue?.id || null)
-                }}
-                inputValue={machineInputValue}
-                onInputChange={(_event, newInputValue) => {
-                  setMachineInputValue(newInputValue)
-                }}
-                loading={machinesLoading}
-                filterOptions={(x) => x} // 서버에서 필터링하므로 클라이언트 필터 비활성화
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                noOptionsText={t('common.noData')}
-                loadingText={t('common.loading')}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label={`${t('inspection.machineNumber')} (${t('common.optional')})`}
-                    placeholder={t('inspection.machineNumberPlaceholder')}
-                    InputProps={{
-                      ...params.InputProps,
-                      endAdornment: (
-                        <>
-                          {machinesLoading ? <CircularProgress color="inherit" size={20} /> : null}
-                          {params.InputProps.endAdornment}
-                        </>
-                      ),
-                    }}
-                  />
-                )}
-              />
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                {t('inspection.machineNumberHelper')}
-              </Typography>
-            </Box>
-
-            {/* Inspector Selection */}
-            {canSelectInspector ? (
-              <Controller
-                name="inspectorId"
-                control={control}
-                render={({ field }) => (
-                  <FormControl fullWidth error={!!errors.inspectorId} disabled={isLoading}>
-                    <InputLabel>{t('inspection.inspector')} *</InputLabel>
-                    <Select {...field} label={`${t('inspection.inspector')} *`}>
-                      {users
-                        .filter((u) => u.role !== 'admin')
-                        .map((user) => (
-                          <MenuItem key={user.id} value={user.id}>
-                            {user.name} ({user.role === 'manager' ? t('common.manager') : t('common.inspector')})
-                          </MenuItem>
-                        ))}
-                    </Select>
-                    <FormHelperText error={!!errors.inspectorId}>
-                      {errors.inspectorId?.message || t('inspection.inspectorHelper')}
-                    </FormHelperText>
-                  </FormControl>
-                )}
-              />
-            ) : (
-              <Box>
-                <TextField
-                  label={t('inspection.inspector')}
-                  value={profile?.name || ''}
-                  disabled
-                  fullWidth
-                />
-                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                  {t('inspection.inspectorHelper')}
-                </Typography>
-              </Box>
-            )}
-
-            {/* Quantity Input Guide */}
             <Alert severity="info" sx={{ py: 1 }}>
               <Typography variant="caption" fontWeight={500}>
-                {t('inspection.quantityInputGuide')}
+                {t('inspection.mobileDraftNotice')}
               </Typography>
             </Alert>
 
-            {/* Inspection Quantity */}
-            <Controller
-              name="inspectionQuantity"
-              control={control}
-              render={({ field }) => (
+            <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
+              <SectionHeader
+                step={1}
+                title={t('inspection.workflowContext')}
+                description={t('inspection.workflowContextDescription')}
+              />
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 3 }}>
+                {/* Defect Type Selection */}
+                <Controller
+                  name="defectTypeId"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControl fullWidth error={!!errors.defectTypeId} disabled={isLoading}>
+                      <InputLabel>{t('inspection.defectType')} *</InputLabel>
+                      <Select
+                        {...field}
+                        value={field.value || ''}
+                        label={`${t('inspection.defectType')} *`}
+                      >
+                        {defectTypes.map((type) => (
+                          <MenuItem key={type.id} value={type.id}>
+                            {type.name}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      <FormHelperText error={!!errors.defectTypeId}>
+                        {errors.defectTypeId?.message || t('inspection.defectTypeHelper')}
+                      </FormHelperText>
+                    </FormControl>
+                  )}
+                />
+
+                {/* Machine Number - Searchable Dropdown */}
                 <Box>
-                  <TextField
-                    {...field}
-                    type="number"
-                    label={`${t('inspection.inspectionQuantity')} *`}
-                    fullWidth
-                    error={!!errors.inspectionQuantity}
-                    inputProps={{ min: 1 }}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
+                  <Autocomplete
+                    options={machines}
+                    getOptionLabel={(option) => option.name}
+                    value={selectedMachine}
+                    onChange={(_event, newValue) => {
+                      setSelectedMachine(newValue)
+                      setValue('machineId', newValue?.id || null)
+                    }}
+                    inputValue={machineInputValue}
+                    onInputChange={(_event, newInputValue) => {
+                      setMachineInputValue(newInputValue)
+                    }}
+                    loading={machinesLoading}
+                    filterOptions={(x) => x} // 서버에서 필터링하므로 클라이언트 필터 비활성화
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    noOptionsText={t('common.noData')}
+                    loadingText={t('common.loading')}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={`${t('inspection.machineNumber')} (${t('common.optional')})`}
+                        placeholder={t('inspection.machineNumberPlaceholder')}
+                        InputProps={{
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {machinesLoading ? <CircularProgress color="inherit" size={20} /> : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        }}
+                      />
+                    )}
                   />
-                  <Typography
-                    variant="caption"
-                    color={errors.inspectionQuantity ? 'error' : 'text.secondary'}
-                    sx={{ mt: 0.5, display: 'block' }}
-                  >
-                    {errors.inspectionQuantity?.message || t('inspection.inspectionQuantityHelper')}
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                    {t('inspection.machineNumberHelper')}
                   </Typography>
                 </Box>
-              )}
-            />
 
-            {/* Defect Quantity */}
-            <Controller
-              name="defectQuantity"
-              control={control}
-              render={({ field }) => (
-                <Box>
-                  <TextField
-                    {...field}
-                    type="number"
-                    label={`${t('inspection.defectQuantity')} *`}
-                    fullWidth
-                    error={!!errors.defectQuantity}
-                    inputProps={{ min: 0 }}
-                    onFocus={(e) => e.target.select()}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
+                {/* Inspector Selection */}
+                {canSelectInspector ? (
+                  <Controller
+                    name="inspectorId"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControl fullWidth error={!!errors.inspectorId} disabled={isLoading}>
+                        <InputLabel>{t('inspection.inspector')} *</InputLabel>
+                        <Select {...field} label={`${t('inspection.inspector')} *`}>
+                          {users
+                            .filter((u) => u.role !== 'admin')
+                            .map((user) => (
+                              <MenuItem key={user.id} value={user.id}>
+                                {user.name} ({user.role === 'manager' ? t('common.manager') : t('common.inspector')})
+                              </MenuItem>
+                            ))}
+                        </Select>
+                        <FormHelperText error={!!errors.inspectorId}>
+                          {errors.inspectorId?.message || t('inspection.inspectorHelper')}
+                        </FormHelperText>
+                      </FormControl>
+                    )}
                   />
-                  <Typography
-                    variant="caption"
-                    color={errors.defectQuantity ? 'error' : 'text.secondary'}
-                    sx={{ mt: 0.5, display: 'block' }}
-                  >
-                    {errors.defectQuantity?.message || t('inspection.defectQuantityHelper')}
-                  </Typography>
-                </Box>
-              )}
-            />
+                ) : (
+                  <Box>
+                    <TextField
+                      label={t('inspection.inspector')}
+                      value={profile?.name || ''}
+                      disabled
+                      fullWidth
+                    />
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                      {t('inspection.inspectorHelper')}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            </Paper>
 
-            {/* Photo Upload */}
-            <Box>
+            <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
+              <SectionHeader
+                step={2}
+                title={t('inspection.workflowQuantities')}
+                description={t('inspection.workflowQuantitiesDescription')}
+              />
+              <Alert severity="info" sx={{ py: 1, mt: 3 }}>
+                <Typography variant="caption" fontWeight={500}>
+                  {t('inspection.quantityInputGuide')}
+                </Typography>
+              </Alert>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 3, mt: 3 }}>
+                {/* Inspection Quantity */}
+                <Controller
+                  name="inspectionQuantity"
+                  control={control}
+                  render={({ field }) => (
+                    <Box>
+                      <TextField
+                        {...field}
+                        type="number"
+                        label={`${t('inspection.inspectionQuantity')} *`}
+                        fullWidth
+                        error={!!errors.inspectionQuantity}
+                        inputProps={{ min: 1 }}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
+                      <Typography
+                        variant="caption"
+                        color={errors.inspectionQuantity ? 'error' : 'text.secondary'}
+                        sx={{ mt: 0.5, display: 'block' }}
+                      >
+                        {errors.inspectionQuantity?.message || t('inspection.inspectionQuantityHelper')}
+                      </Typography>
+                    </Box>
+                  )}
+                />
+
+                {/* Defect Quantity */}
+                <Controller
+                  name="defectQuantity"
+                  control={control}
+                  render={({ field }) => (
+                    <Box>
+                      <TextField
+                        {...field}
+                        type="number"
+                        label={`${t('inspection.defectQuantity')} *`}
+                        fullWidth
+                        error={!!errors.defectQuantity}
+                        inputProps={{ min: 0 }}
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => field.onChange(Number(e.target.value))}
+                      />
+                      <Typography
+                        variant="caption"
+                        color={errors.defectQuantity ? 'error' : 'text.secondary'}
+                        sx={{ mt: 0.5, display: 'block' }}
+                      >
+                        {errors.defectQuantity?.message || t('inspection.defectQuantityHelper')}
+                      </Typography>
+                    </Box>
+                  )}
+                />
+              </Box>
+            </Paper>
+
+            <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
+              <SectionHeader
+                step={3}
+                title={t('inspection.workflowEvidence')}
+                description={t('inspection.workflowEvidenceDescription')}
+              />
+              <Box sx={{ mt: 3 }}>
               <Typography variant="subtitle2" gutterBottom>
                 {t('inspection.photo')} ({t('common.optional')})
               </Typography>
@@ -486,7 +563,7 @@ export function InspectionRecordForm({
                     <Box
                       component="img"
                       src={photoPreview}
-                      alt="Preview"
+                      alt={t('inspection.photoPreviewAlt')}
                       sx={{
                         width: { xs: '100%', sm: 200 },
                         height: { xs: 'auto', sm: 150 },
@@ -521,7 +598,8 @@ export function InspectionRecordForm({
                   {photoError}
                 </Alert>
               )}
-            </Box>
+              </Box>
+            </Paper>
 
             <Divider sx={{ my: 2 }} />
 
@@ -633,7 +711,43 @@ export function InspectionRecordForm({
             )}
 
             {/* Action Buttons */}
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2,
+                borderRadius: 2,
+                position: { xs: 'sticky', sm: 'static' },
+                bottom: { xs: 76, sm: 'auto' },
+                zIndex: { xs: 2, sm: 'auto' },
+                bgcolor: 'background.paper',
+                boxShadow: { xs: 3, sm: 'none' },
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, mb: 1.5 }}>
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={700}>
+                    {t('inspection.workflowReview')}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {t('inspection.completedInputCount', { count: completedInputCount, total: 5 })}
+                  </Typography>
+                </Box>
+                {inspectionQuantity > 0 && (
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="caption" color="text.secondary">
+                      {t('inspection.defectRate')}
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      fontWeight={700}
+                      color={defectRate > 0 ? 'error.main' : 'success.main'}
+                    >
+                      {defectRate.toFixed(2)}%
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+              <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column-reverse', sm: 'row' } }}>
               <Button
                 variant="outlined"
                 size="large"
@@ -649,12 +763,14 @@ export function InspectionRecordForm({
                 variant="contained"
                 size="large"
                 fullWidth
-                disabled={isSubmitting || inspectionQuantity === 0 || defectQuantity > inspectionQuantity}
-                startIcon={<SaveIcon />}
+                disabled={submitDisabled}
+                startIcon={isSubmitting ? <CircularProgress color="inherit" size={18} /> : <SaveIcon />}
+                sx={{ minHeight: isMobile ? 48 : undefined }}
               >
-                {t('inspection.submit')}
+                {isSubmitting ? t('inspection.submittingRecord') : t('inspection.saveInspectionRecord')}
               </Button>
-            </Box>
+              </Box>
+            </Paper>
           </Box>
         </form>
       </CardContent>

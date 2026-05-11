@@ -73,10 +73,9 @@ export function AnalyticsFilters({
     <Card 
       elevation={3}
       sx={{
-        transition: 'all 0.3s ease-in-out',
+        transition: 'box-shadow 0.2s ease-out',
         '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: 6,
+          boxShadow: 4,
         },
       }}
     >

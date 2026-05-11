@@ -19,12 +19,11 @@ const rankColors = {
 
 // 카드 공통 스타일
 const cardSx = {
-  transition: 'all 0.3s ease-in-out',
+  transition: 'box-shadow 0.2s ease-out',
   height: '100%',
   minHeight: 160,
   '&:hover': {
-    transform: 'translateY(-4px)',
-    boxShadow: 6,
+    boxShadow: 4,
   },
 }
 

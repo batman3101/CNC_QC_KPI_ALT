@@ -47,10 +47,9 @@ export function InsightCard({ type, title, content, isLoading }: InsightCardProp
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        transition: 'all 0.3s ease-in-out',
+        transition: 'box-shadow 0.2s ease-out',
         '&:hover': {
-          transform: 'translateY(-4px)',
-          boxShadow: 6,
+          boxShadow: 4,
         },
       }}
     >
