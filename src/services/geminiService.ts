@@ -10,8 +10,11 @@ import type {
 // Gemini API 키
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY
 
+// Gemini 모델
+const GEMINI_MODEL = import.meta.env.VITE_GEMINI_MODEL || 'gemini-2.5-flash'
+
 // Gemini API 엔드포인트
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
+const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`
 
 // 시스템 프롬프트
 const SYSTEM_PROMPT = {
