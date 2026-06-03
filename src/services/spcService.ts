@@ -27,6 +27,7 @@ import type {
   PChartLimits,
   SPCFilters,
   CapabilityRating,
+  DefectPointParetoRow,
 } from '@/types/spc'
 
 // ============================================
@@ -206,8 +207,8 @@ export async function fetchAllItemCpkValues(
         // 최소 2개 측정값 필요 (표준편차 계산 불가)
         if (values.length < 2) return null
 
-        const usl = item.standard_value + item.tolerance_max
-        const lsl = item.standard_value + item.tolerance_min
+        const usl = item.tolerance_max
+        const lsl = item.tolerance_min
         const capability = calculateProcessCapability(values, usl, lsl)
 
         return {
@@ -639,8 +640,8 @@ export async function getProcessCapabilityData(
 
   if (itemError) throw itemError
 
-  const usl = item.standard_value + item.tolerance_max
-  const lsl = item.standard_value + item.tolerance_min
+  const usl = item.tolerance_max
+  const lsl = item.tolerance_min
   const target = item.standard_value
 
   // 측정값 조회
@@ -718,4 +719,111 @@ export async function getProcessCapabilityData(
       max: stats.max,
     },
   }
+}
+
+// ============================================
+// 불량 포인트 Pareto (불량 발생 포인트 집계)
+// ============================================
+
+/**
+ * inspection_results(result='fail')를 item_id별로 집계 → 포인트별 불량 Pareto
+ */
+export async function getDefectPointPareto(
+  filters: { model_id?: string; process_id?: string; date_from: Date; date_to: Date },
+  factoryId?: string
+): Promise<DefectPointParetoRow[]> {
+  const dateFilter = getBusinessDateRangeFilter(filters.date_from, filters.date_to)
+
+  let query = supabase
+    .from('inspection_results')
+    .select(`
+      item_id,
+      result,
+      inspection_items!inner ( name ),
+      inspections!inner ( model_id, inspection_process, factory_id, created_at )
+    `)
+    .eq('result', 'fail')
+    .gte('inspections.created_at', dateFilter.gte)
+    .lte('inspections.created_at', dateFilter.lte)
+
+  if (filters.model_id) query = query.eq('inspections.model_id', filters.model_id)
+  if (filters.process_id) query = query.eq('inspections.inspection_process', filters.process_id)
+  if (factoryId) query = query.eq('inspections.factory_id', factoryId)
+
+  const { data, error } = await query
+  if (error) {
+    console.error('[SPC] Failed to fetch defect-point pareto:', error)
+    return []
+  }
+
+  const counts = new Map<string, { name: string; count: number }>()
+  for (const row of (data || []) as Array<Record<string, unknown>>) {
+    const itemId = row.item_id as string
+    const item = row.inspection_items as { name: string } | null
+    const name = item?.name ?? itemId
+    const prev = counts.get(itemId)
+    if (prev) prev.count += 1
+    else counts.set(itemId, { name, count: 1 })
+  }
+
+  return Array.from(counts.entries())
+    .map(([item_id, v]) => ({ item_id, item_name: v.name, defect_count: v.count }))
+    .sort((a, b) => b.defect_count - a.defect_count)
+}
+
+// ============================================
+// 8. 모델별 불량률 (inspections 집계, 조인 미사용)
+// ============================================
+
+export interface ModelDefectRate {
+  model_id: string
+  model_name: string
+  model_code: string
+  inspected: number
+  defects: number
+  defect_rate: number
+}
+
+export async function getModelDefectRates(
+  filters: { process_id?: string; date_from: Date; date_to: Date },
+  models: { id: string; name: string; code: string }[],
+  factoryId?: string,
+): Promise<ModelDefectRate[]> {
+  const dateFilter = getBusinessDateRangeFilter(filters.date_from, filters.date_to)
+  let query = supabase
+    .from('inspections')
+    .select('model_id, inspection_quantity, defect_quantity')
+    .gte('created_at', dateFilter.gte)
+    .lte('created_at', dateFilter.lte)
+  if (filters.process_id) query = query.eq('inspection_process', filters.process_id)
+  if (factoryId) query = query.eq('factory_id', factoryId)
+
+  const { data, error } = await query
+  if (error) {
+    console.error('[SPC] Failed to fetch model defect rates:', error)
+    return []
+  }
+
+  const agg = new Map<string, { inspected: number; defects: number }>()
+  for (const row of data || []) {
+    const cur = agg.get(row.model_id) ?? { inspected: 0, defects: 0 }
+    cur.inspected += row.inspection_quantity || 0
+    cur.defects += row.defect_quantity || 0
+    agg.set(row.model_id, cur)
+  }
+
+  return models
+    .map((m) => {
+      const a = agg.get(m.id) ?? { inspected: 0, defects: 0 }
+      return {
+        model_id: m.id,
+        model_name: m.name,
+        model_code: m.code,
+        inspected: a.inspected,
+        defects: a.defects,
+        defect_rate: a.inspected > 0 ? (a.defects / a.inspected) * 100 : 0,
+      }
+    })
+    .filter((m) => m.inspected > 0)
+    .sort((a, b) => b.defect_rate - a.defect_rate)
 }

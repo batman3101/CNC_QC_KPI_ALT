@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SPC 분석 완벽 가이드 · Hướng dẫn phân tích SPC — CNC QC KPI</title>
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#ffffff; --ink:#1f2937; --muted:#64748b; --line:#e2e8f0;
+    --brand:#2563eb; --brand-d:#1e40af; --brand-soft:#eff4ff;
+    --green:#16a34a; --green-soft:#ecfdf5; --blue:#2563eb; --yellow:#ca8a04; --orange:#ea580c; --red:#dc2626; --red-soft:#fef2f2;
+    --warn-soft:#fffbeb; --warn-line:#fde68a;
+    --radius:14px; --shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Pretendard","Segoe UI",-apple-system,BlinkMacSystemFont,"Malgun Gothic","Apple SD Gothic Neo",system-ui,sans-serif;
+    line-height:1.72; font-size:16px; -webkit-font-smoothing:antialiased;
+  }
+  /* ===== language toggle ===== */
+  .lang-vi{display:none}
+  body.show-vi .lang-vi{display:block}
+  body.show-vi .lang-ko{display:none}
+  body.show-vi span.lang-vi{display:inline}
+  body.show-ko span.lang-ko{display:inline}
+  span.lang-ko,span.lang-vi{display:none}
+  body.show-ko span.lang-ko{display:inline}
+
+  header.top{
+    position:sticky; top:0; z-index:50; background:rgba(255,255,255,.86); backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line); padding:12px 20px; display:flex; align-items:center; gap:14px; justify-content:space-between;
+  }
+  .top .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:-.02em}
+  .top .brand .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--brand),#7c3aed);display:grid;place-items:center;color:#fff;font-size:15px;font-weight:800}
+  .top .brand small{color:var(--muted);font-weight:600}
+  .toggle{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;background:#fff}
+  .toggle button{appearance:none;border:0;background:transparent;padding:7px 16px;font-weight:700;cursor:pointer;color:var(--muted);font-size:14px}
+  .toggle button.active{background:var(--brand);color:#fff}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px 96px}
+
+  .hero{padding:46px 0 18px}
+  .hero h1{font-size:34px;line-height:1.25;margin:0 0 10px;letter-spacing:-.02em}
+  .hero .sub{font-size:18px;color:var(--muted);margin:0}
+  .pill{display:inline-block;background:var(--brand-soft);color:var(--brand-d);font-weight:700;font-size:13px;padding:5px 12px;border-radius:999px;margin-bottom:14px}
+
+  nav.toc{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 22px;box-shadow:var(--shadow);margin:18px 0 36px}
+  nav.toc h2{margin:0 0 10px;font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+  nav.toc ol{margin:0;padding-left:20px;columns:2;column-gap:32px}
+  nav.toc li{margin:5px 0;break-inside:avoid}
+  nav.toc a{color:var(--ink);text-decoration:none;font-weight:600}
+  nav.toc a:hover{color:var(--brand)}
+
+  section{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:30px 30px;box-shadow:var(--shadow);margin:0 0 26px;scroll-margin-top:80px}
+  section > h2{margin:0 0 4px;font-size:25px;letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+  section > h2 .num{display:inline-grid;place-items:center;min-width:34px;height:34px;border-radius:9px;background:var(--brand);color:#fff;font-size:16px;font-weight:800}
+  section > .lede{color:var(--muted);font-size:16px;margin:0 0 18px;border-bottom:1px dashed var(--line);padding-bottom:16px}
+  h3{font-size:19px;margin:26px 0 8px;letter-spacing:-.01em}
+  h4{font-size:16px;margin:18px 0 6px;color:var(--brand-d)}
+  p{margin:10px 0}
+  ul,ol{margin:10px 0;padding-left:22px}
+  li{margin:6px 0}
+  strong{font-weight:700}
+  code{font-family:var(--mono);background:#f1f5f9;border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:13.5px;color:#0f172a}
+  .formula{font-family:var(--mono);background:#0f172a;color:#e2e8f0;border-radius:10px;padding:14px 18px;font-size:15px;overflow-x:auto;margin:12px 0}
+  .formula .hl{color:#7dd3fc}
+
+  .callout{border-radius:12px;padding:16px 18px;margin:16px 0;border:1px solid}
+  .callout p:first-child{margin-top:0}.callout p:last-child{margin-bottom:0}
+  .callout.info{background:var(--brand-soft);border-color:#bfdbfe}
+  .callout.warn{background:var(--warn-soft);border-color:var(--warn-line)}
+  .callout.danger{background:var(--red-soft);border-color:#fecaca}
+  .callout.ok{background:var(--green-soft);border-color:#bbf7d0}
+  .callout .tag{font-weight:800;display:block;margin-bottom:4px}
+  .callout.info .tag{color:var(--brand-d)} .callout.warn .tag{color:#b45309}
+  .callout.danger .tag{color:#b91c1c} .callout.ok .tag{color:#15803d}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.grid2{grid-template-columns:1fr} nav.toc ol{columns:1} .hero h1{font-size:27px}}
+  .mini{background:#f8fafc;border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .mini h4{margin-top:0}
+
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14.5px;overflow:hidden;border-radius:10px}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:#f1f5f9;font-weight:700}
+  tbody tr:nth-child(even){background:#fafcff}
+  .tag-rate{font-weight:800;white-space:nowrap}
+  .b-excellent{color:var(--green)} .b-good{color:var(--blue)} .b-adequate{color:var(--yellow)} .b-poor{color:var(--orange)} .b-bad{color:var(--red)}
+
+  .steps{counter-reset:step;list-style:none;padding:0;margin:18px 0}
+  .steps>li{counter-increment:step;position:relative;padding:16px 18px 16px 64px;background:#f8fafc;border:1px solid var(--line);border-radius:12px;margin:12px 0}
+  .steps>li::before{content:counter(step);position:absolute;left:16px;top:16px;width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font-weight:800;display:grid;place-items:center}
+  .steps>li h4{margin:0 0 4px}
+
+  .uiref{display:inline-block;background:#eef2ff;border:1px solid #c7d2fe;color:#3730a3;border-radius:7px;padding:1px 8px;font-weight:700;font-size:13.5px;white-space:nowrap}
+  .path{font-family:var(--mono);font-size:13px;color:var(--brand-d);background:var(--brand-soft);border:1px solid #bfdbfe;border-radius:7px;padding:2px 8px}
+
+  figure{margin:18px 0;text-align:center}
+  figure svg{max-width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px}
+  figcaption{color:var(--muted);font-size:13.5px;margin-top:8px}
+
+  .src{font-size:13px;color:var(--muted)}
+  .src a{color:var(--brand)}
+  details{border:1px solid var(--line);border-radius:10px;padding:6px 14px;margin:10px 0;background:#fbfdff}
+  details summary{font-weight:700;cursor:pointer;padding:6px 0}
+  footer{color:var(--muted);font-size:13px;text-align:center;padding:30px 0}
+  .kbadge{font-size:12px;font-weight:700;color:#fff;border-radius:6px;padding:2px 7px}
+  hr.soft{border:0;border-top:1px dashed var(--line);margin:22px 0}
+  .lead-q{font-size:15px;color:var(--muted);font-style:italic;border-left:3px solid var(--brand);padding-left:12px;margin:14px 0}
+</style>
+</head>
+<body class="show-ko">
+
+<header class="top">
+  <div class="brand">
+    <span class="logo">QC</span>
+    <span>CNC QC KPI · <small><span class="lang-ko">SPC 분석 가이드</span><span class="lang-vi">Hướng dẫn SPC</span></small></span>
+  </div>
+  <div class="toggle" role="group" aria-label="language">
+    <button id="btn-ko" class="active" onclick="setLang('ko')">한국어</button>
+    <button id="btn-vi" onclick="setLang('vi')">Tiếng Việt</button>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ===================== HERO ===================== -->
+  <div class="hero">
+    <span class="pill"><span class="lang-ko">초보자용 · 개념부터 실제 사용까지</span><span class="lang-vi">Cho người mới · Từ khái niệm đến thực hành</span></span>
+    <div class="lang-ko">
+      <h1>SPC 분석, 완벽 이해 가이드</h1>
+      <p class="sub">“SPC가 뭔지, 무엇을 위한 건지, 그리고 <strong>이 시스템에서 어떻게 입력하고·관찰하고·해석하는지</strong>”를 통계 지식이 전혀 없어도 끝까지 따라올 수 있게 정리했습니다.</p>
+    </div>
+    <div class="lang-vi">
+      <h1>Hướng dẫn hiểu trọn vẹn về Phân tích SPC</h1>
+      <p class="sub">Giải thích “SPC là gì, dùng để làm gì, và <strong>trong hệ thống này nhập liệu · quan sát · diễn giải ra sao</strong>” theo cách mà người chưa biết gì về thống kê cũng theo được đến cuối.</p>
+    </div>
+  </div>
+
+  <!-- ===================== TOC ===================== -->
+  <nav class="toc">
+    <h2><span class="lang-ko">목차</span><span class="lang-vi">Mục lục</span></h2>
+    <ol>
+      <li><a href="#s1"><span class="lang-ko">한눈에 보기 (요약)</span><span class="lang-vi">Tổng quan nhanh</span></a></li>
+      <li><a href="#s2"><span class="lang-ko">SPC란 무엇인가</span><span class="lang-vi">SPC là gì</span></a></li>
+      <li><a href="#s3"><span class="lang-ko">꼭 알아야 할 핵심 개념</span><span class="lang-vi">Khái niệm cốt lõi</span></a></li>
+      <li><a href="#s4"><span class="lang-ko">이 시스템의 SPC 화면 구조</span><span class="lang-vi">Cấu trúc màn hình SPC</span></a></li>
+      <li><a href="#s5"><span class="lang-ko">실제 사용법 (단계별)</span><span class="lang-vi">Cách dùng thực tế (từng bước)</span></a></li>
+      <li><a href="#s6"><span class="lang-ko">⚠️ 왜 지금 전부 0인가 + 해결 방향</span><span class="lang-vi">⚠️ Vì sao đang toàn số 0 + hướng khắc phục</span></a></li>
+      <li><a href="#s7"><span class="lang-ko">결과 해석과 조치</span><span class="lang-vi">Diễn giải kết quả & hành động</span></a></li>
+      <li><a href="#s8"><span class="lang-ko">초보자가 자주 하는 실수</span><span class="lang-vi">Lỗi thường gặp</span></a></li>
+      <li><a href="#s9"><span class="lang-ko">용어 사전 & FAQ</span><span class="lang-vi">Thuật ngữ & FAQ</span></a></li>
+      <li><a href="#s10"><span class="lang-ko">참고 출처</span><span class="lang-vi">Nguồn tham khảo</span></a></li>
+    </ol>
+  </nav>
+
+  <!-- ===================== 1. SUMMARY ===================== -->
+  <section id="s1">
+    <h2><span class="num">1</span><span class="lang-ko">한눈에 보기 (요약)</span><span class="lang-vi">Tổng quan nhanh</span></h2>
+
+    <div class="lang-ko">
+      <p class="lede">시간이 없다면 이 박스만 읽어도 핵심은 잡힙니다. 자세한 내용은 아래 각 장에서 다룹니다.</p>
+      <div class="callout info">
+        <span class="tag">한 문장 요약</span>
+        <p><strong>SPC(통계적 공정관리)</strong>는 “불량을 다 만든 뒤 골라내기”가 아니라, <strong>만드는 과정을 숫자로 지켜보다가 불량이 되기 전에 미리 잡는</strong> 예방 활동입니다.</p>
+      </div>
+      <ul>
+        <li><strong>관리도(Control Chart)</strong> = 공정이 “평소답게” 돌아가는지 시간 순서로 지켜보는 그래프. 위·아래 <strong>관리한계선(UCL/LCL)</strong>을 벗어나거나 이상한 패턴이 보이면 “특별한 일이 생겼다”는 경보입니다.</li>
+        <li><strong>Cpk(공정능력지수)</strong> = 우리 공정이 도면 규격(허용 범위) 안에 얼마나 여유 있게 들어가는지를 나타내는 점수. <strong>1.33 이상이면 합격, 1.67 이상이면 우수</strong>가 업계 통념입니다.</li>
+        <li>이 시스템의 SPC 화면은 <strong>4개 탭</strong>(SPC 대시보드 · 관리도 · 공정능력 분석 · SPC 알림)으로 구성됩니다.</li>
+      </ul>
+      <div class="callout danger">
+        <span class="tag">⚠️ 지금 화면이 전부 0/“불량”으로 보이는 진짜 이유</span>
+        <p><strong>“관리 항목 수 0 · 평균 Cpk 0.00 · 모든 모델 불량”</strong>은 시스템 고장이 아닙니다. <strong>공정능력(Cpk) 계산에 필요한 ‘부품별 실측 치수값’이 아직 한 번도 기록되지 않았기 때문</strong>입니다. 현재 <span class="uiref">검사 실행</span> 화면은 합격/불량 <strong>‘개수’</strong>만 저장하고, Cpk가 필요로 하는 <strong>‘측정 숫자값(예: 50.012mm)’</strong>은 저장하지 않습니다. 자세한 원인과 해결 방향은 <a href="#s6">6장</a>에 있습니다.</p>
+      </div>
+    </div>
+
+    <div class="lang-vi">
+      <p class="lede">Nếu bạn vội, chỉ cần đọc các hộp này là nắm được ý chính. Chi tiết ở các chương bên dưới.</p>
+      <div class="callout info">
+        <span class="tag">Tóm tắt một câu</span>
+        <p><strong>SPC (Kiểm soát quá trình bằng thống kê)</strong> không phải là “làm xong rồi lọc hàng lỗi”, mà là hoạt động <strong>phòng ngừa: theo dõi quá trình bằng con số để chặn lỗi trước khi nó xảy ra</strong>.</p>
+      </div>
+      <ul>
+        <li><strong>Biểu đồ kiểm soát (Control Chart)</strong> = đồ thị theo thời gian để xem quá trình có chạy “như thường lệ” không. Khi điểm vượt <strong>giới hạn kiểm soát (UCL/LCL)</strong> hoặc tạo hình mẫu bất thường → đó là cảnh báo “có chuyện đặc biệt”.</li>
+        <li><strong>Cpk (chỉ số năng lực quá trình)</strong> = điểm số cho biết quá trình lọt vào khoảng dung sai bản vẽ thoải mái đến đâu. Thông lệ ngành: <strong>≥ 1.33 là đạt, ≥ 1.67 là xuất sắc</strong>.</li>
+        <li>Màn hình SPC của hệ thống gồm <strong>4 tab</strong>: Bảng điều khiển SPC · Biểu đồ kiểm soát · Phân tích năng lực · Cảnh báo SPC.</li>
+      </ul>
+      <div class="callout danger">
+        <span class="tag">⚠️ Lý do thật sự khiến màn hình đang toàn 0 / “không đạt”</span>
+        <p><strong>“Số mục theo dõi = 0 · Cpk trung bình 0.00 · mọi model đều không đạt”</strong> KHÔNG phải lỗi hệ thống. Đó là vì <strong>chưa từng ghi nhận ‘giá trị đo thực tế của từng chi tiết’</strong> — thứ mà phép tính Cpk bắt buộc phải có. Màn hình <span class="uiref">Thực hiện kiểm tra</span> hiện chỉ lưu <strong>‘số lượng’</strong> đạt/lỗi, không lưu <strong>‘con số đo được (vd: 50.012mm)’</strong>. Nguyên nhân và hướng xử lý chi tiết ở <a href="#s6">Chương 6</a>.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 2. WHAT IS SPC ===================== -->
+  <section id="s2">
+    <h2><span class="num">2</span><span class="lang-ko">SPC란 무엇인가 — 왜 하는가</span><span class="lang-vi">SPC là gì — và để làm gì</span></h2>
+
+    <div class="lang-ko">
+      <p class="lede">SPC = <strong>S</strong>tatistical <strong>P</strong>rocess <strong>C</strong>ontrol = 통계적 공정관리. 1920년대 벨연구소의 월터 슈하트가 만든 ‘관리도’가 그 출발점입니다.</p>
+      <h3>① 핵심 아이디어: 모든 흔들림은 두 종류다</h3>
+      <p>같은 기계로 같은 부품을 만들어도 치수는 항상 미세하게 흔들립니다. SPC의 가장 중요한 통찰은 이 흔들림을 <strong>두 가지로 나누는</strong> 것입니다.</p>
+      <div class="grid2">
+        <div class="mini">
+          <h4>공통 원인 (Common cause) — 정상 잡음</h4>
+          <p>공정에 원래부터 늘 있는 자연스러운 변동. 진동, 미세한 온도차, 숙련공의 사소한 편차 등. <strong>여기엔 손대면 안 됩니다.</strong></p>
+        </div>
+        <div class="mini">
+          <h4>특별 원인 (Special cause) — 진짜 문제</h4>
+          <p>평소와 다른 특별한 사건. 공구 마모, 자재 로트 교체, 셋업 실수 등. <strong>이때만 원인을 찾아 조치합니다.</strong></p>
+        </div>
+      </div>
+      <div class="callout info">
+        <span class="tag">🚗 운전 비유</span>
+        <p>똑바로 달려도 핸들은 미세하게 좌우로 흔들립니다(공통 원인). 그런데 펑크가 나서 차가 확 쏠리면(특별 원인) 즉시 대응해야 합니다. <strong>정상 흔들림마다 핸들을 확확 꺾으면(과조정) 오히려 차가 더 비틀거립니다.</strong> 그래서 정상 잡음에는 손대지 않는 것이 SPC의 철칙입니다.</p>
+      </div>
+
+      <h3>② SPC가 푸는 문제: ‘사후 검사’를 ‘사전 예방’으로</h3>
+      <p>전통적 검사는 다 만든 뒤 불량을 골라내 버립니다(낭비·늦음). SPC는 과거 정상 데이터로 ‘기대 범위’를 만들어 두고, 새 측정값이 그 범위를 벗어나는 <strong>초기 신호 단계</strong>에서 손을 씁니다. 즉 “오늘 일어나는 일을 예전과 비교”해서, 치수가 규격을 완전히 벗어나 스크랩이 되기 <strong>전에</strong> 잡습니다. <span class="src">(ASQ, NIST/SEMATECH e-Handbook)</span></p>
+
+      <h3>③ 기본 흐름: 측정 → 차트 → 감지 → 조치</h3>
+      <p>① 같은 조건에서 데이터를 꾸준히 <strong>측정</strong>한다 → ② <strong>관리도</strong>에 시간 순서로 찍는다 → ③ 한계 이탈/이상 패턴을 <strong>감지</strong>한다 → ④ 특별 원인이면 원인을 찾아 <strong>조치</strong>한다. 이 시스템은 ②~③을 자동으로 해 주고, 여러분은 ①(데이터 입력)과 ④(조치)에 집중하면 됩니다.</p>
+      <div class="callout ok">
+        <span class="tag">🌡️ 체온 비유로 한 번 더</span>
+        <p>사람 체온은 36.3~36.8℃를 자연스럽게 오르내립니다(공통 원인) — 약 안 먹죠. 하지만 38.5℃가 찍히면(한계 이탈) 특별한 일이 생긴 것이니 병원에 갑니다. <strong>관리도는 바로 이 ‘정상 범위’와 ‘병원 가야 할 신호’를 선으로 그어 주는 체온 기록표</strong>입니다.</p>
+      </div>
+    </div>
+
+    <div class="lang-vi">
+      <p class="lede">SPC = <strong>S</strong>tatistical <strong>P</strong>rocess <strong>C</strong>ontrol = Kiểm soát quá trình bằng thống kê. Khởi nguồn là “biểu đồ kiểm soát” do Walter Shewhart (Bell Labs) tạo ra thập niên 1920.</p>
+      <h3>① Ý tưởng cốt lõi: mọi dao động đều thuộc hai loại</h3>
+      <p>Cùng một máy, cùng một chi tiết thì kích thước vẫn luôn dao động nhẹ. Hiểu biết quan trọng nhất của SPC là <strong>tách dao động thành hai loại</strong>.</p>
+      <div class="grid2">
+        <div class="mini">
+          <h4>Nguyên nhân chung (Common cause) — nhiễu bình thường</h4>
+          <p>Dao động tự nhiên vốn luôn có trong quá trình: rung, chênh nhiệt nhỏ, sai lệch vặt của thợ lành nghề. <strong>Không được đụng vào.</strong></p>
+        </div>
+        <div class="mini">
+          <h4>Nguyên nhân đặc biệt (Special cause) — vấn đề thật</h4>
+          <p>Sự kiện khác thường: dao mòn, đổi lô vật liệu, set-up sai. <strong>Chỉ khi này mới đi tìm nguyên nhân và xử lý.</strong></p>
+        </div>
+      </div>
+      <div class="callout info">
+        <span class="tag">🚗 Ví von lái xe</span>
+        <p>Đi thẳng thì vô-lăng vẫn rung nhẹ trái phải (nguyên nhân chung). Nhưng nếu nổ lốp khiến xe lệch hẳn (nguyên nhân đặc biệt) thì phải xử lý ngay. <strong>Cứ mỗi rung nhẹ lại bẻ lái mạnh (điều chỉnh quá mức) sẽ làm xe lảo đảo hơn.</strong> Vì vậy nguyên tắc vàng của SPC là không đụng vào nhiễu bình thường.</p>
+      </div>
+
+      <h3>② Vấn đề SPC giải quyết: từ “kiểm sau” sang “phòng trước”</h3>
+      <p>Kiểm tra truyền thống là làm xong rồi lọc bỏ hàng lỗi (lãng phí, muộn). SPC dựng sẵn “khoảng kỳ vọng” từ dữ liệu bình thường trong quá khứ, rồi can thiệp ngay ở <strong>giai đoạn tín hiệu sớm</strong> khi giá trị mới vượt khoảng đó — tức chặn <strong>trước</strong> khi kích thước vượt hẳn dung sai thành phế phẩm. <span class="src">(ASQ, NIST/SEMATECH e-Handbook)</span></p>
+
+      <h3>③ Quy trình cơ bản: Đo → Vẽ biểu đồ → Phát hiện → Hành động</h3>
+      <p>① <strong>Đo</strong> đều đặn trong cùng điều kiện → ② chấm điểm theo thời gian lên <strong>biểu đồ kiểm soát</strong> → ③ <strong>phát hiện</strong> vượt giới hạn / hình mẫu bất thường → ④ nếu là nguyên nhân đặc biệt thì tìm gốc rễ và <strong>hành động</strong>. Hệ thống tự làm ②~③; bạn tập trung vào ① (nhập dữ liệu) và ④ (xử lý).</p>
+      <div class="callout ok">
+        <span class="tag">🌡️ Ví von thân nhiệt</span>
+        <p>Thân nhiệt người dao động 36.3~36.8℃ một cách tự nhiên (nguyên nhân chung) — đâu cần uống thuốc. Nhưng khi lên 38.5℃ (vượt giới hạn) thì có chuyện đặc biệt, phải đi khám. <strong>Biểu đồ kiểm soát chính là “bảng theo dõi thân nhiệt” vạch sẵn ‘khoảng bình thường’ và ‘tín hiệu phải đi bệnh viện’.</strong></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 3. CORE CONCEPTS ===================== -->
+  <section id="s3">
+    <h2><span class="num">3</span><span class="lang-ko">꼭 알아야 할 핵심 개념</span><span class="lang-vi">Khái niệm cốt lõi cần nắm</span></h2>
+    <p class="lede">
+      <span class="lang-ko">관리도 읽는 법, 가장 헷갈리는 ‘관리한계 vs 규격한계’, Cpk, 그리고 알림 규칙까지. 비유 위주로 풀었습니다.</span>
+      <span class="lang-vi">Cách đọc biểu đồ, điểm hay nhầm nhất ‘giới hạn kiểm soát vs giới hạn dung sai’, Cpk, và các quy tắc cảnh báo — giải thích bằng ví von.</span>
+    </p>
+
+    <!-- Control chart diagram (shared, neutral labels) -->
+    <figure>
+      <svg viewBox="0 0 720 300" role="img" aria-label="control chart">
+        <rect x="0" y="0" width="720" height="300" fill="#fff"/>
+        <!-- zones -->
+        <rect x="70" y="40"  width="600" height="33" fill="#fee2e2"/>
+        <rect x="70" y="73"  width="600" height="33" fill="#fef9c3"/>
+        <rect x="70" y="106" width="600" height="33" fill="#dcfce7"/>
+        <rect x="70" y="139" width="600" height="33" fill="#dcfce7"/>
+        <rect x="70" y="172" width="600" height="33" fill="#fef9c3"/>
+        <rect x="70" y="205" width="600" height="33" fill="#fee2e2"/>
+        <!-- limit lines -->
+        <line x1="70" y1="40"  x2="670" y2="40"  stroke="#dc2626" stroke-width="2"/>
+        <line x1="70" y1="139" x2="670" y2="139" stroke="#16a34a" stroke-width="2" stroke-dasharray="2 0"/>
+        <line x1="70" y1="238" x2="670" y2="238" stroke="#dc2626" stroke-width="2"/>
+        <text x="676" y="44" font-size="12" fill="#dc2626" font-weight="700">UCL (+3σ)</text>
+        <text x="676" y="143" font-size="12" fill="#16a34a" font-weight="700">CL</text>
+        <text x="676" y="242" font-size="12" fill="#dc2626" font-weight="700">LCL (−3σ)</text>
+        <text x="8" y="60"  font-size="10" fill="#991b1b">Zone A</text>
+        <text x="8" y="93"  font-size="10" fill="#854d0e">Zone B</text>
+        <text x="8" y="126" font-size="10" fill="#166534">Zone C</text>
+        <!-- data points -->
+        <polyline fill="none" stroke="#1d4ed8" stroke-width="2"
+          points="100,150 145,128 190,160 235,142 280,118 325,150 370,135 415,120 460,150 505,128 550,30 595,140 640,155"/>
+        <g fill="#1d4ed8">
+          <circle cx="100" cy="150" r="4"/><circle cx="145" cy="128" r="4"/><circle cx="190" cy="160" r="4"/>
+          <circle cx="235" cy="142" r="4"/><circle cx="280" cy="118" r="4"/><circle cx="325" cy="150" r="4"/>
+          <circle cx="370" cy="135" r="4"/><circle cx="415" cy="120" r="4"/><circle cx="460" cy="150" r="4"/>
+          <circle cx="505" cy="128" r="4"/><circle cx="595" cy="140" r="4"/><circle cx="640" cy="155" r="4"/>
+        </g>
+        <circle cx="550" cy="30" r="6" fill="#dc2626" stroke="#7f1d1d" stroke-width="2"/>
+        <text x="540" y="22" font-size="11" fill="#b91c1c" font-weight="800">이상!/Lỗi!</text>
+      </svg>
+      <figcaption>
+        <span class="lang-ko">관리도의 구조: 중심선(CL)을 기준으로 ±1σ(Zone C)·±2σ(Zone B)·±3σ(Zone A, UCL/LCL). 한계선을 벗어난 빨간 점이 ‘특별 원인’ 신호입니다.</span>
+        <span class="lang-vi">Cấu trúc biểu đồ: quanh đường tâm (CL) là ±1σ (Zone C) · ±2σ (Zone B) · ±3σ (Zone A, UCL/LCL). Điểm đỏ vượt giới hạn là tín hiệu “nguyên nhân đặc biệt”.</span>
+      </figcaption>
+    </figure>
+
+    <div class="lang-ko">
+      <h3>3-1. 관리도의 세 선과 3-시그마 논리</h3>
+      <ul>
+        <li><strong>중심선 (CL, Center Line)</strong>: 정상 공정의 평균값.</li>
+        <li><strong>관리상한선 (UCL)</strong> / <strong>관리하한선 (LCL)</strong>: 보통 평균 ± 3σ(표준편차의 3배)에 둡니다.</li>
+      </ul>
+      <p>왜 하필 3σ일까요? 정규분포에서 평균 ±3σ 안에 데이터의 <strong>약 99.73%</strong>가 들어옵니다. 즉 공정이 정상인데도 점이 우연히 한계를 벗어날 확률은 <strong>약 0.27%(천 번에 약 3번)</strong>뿐. 그래서 한계 밖 점은 “우연”이 아니라 “진짜 원인이 있다”고 판단합니다. <span class="src">(NIST 6.3.1)</span></p>
+      <div class="callout warn">
+        <span class="tag">한계 안에 있어도 ‘정상’이 아닐 수 있다</span>
+        <p>관리상태(in control)의 조건은 <strong>① 모든 점이 한계 안 + ② 점들이 무작위 패턴</strong>입니다. 한계 안이라도 “7점 연속 한쪽 쏠림”, “계속 상승” 같은 규칙적 패턴이 보이면 그것도 이상 신호입니다(→ 3-4 알림 규칙).</p>
+      </div>
+
+      <h3 id="vov">3-2. 가장 많이 헷갈리는 것: 관리한계 ≠ 규격한계</h3>
+      <p>입문자가 거의 100% 혼동하는 부분입니다. 둘은 <strong>이름만 비슷할 뿐 완전히 다른 선</strong>입니다.</p>
+      <table>
+        <thead><tr><th>구분</th><th>관리한계 (UCL/LCL)</th><th>규격한계 (USL/LSL)</th></tr></thead>
+        <tbody>
+          <tr><td>누가 정하나</td><td><strong>공정 데이터가 ‘계산’</strong>해 줌</td><td><strong>고객·도면·설계</strong>가 ‘정해’ 줌</td></tr>
+          <tr><td>무엇을 말하나</td><td>“우리 공정이 실제로 이만큼 흔들린다” <br>= <strong>공정의 목소리</strong></td><td>“이 안에 들어와야 합격이다” <br>= <strong>고객의 목소리</strong></td></tr>
+          <tr><td>의미</td><td>벗어나면 = 공정에 <strong>변화</strong>가 생김</td><td>벗어나면 = 그 부품은 <strong>불량</strong></td></tr>
+        </tbody>
+      </table>
+      <div class="callout info">
+        <span class="tag">🚗 제한속도 비유</span>
+        <p><strong>규격한계</strong>는 도로의 ‘제한속도’(고객이 정한 합격선), <strong>관리한계</strong>는 ‘내 차가 평소 내는 속도 범위’입니다. 내 차가 평소보다 빨라졌다고(관리한계 이탈) 해서 곧바로 제한속도 위반(불량)인 건 아닙니다. <strong>둘은 따로 봐야 합니다.</strong> 그래서 “공정이 안정적(관리도)”인 것과 “규격을 맞출 능력(Cpk)”이 있는 것은 별개로 확인합니다.</p>
+      </div>
+
+      <h3>3-3. 공정능력지수 Cp · Cpk (이 시스템의 핵심 점수)</h3>
+      <p>“우리 공정의 자연스러운 흩어짐이 도면 규격 범위(스펙 창) 안에 얼마나 여유 있게 들어가는가”를 숫자 하나로 나타낸 점수입니다.</p>
+      <div class="formula">
+        Cp&nbsp;&nbsp;= (USL − LSL) / (6 × <span class="hl">σ</span>)&nbsp;&nbsp;&nbsp; <span style="color:#94a3b8">// 흩어짐(폭)만 본다</span><br>
+        Cpk = min[ (USL − 평균) / (3×<span class="hl">σ</span>),&nbsp; (평균 − LSL) / (3×<span class="hl">σ</span>) ]&nbsp; <span style="color:#94a3b8">// 흩어짐 + 치우침</span>
+      </div>
+      <ul>
+        <li><strong>Cp</strong>는 흩어짐(폭)만 봅니다. 평균이 한쪽으로 치우쳐도 모릅니다 → ‘잠재 능력’.</li>
+        <li><strong>Cpk</strong>는 위쪽 여유와 아래쪽 여유 중 <strong>더 위험한 쪽(작은 값)</strong>을 채택합니다. 평균이 중심에서 치우치면 Cpk가 즉시 떨어집니다 → ‘실제 능력’.</li>
+        <li>평균이 정확히 규격 중심이면 <code>Cpk = Cp</code>, 치우칠수록 <code>Cpk &lt; Cp</code>.</li>
+      </ul>
+      <p>이 시스템은 검사 항목의 <strong>기준값과 공차</strong>로 규격을 잡습니다: <code>USL = 기준값 + 공차</code>, <code>LSL = 기준값 − 공차</code>. (예: 기준값 50, 공차 ±0.1 → USL 50.1, LSL 49.9)</p>
+      <div class="callout info">
+        <span class="tag">🅿️ 주차 비유</span>
+        <p>규격 폭(USL−LSL)은 ‘주차 공간’, 공정 산포(6σ)는 ‘내 차의 폭’. 차가 공간보다 좁으면 들어가긴 합니다(Cp 큼). 하지만 한쪽으로 바짝 붙여 대면 문콕(불량)이 나죠 — ‘가운데에 잘 댔는가’까지 보는 것이 <strong>Cpk</strong>입니다.</p>
+      </div>
+
+      <h4>Cpk가 불량률(PPM)과 직접 연결된다</h4>
+      <p>공정이 정규분포이고 중심에 있다고 가정하면 Cpk는 곧바로 100만 개당 불량 수(PPM)로 환산됩니다.</p>
+      <table>
+        <thead><tr><th>Cpk</th><th>시그마 수준</th><th>예상 불량 (양측, PPM)</th><th>이 시스템 등급</th></tr></thead>
+        <tbody>
+          <tr><td><strong>1.00</strong></td><td>약 3σ</td><td>약 2,700 ppm</td><td><span class="tag-rate b-adequate">보통(겨우)</span></td></tr>
+          <tr><td><strong>1.33</strong></td><td>약 4σ</td><td>약 63 ppm <span class="src">(엄밀히 1.33이면 ≈66 ppm)</span></td><td><span class="tag-rate b-good">양호(합격선)</span></td></tr>
+          <tr><td><strong>1.67</strong></td><td>약 5σ</td><td>약 0.6 ppm</td><td><span class="tag-rate b-excellent">우수</span></td></tr>
+          <tr><td><strong>2.00</strong></td><td>6σ</td><td>약 0.002 ppm</td><td><span class="tag-rate b-excellent">최상</span></td></tr>
+        </tbody>
+      </table>
+      <p class="src">Cpk가 0.33만 올라도 불량이 수십~수백 배 줄어듭니다. (출처: NIST 6.1.6, eeSemi Cpk–PPM 표) ※ 이 환산은 ‘정규분포·안정 공정’ 가정에 기댑니다.</p>
+
+      <h4>Cpk vs Ppk (단기 vs 장기)</h4>
+      <p><strong>Cp/Cpk</strong>는 짧게 연달아 뽑은 데이터의 산포(단기)로 ‘잠재 능력’을, <strong>Pp/Ppk</strong>는 전체 데이터의 산포(장기)로 ‘실제 성적’을 봅니다. 전체 산포가 항상 더 크거나 같아 <code>Ppk ≤ Cpk</code>입니다. 공정이 안정되면 둘이 비슷, 불안정하면 Ppk가 훨씬 낮습니다.</p>
+
+      <h3 id="s3-4">3-4. 알림(이상 감지) 규칙 — 한계를 넘지 않아도 잡는다</h3>
+      <p>점이 3σ를 안 벗어나도, 점들이 한쪽으로 쏠리거나 계속 상승하면 이미 ‘특별 원인’ 신호일 수 있습니다. 이를 자동으로 잡는 것이 <strong>Western Electric / Nelson 규칙</strong>입니다. <strong>이 시스템이 실제로 사용하는 규칙(코드 기준)</strong>은 다음과 같습니다.</p>
+      <table>
+        <thead><tr><th>규칙</th><th>이 시스템의 조건</th><th>심각도</th><th>대표적 의미 (CNC 현장)</th></tr></thead>
+        <tbody>
+          <tr><td><strong>R1</strong></td><td>1점이 관리한계(UCL/LCL) 밖</td><td><span class="kbadge" style="background:var(--red)">심각</span></td><td>급격한 큰 이상 · 셋업/측정 실수</td></tr>
+          <tr><td><strong>R2</strong></td><td>연속 <strong>7점</strong>이 중심선 한쪽</td><td><span class="kbadge" style="background:var(--yellow)">경고</span></td><td>공정 평균이 이동(shift) — 공구 교체·자재 로트 변경</td></tr>
+          <tr><td><strong>R3</strong></td><td>연속 <strong>6점</strong> 계속 상승/하강</td><td><span class="kbadge" style="background:var(--yellow)">경고</span></td><td>추세(trend) — <strong>공구 마모</strong>의 전형</td></tr>
+          <tr><td><strong>R4</strong></td><td>연속 14점 위·아래 교대 진동</td><td><span class="kbadge" style="background:var(--yellow)">경고</span></td><td>두 요인 교대 · 과조정</td></tr>
+          <tr><td><strong>R5</strong></td><td>연속 3점 중 2점이 2σ 밖(같은 쪽)</td><td><span class="kbadge" style="background:var(--yellow)">경고</span></td><td>작은 이동의 조기 신호</td></tr>
+          <tr><td><strong>R6</strong></td><td>연속 5점 중 4점이 1σ 밖(같은 쪽)</td><td><span class="kbadge" style="background:var(--yellow)">경고</span></td><td>작은 이동</td></tr>
+          <tr><td><strong>R7</strong></td><td>연속 15점이 모두 1σ 안</td><td><span class="kbadge" style="background:#0ea5e9">정보</span></td><td>층화 · 관리한계가 너무 넓게 계산됨</td></tr>
+          <tr><td><strong>R8</strong></td><td>연속 8점이 1σ 밖(양쪽)</td><td><span class="kbadge" style="background:var(--yellow)">경고</span></td><td>혼합 — 서로 다른 두 기계/조를 한 차트에 섞음</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warn">
+        <span class="tag">참고: ‘연속 7점’은 변형 규칙입니다</span>
+        <p>“한쪽 연속” 규칙의 점 개수는 표준마다 다릅니다. 원조 <strong>Western Electric은 8점, Nelson은 9점</strong>, 이 시스템은 <strong>7점</strong>을 씁니다. 7점은 더 민감하게(빨리) 잡는 대신 오경보(괜히 울림)가 조금 더 많습니다. 어느 쪽도 ‘틀린’ 건 아니며, 다만 우리 시스템 기준이 7점이라는 점을 알아두세요. <span class="src">(검증 출처: Wikipedia, NIST 6.3.2, Minitab)</span></p>
+      </div>
+    </div>
+
+    <div class="lang-vi">
+      <h3>3-1. Ba đường của biểu đồ & logic 3-sigma</h3>
+      <ul>
+        <li><strong>Đường tâm (CL)</strong>: giá trị trung bình của quá trình bình thường.</li>
+        <li><strong>Giới hạn kiểm soát trên (UCL)</strong> / <strong>dưới (LCL)</strong>: thường đặt ở trung bình ± 3σ (3 lần độ lệch chuẩn).</li>
+      </ul>
+      <p>Vì sao là 3σ? Trong phân bố chuẩn, khoảng ±3σ chứa <strong>khoảng 99.73%</strong> dữ liệu. Nghĩa là khi quá trình bình thường, xác suất một điểm vô tình vượt giới hạn chỉ <strong>~0.27% (khoảng 3/1000)</strong>. Do đó điểm vượt giới hạn được coi là “có nguyên nhân thật”, không phải ngẫu nhiên. <span class="src">(NIST 6.3.1)</span></p>
+      <div class="callout warn">
+        <span class="tag">Nằm trong giới hạn vẫn có thể “không bình thường”</span>
+        <p>Điều kiện “trong kiểm soát” là <strong>① mọi điểm nằm trong giới hạn + ② các điểm phân tán ngẫu nhiên</strong>. Dù trong giới hạn, nếu thấy hình mẫu đều đặn như “7 điểm liên tiếp lệch một bên”, “liên tục tăng” thì đó cũng là tín hiệu bất thường (→ 3-4).</p>
+      </div>
+
+      <h3>3-2. Điểm hay nhầm nhất: giới hạn kiểm soát ≠ giới hạn dung sai</h3>
+      <p>Gần như 100% người mới nhầm chỗ này. Hai thứ <strong>chỉ giống tên, hoàn toàn khác nhau</strong>.</p>
+      <table>
+        <thead><tr><th>Tiêu chí</th><th>Giới hạn kiểm soát (UCL/LCL)</th><th>Giới hạn dung sai (USL/LSL)</th></tr></thead>
+        <tbody>
+          <tr><td>Ai định?</td><td><strong>‘Tính’ từ dữ liệu quá trình</strong></td><td><strong>Khách hàng · bản vẽ · thiết kế</strong> ‘quy định’</td></tr>
+          <tr><td>Nói lên điều gì</td><td>“Quá trình thực sự dao động chừng này” = <strong>tiếng nói của quá trình</strong></td><td>“Phải nằm trong đây mới đạt” = <strong>tiếng nói của khách hàng</strong></td></tr>
+          <tr><td>Ý nghĩa</td><td>Vượt = quá trình có <strong>thay đổi</strong></td><td>Vượt = chi tiết đó <strong>là phế phẩm</strong></td></tr>
+        </tbody>
+      </table>
+      <div class="callout info">
+        <span class="tag">🚗 Ví von tốc độ giới hạn</span>
+        <p><strong>Giới hạn dung sai</strong> là “tốc độ giới hạn” của đường (mức đạt do khách quy định); <strong>giới hạn kiểm soát</strong> là “khoảng tốc độ xe tôi thường chạy”. Xe nhanh hơn thường lệ (vượt giới hạn kiểm soát) không có nghĩa là phạm luật tốc độ (phế phẩm). <strong>Phải xem tách biệt.</strong> Vì thế “quá trình ổn định (biểu đồ)” và “năng lực đạt dung sai (Cpk)” được kiểm tra riêng.</p>
+      </div>
+
+      <h3>3-3. Chỉ số năng lực Cp · Cpk (điểm số cốt lõi của hệ thống)</h3>
+      <p>Một con số thể hiện “độ phân tán tự nhiên của quá trình lọt vào khoảng dung sai bản vẽ thoải mái đến đâu”.</p>
+      <div class="formula">
+        Cp&nbsp;&nbsp;= (USL − LSL) / (6 × <span class="hl">σ</span>)&nbsp;&nbsp;&nbsp; <span style="color:#94a3b8">// chỉ xét độ rộng phân tán</span><br>
+        Cpk = min[ (USL − TB) / (3×<span class="hl">σ</span>),&nbsp; (TB − LSL) / (3×<span class="hl">σ</span>) ]&nbsp; <span style="color:#94a3b8">// phân tán + lệch tâm</span>
+      </div>
+      <ul>
+        <li><strong>Cp</strong> chỉ xét độ rộng; trung bình lệch một bên nó cũng không biết → ‘năng lực tiềm năng’.</li>
+        <li><strong>Cpk</strong> lấy <strong>phía nguy hiểm hơn (giá trị nhỏ hơn)</strong> giữa lề trên và lề dưới. Trung bình lệch tâm thì Cpk tụt ngay → ‘năng lực thực tế’.</li>
+        <li>Trung bình đúng tâm: <code>Cpk = Cp</code>; càng lệch thì <code>Cpk &lt; Cp</code>.</li>
+      </ul>
+      <p>Hệ thống lấy dung sai từ <strong>giá trị chuẩn và dung sai</strong> của mục kiểm: <code>USL = Giá trị chuẩn + Dung sai</code>, <code>LSL = Giá trị chuẩn − Dung sai</code>. (VD: chuẩn 50, dung sai ±0.1 → USL 50.1, LSL 49.9)</p>
+      <div class="callout info">
+        <span class="tag">🅿️ Ví von đỗ xe</span>
+        <p>Bề rộng dung sai (USL−LSL) là ‘ô đỗ’, độ phân tán (6σ) là ‘bề rộng xe’. Xe hẹp hơn ô thì vào được (Cp lớn). Nhưng đỗ sát một bên thì móp cửa (phế phẩm) — xét cả ‘đỗ có vào giữa không’ chính là <strong>Cpk</strong>.</p>
+      </div>
+
+      <h4>Cpk gắn trực tiếp với tỉ lệ lỗi (PPM)</h4>
+      <table>
+        <thead><tr><th>Cpk</th><th>Mức sigma</th><th>Lỗi ước tính (2 phía, PPM)</th><th>Hạng trong hệ thống</th></tr></thead>
+        <tbody>
+          <tr><td><strong>1.00</strong></td><td>~3σ</td><td>~2,700 ppm</td><td><span class="tag-rate b-adequate">Trung bình (vừa đủ)</span></td></tr>
+          <tr><td><strong>1.33</strong></td><td>~4σ</td><td>~63 ppm <span class="src">(đúng 1.33 thì ≈66 ppm)</span></td><td><span class="tag-rate b-good">Tốt (mức đạt)</span></td></tr>
+          <tr><td><strong>1.67</strong></td><td>~5σ</td><td>~0.6 ppm</td><td><span class="tag-rate b-excellent">Xuất sắc</span></td></tr>
+          <tr><td><strong>2.00</strong></td><td>6σ</td><td>~0.002 ppm</td><td><span class="tag-rate b-excellent">Tốt nhất</span></td></tr>
+        </tbody>
+      </table>
+      <p class="src">Cpk tăng 0.33 đã giảm lỗi hàng chục–hàng trăm lần. (Nguồn: NIST 6.1.6, bảng Cpk–PPM của eeSemi) ※ Quy đổi này dựa trên giả định ‘phân bố chuẩn · quá trình ổn định’.</p>
+
+      <h4>Cpk vs Ppk (ngắn hạn vs dài hạn)</h4>
+      <p><strong>Cp/Cpk</strong> dùng độ phân tán của vài mẫu lấy liên tiếp (ngắn hạn) → ‘năng lực tiềm năng’; <strong>Pp/Ppk</strong> dùng độ phân tán toàn bộ dữ liệu (dài hạn) → ‘thành tích thực’. Phân tán tổng luôn ≥ nên <code>Ppk ≤ Cpk</code>. Quá trình ổn định thì hai số xấp xỉ; bất ổn thì Ppk thấp hơn nhiều.</p>
+
+      <h3>3-4. Quy tắc cảnh báo — bắt lỗi cả khi chưa vượt giới hạn</h3>
+      <p>Dù điểm chưa vượt 3σ, nếu các điểm lệch một bên hay liên tục tăng thì đã có thể là tín hiệu ‘nguyên nhân đặc biệt’. Bắt tự động việc này là <strong>quy tắc Western Electric / Nelson</strong>. <strong>Các quy tắc hệ thống thực sự dùng (theo mã nguồn)</strong>:</p>
+      <table>
+        <thead><tr><th>Quy tắc</th><th>Điều kiện trong hệ thống</th><th>Mức độ</th><th>Ý nghĩa điển hình (xưởng CNC)</th></tr></thead>
+        <tbody>
+          <tr><td><strong>R1</strong></td><td>1 điểm vượt giới hạn (UCL/LCL)</td><td><span class="kbadge" style="background:var(--red)">Nghiêm trọng</span></td><td>Bất thường lớn đột ngột · sai set-up/đo</td></tr>
+          <tr><td><strong>R2</strong></td><td><strong>7 điểm</strong> liên tiếp cùng một bên CL</td><td><span class="kbadge" style="background:var(--yellow)">Cảnh báo</span></td><td>Trung bình dịch chuyển — thay dao · đổi lô vật liệu</td></tr>
+          <tr><td><strong>R3</strong></td><td><strong>6 điểm</strong> liên tiếp tăng/giảm</td><td><span class="kbadge" style="background:var(--yellow)">Cảnh báo</span></td><td>Xu hướng — điển hình của <strong>dao mòn</strong></td></tr>
+          <tr><td><strong>R4</strong></td><td>14 điểm dao động lên–xuống xen kẽ</td><td><span class="kbadge" style="background:var(--yellow)">Cảnh báo</span></td><td>Hai yếu tố xen kẽ · điều chỉnh quá mức</td></tr>
+          <tr><td><strong>R5</strong></td><td>2/3 điểm liên tiếp vượt 2σ (cùng bên)</td><td><span class="kbadge" style="background:var(--yellow)">Cảnh báo</span></td><td>Tín hiệu sớm của dịch chuyển nhỏ</td></tr>
+          <tr><td><strong>R6</strong></td><td>4/5 điểm liên tiếp vượt 1σ (cùng bên)</td><td><span class="kbadge" style="background:var(--yellow)">Cảnh báo</span></td><td>Dịch chuyển nhỏ</td></tr>
+          <tr><td><strong>R7</strong></td><td>15 điểm liên tiếp đều trong 1σ</td><td><span class="kbadge" style="background:#0ea5e9">Thông tin</span></td><td>Phân tầng · giới hạn tính quá rộng</td></tr>
+          <tr><td><strong>R8</strong></td><td>8 điểm liên tiếp ngoài 1σ (cả hai bên)</td><td><span class="kbadge" style="background:var(--yellow)">Cảnh báo</span></td><td>Trộn lẫn — gộp 2 máy/ca vào một biểu đồ</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warn">
+        <span class="tag">Lưu ý: ‘7 điểm liên tiếp’ là biến thể</span>
+        <p>Số điểm của quy tắc “liên tiếp một bên” khác nhau theo chuẩn: <strong>Western Electric = 8, Nelson = 9</strong>, hệ thống này dùng <strong>7</strong>. 7 điểm nhạy hơn (báo sớm) nhưng cảnh báo nhầm nhiều hơn chút. Không cái nào ‘sai’; chỉ cần biết hệ thống đang dùng 7. <span class="src">(Nguồn kiểm chứng: Wikipedia, NIST 6.3.2, Minitab)</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 4. SYSTEM STRUCTURE ===================== -->
+  <section id="s4">
+    <h2><span class="num">4</span><span class="lang-ko">이 시스템의 SPC 화면 구조</span><span class="lang-vi">Cấu trúc màn hình SPC của hệ thống</span></h2>
+    <p class="lede">
+      <span class="lang-ko">왼쪽 메뉴 <span class="uiref">SPC 분석</span> 화면을 그대로 따라가며, 각 영역이 무엇을 뜻하는지 설명합니다.</span>
+      <span class="lang-vi">Đi theo đúng màn hình <span class="uiref">Phân tích SPC (SPC 분석)</span> ở menu trái và giải thích từng vùng.</span>
+    </p>
+
+    <div class="lang-ko">
+      <h3>4-1. 상단 필터 (무엇을 볼지 고르기)</h3>
+      <ul>
+        <li><span class="uiref">모델 선택</span> — 어떤 제품 모델을 볼지. ‘모든 모델’이 기본.</li>
+        <li><span class="uiref">공정 선택</span> — 어떤 검사 공정을 볼지.</li>
+        <li><span class="uiref">기간 선택</span> — 분석 기간. 기본은 최근 30일(영업일).</li>
+        <li><span class="uiref">필터 초기화</span> — 필터를 기본값으로 되돌림.</li>
+        <li>탭에 따라 추가 필터가 나타납니다: <span class="uiref">관리도</span> 탭에선 ‘차트 유형’, <span class="uiref">공정능력 분석</span> 탭에선 ‘검사 항목’ 선택이 활성화됩니다.</li>
+      </ul>
+
+      <h3>4-2. 상단 KPI 카드 4개</h3>
+      <table>
+        <thead><tr><th>카드</th><th>의미</th><th>데이터 출처</th></tr></thead>
+        <tbody>
+          <tr><td><span class="uiref">관리 항목 수</span></td><td>Cpk를 계산할 수 있었던 <strong>수치형 검사항목</strong>의 개수(+ 등급별 개수 배지)</td><td>실측값 기반</td></tr>
+          <tr><td><span class="uiref">평균 Cpk</span></td><td>그 항목들의 Cpk 평균</td><td>실측값 기반</td></tr>
+          <tr><td><span class="uiref">미조치 알림</span></td><td>아직 처리하지 않은 SPC 알림 수</td><td>불량률(p-관리도) 기반</td></tr>
+          <tr><td><span class="uiref">Cpk 등급 분포</span></td><td>우수/양호/보통/미흡 항목 수</td><td>실측값 기반</td></tr>
+        </tbody>
+      </table>
+
+      <h3>4-3. 4개의 탭</h3>
+      <div class="grid2">
+        <div class="mini"><h4>① SPC 대시보드</h4><p>전체 요약. ‘SPC 지표 가이드’(개념 설명), ‘모델별 공정능력’ 표, 최근 알림, p-관리도 미리보기.</p></div>
+        <div class="mini"><h4>② 관리도</h4><p><strong>불량률 p-관리도</strong>를 보여줍니다. 날짜별 불량률 점 + UCL/CL/LCL. ✅ <strong>검사 ‘개수’ 데이터로 작동</strong>합니다.</p></div>
+        <div class="mini"><h4>③ 공정능력 분석</h4><p>모델 → <strong>검사 항목</strong>을 고르면 히스토그램·Cp·Cpk·예상 PPM을 보여줍니다. ❗ <strong>실측값이 있어야</strong> 나옵니다.</p></div>
+        <div class="mini"><h4>④ SPC 알림</h4><p>p-관리도에서 감지된 Nelson 규칙 위반 목록. 클릭하면 근본 원인·시정 조치를 기록할 수 있습니다.</p></div>
+      </div>
+      <div class="callout info">
+        <span class="tag">핵심 구분: 시스템의 SPC는 ‘두 개의 엔진’으로 돌아갑니다</span>
+        <p><strong>(A) 불량률 엔진</strong> = 관리도·SPC 알림. 검사 <strong>‘개수’</strong>(검사 수량·불량 수량)로 작동 → <strong>지금도 데이터가 쌓이면 작동</strong>.<br>
+        <strong>(B) 공정능력 엔진</strong> = KPI 카드(관리 항목 수/평균 Cpk/등급) · 모델 표 · 공정능력 탭. <strong>‘실측 치수값’</strong>이 필요 → <strong>지금은 데이터가 없어 0</strong>. (→ <a href="#s6">6장</a>)</p>
+      </div>
+    </div>
+
+    <div class="lang-vi">
+      <h3>4-1. Bộ lọc phía trên (chọn xem cái gì)</h3>
+      <ul>
+        <li><span class="uiref">Chọn model (모델 선택)</span> — xem model sản phẩm nào. Mặc định ‘Tất cả model’.</li>
+        <li><span class="uiref">Chọn công đoạn (공정 선택)</span> — xem công đoạn kiểm nào.</li>
+        <li><span class="uiref">Chọn khoảng thời gian (기간 선택)</span> — mặc định 30 ngày làm việc gần nhất.</li>
+        <li><span class="uiref">Đặt lại bộ lọc (필터 초기화)</span> — trả về mặc định.</li>
+        <li>Tùy tab có thêm bộ lọc: tab <span class="uiref">Biểu đồ kiểm soát</span> có ‘loại biểu đồ’, tab <span class="uiref">Phân tích năng lực</span> bật chọn ‘mục kiểm’.</li>
+      </ul>
+
+      <h3>4-2. Bốn thẻ KPI phía trên</h3>
+      <table>
+        <thead><tr><th>Thẻ</th><th>Ý nghĩa</th><th>Nguồn dữ liệu</th></tr></thead>
+        <tbody>
+          <tr><td><span class="uiref">Số mục theo dõi</span></td><td>Số <strong>mục kiểm dạng số</strong> tính được Cpk (+ huy hiệu theo hạng)</td><td>Giá trị đo</td></tr>
+          <tr><td><span class="uiref">Cpk trung bình</span></td><td>Trung bình Cpk của các mục đó</td><td>Giá trị đo</td></tr>
+          <tr><td><span class="uiref">Cảnh báo chưa xử lý</span></td><td>Số cảnh báo SPC chưa xử lý</td><td>Tỉ lệ lỗi (p-chart)</td></tr>
+          <tr><td><span class="uiref">Phân bố hạng Cpk</span></td><td>Số mục Xuất sắc/Tốt/Trung bình/Yếu</td><td>Giá trị đo</td></tr>
+        </tbody>
+      </table>
+
+      <h3>4-3. Bốn tab</h3>
+      <div class="grid2">
+        <div class="mini"><h4>① Bảng điều khiển SPC</h4><p>Tổng quan: hướng dẫn chỉ số, bảng ‘năng lực theo model’, cảnh báo gần đây, xem nhanh p-chart.</p></div>
+        <div class="mini"><h4>② Biểu đồ kiểm soát</h4><p><strong>p-chart tỉ lệ lỗi</strong>: điểm tỉ lệ lỗi theo ngày + UCL/CL/LCL. ✅ <strong>Chạy bằng dữ liệu ‘số lượng’.</strong></p></div>
+        <div class="mini"><h4>③ Phân tích năng lực</h4><p>Chọn model → <strong>mục kiểm</strong> để xem histogram, Cp, Cpk, PPM. ❗ <strong>Cần có giá trị đo</strong> mới hiện.</p></div>
+        <div class="mini"><h4>④ Cảnh báo SPC</h4><p>Danh sách vi phạm quy tắc Nelson trên p-chart. Bấm vào để ghi nguyên nhân gốc & hành động khắc phục.</p></div>
+      </div>
+      <div class="callout info">
+        <span class="tag">Mấu chốt: SPC của hệ thống chạy bằng ‘hai động cơ’</span>
+        <p><strong>(A) Động cơ tỉ lệ lỗi</strong> = Biểu đồ + Cảnh báo. Chạy bằng <strong>‘số lượng’</strong> (SL kiểm · SL lỗi) → <strong>có dữ liệu là chạy được ngay</strong>.<br>
+        <strong>(B) Động cơ năng lực</strong> = Thẻ KPI · bảng model · tab Năng lực. Cần <strong>‘giá trị đo thực tế’</strong> → <strong>hiện đang 0 vì chưa có dữ liệu</strong>. (→ <a href="#s6">Chương 6</a>)</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 5. HOW TO USE ===================== -->
+  <section id="s5">
+    <h2><span class="num">5</span><span class="lang-ko">실제 사용법 — 단계별</span><span class="lang-vi">Cách dùng thực tế — từng bước</span></h2>
+    <p class="lede">
+      <span class="lang-ko">“입력 항목 → 입력 방법 → 관찰 → 결과 도출”의 전체 흐름입니다. 지금 바로 가능한 부분과 준비가 필요한 부분을 표시했습니다.</span>
+      <span class="lang-vi">Toàn bộ luồng “mục nhập → cách nhập → quan sát → rút ra kết quả”. Có đánh dấu phần làm được ngay và phần cần chuẩn bị.</span>
+    </p>
+
+    <div class="lang-ko">
+      <ol class="steps">
+        <li>
+          <h4>검사 항목(규격) 정의하기 — <span class="path">관리 → 검사 항목</span></h4>
+          <p>가장 먼저, 무엇을 측정할지 정의합니다. <span class="uiref">항목 추가</span>에서:</p>
+          <ul>
+            <li><strong>모델 / 공정 / 검사 항목명</strong> 입력</li>
+            <li><strong>데이터 유형</strong>: <code>OK/NG</code>(합격·불합격만) 또는 <code>수치형</code>(측정값 입력) — <strong>SPC 공정능력(Cpk)을 보려면 반드시 ‘수치형’</strong></li>
+            <li>수치형이면 <strong>기준값</strong>(목표 치수)·<strong>공차(±)</strong>·<strong>단위</strong> 입력 → 시스템이 <code>USL=기준값+공차</code>, <code>LSL=기준값−공차</code>로 규격을 만듭니다.</li>
+          </ul>
+          <p class="src">예: 보어 지름 → 기준값 50, 공차 ±0.1, 단위 mm → 합격 범위 49.9~50.1mm</p>
+        </li>
+        <li>
+          <h4>검사 데이터 입력하기 — <span class="path">검사 실행</span></h4>
+          <p>모델·공정을 고른 뒤 검사 기록을 입력합니다. <strong>현재 화면이 받는 값:</strong> 불량 유형 · 설비 번호 · 검사자 · <strong>검사 수량</strong> · <strong>불량 수량</strong> · (선택) 사진.</p>
+          <div class="callout ok"><span class="tag">✅ 이 입력으로 ‘관리도(불량률)’와 ‘SPC 알림’은 작동합니다</span>
+            <p>날짜별로 ‘검사 수량’과 ‘불량 수량’이 쌓이면, 관리도 탭의 p-관리도가 그려지고 알림도 생성됩니다. (알림은 한 모델에 <strong>최소 7일치 데이터</strong>가 있어야 패턴 감지를 시작합니다.)</p>
+          </div>
+          <div class="callout danger"><span class="tag">❗ 하지만 ‘공정능력(Cpk)’은 이 입력만으로는 안 됩니다</span>
+            <p>Cpk는 평균·표준편차가 필요한데, ‘개수’만으로는 계산할 수 없습니다. <strong>부품별 실측 치수값(예: 50.012, 49.998 …)</strong>이 있어야 합니다. 현재 검사 화면은 이 실측값을 저장하지 않습니다 → <a href="#s6">6장</a>에서 원인과 해결 방향을 설명합니다.</p>
+          </div>
+        </li>
+        <li>
+          <h4>관찰하기 — <span class="path">SPC 분석</span> 화면 열기</h4>
+          <p>① 위 필터에서 모델/기간을 맞춥니다 → ② <strong>관리도</strong> 탭에서 불량률 점들이 UCL/LCL 안에 무작위로 있는지 봅니다 → ③ <strong>SPC 알림</strong> 탭에서 어떤 규칙이 울렸는지 확인 → ④ (실측값이 있다면) <strong>공정능력 분석</strong> 탭에서 모델·항목을 골라 Cpk/히스토그램을 봅니다.</p>
+        </li>
+        <li>
+          <h4>결과 도출 & 조치하기</h4>
+          <p>관리도에서 한계 이탈·이상 패턴이 보이거나 Cpk가 낮으면 <strong>원인을 찾아 조치</strong>합니다. 구체적 행동은 <a href="#s7">7장</a> 표를 따르세요. <span class="uiref">SPC 알림</span>을 클릭하면 <strong>근본 원인·시정 조치·조치 내용</strong>을 기록하고 상태(확인됨/처리중/해결됨)를 관리할 수 있습니다.</p>
+        </li>
+      </ol>
+      <div class="callout warn">
+        <span class="tag">📏 데이터는 얼마나 모아야 하나 (초보자 기준)</span>
+        <p>관리한계와 Cpk를 믿으려면 충분한 데이터가 필요합니다. 업계 출발점은 <strong>연속 5개(n=5)를 25~50개 가공마다, 총 25개 부분군(≈125개)</strong> 정도입니다. 데이터가 너무 적으면(예: 5~10개) 숫자를 믿기 어렵습니다. 이 시스템의 공정능력 탭도 <strong>최소 25개</strong>를 권장합니다(부족하면 “데이터 부족” 안내).</p>
+      </div>
+    </div>
+
+    <div class="lang-vi">
+      <ol class="steps">
+        <li>
+          <h4>Định nghĩa mục kiểm (dung sai) — <span class="path">Quản lý → Mục kiểm tra</span></h4>
+          <p>Trước tiên, định nghĩa sẽ đo cái gì. Tại <span class="uiref">Thêm mục</span>:</p>
+          <ul>
+            <li>Nhập <strong>Model / Công đoạn / Tên mục kiểm</strong></li>
+            <li><strong>Loại dữ liệu</strong>: <code>OK/NG</code> (chỉ đạt/không) hoặc <code>Dạng số</code> (nhập giá trị đo) — <strong>muốn xem năng lực Cpk thì BẮT BUỘC chọn ‘Dạng số’</strong></li>
+            <li>Dạng số thì nhập <strong>Giá trị chuẩn</strong> · <strong>Dung sai (±)</strong> · <strong>Đơn vị</strong> → hệ thống tạo <code>USL=chuẩn+dung sai</code>, <code>LSL=chuẩn−dung sai</code>.</li>
+          </ul>
+          <p class="src">VD: đường kính lỗ → chuẩn 50, dung sai ±0.1, đơn vị mm → khoảng đạt 49.9~50.1mm</p>
+        </li>
+        <li>
+          <h4>Nhập dữ liệu kiểm — <span class="path">Thực hiện kiểm tra</span></h4>
+          <p>Chọn model·công đoạn rồi nhập bản ghi. <strong>Màn hình hiện nhận:</strong> loại lỗi · số máy · người kiểm · <strong>số lượng kiểm</strong> · <strong>số lượng lỗi</strong> · (tùy chọn) ảnh.</p>
+          <div class="callout ok"><span class="tag">✅ Với dữ liệu này, ‘Biểu đồ (tỉ lệ lỗi)’ và ‘Cảnh báo SPC’ chạy được</span>
+            <p>Khi SL kiểm và SL lỗi tích lũy theo ngày, p-chart sẽ được vẽ và cảnh báo được tạo. (Cảnh báo cần <strong>tối thiểu 7 ngày dữ liệu</strong> cho một model mới bắt đầu nhận diện hình mẫu.)</p>
+          </div>
+          <div class="callout danger"><span class="tag">❗ Nhưng ‘Năng lực (Cpk)’ thì không đủ với dữ liệu này</span>
+            <p>Cpk cần trung bình và độ lệch chuẩn, không thể tính từ ‘số lượng’. Phải có <strong>giá trị đo từng chi tiết (vd 50.012, 49.998…)</strong>. Màn hình kiểm hiện không lưu giá trị đo này → xem nguyên nhân & hướng xử lý ở <a href="#s6">Chương 6</a>.</p>
+          </div>
+        </li>
+        <li>
+          <h4>Quan sát — mở màn hình <span class="path">Phân tích SPC</span></h4>
+          <p>① Chỉnh model/khoảng thời gian ở bộ lọc → ② tab <strong>Biểu đồ</strong> xem các điểm tỉ lệ lỗi có nằm trong UCL/LCL một cách ngẫu nhiên không → ③ tab <strong>Cảnh báo</strong> xem quy tắc nào kêu → ④ (nếu có giá trị đo) tab <strong>Phân tích năng lực</strong> chọn model·mục để xem Cpk/histogram.</p>
+        </li>
+        <li>
+          <h4>Rút ra kết quả & hành động</h4>
+          <p>Khi thấy vượt giới hạn/hình mẫu bất thường hoặc Cpk thấp → <strong>tìm nguyên nhân và xử lý</strong> theo bảng ở <a href="#s7">Chương 7</a>. Bấm <span class="uiref">Cảnh báo SPC</span> để ghi <strong>nguyên nhân gốc · hành động khắc phục · nội dung xử lý</strong> và quản lý trạng thái (đã xác nhận/đang xử lý/đã giải quyết).</p>
+        </li>
+      </ol>
+      <div class="callout warn">
+        <span class="tag">📏 Cần thu bao nhiêu dữ liệu (mức người mới)</span>
+        <p>Để tin được giới hạn & Cpk cần đủ dữ liệu. Điểm khởi đầu của ngành: <strong>5 mẫu liên tiếp (n=5) mỗi 25~50 chi tiết, tổng 25 nhóm con (≈125 mẫu)</strong>. Quá ít (5~10) thì khó tin con số. Tab năng lực của hệ thống cũng khuyến nghị <strong>tối thiểu 25</strong> (thiếu sẽ báo “không đủ dữ liệu”).</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 6. WHY ZERO ===================== -->
+  <section id="s6">
+    <h2><span class="num">6</span><span class="lang-ko">⚠️ 왜 지금 전부 0인가 — 원인과 해결 방향</span><span class="lang-vi">⚠️ Vì sao đang toàn 0 — nguyên nhân & hướng xử lý</span></h2>
+
+    <div class="lang-ko">
+      <p class="lede">스크린샷의 <strong>관리 항목 수 0 · 평균 Cpk 0.00 · 모든 모델 ‘불량’</strong> 상태를 코드 동작 기준으로 정확히 설명합니다.</p>
+      <h3>원인: 공정능력(Cpk)에 필요한 ‘실측값’이 기록되지 않는다</h3>
+      <p>4-3에서 설명한 <strong>(B) 공정능력 엔진</strong>은 <code>inspection_results.measured_value</code>(부품별 실측 치수)를 읽어 Cpk를 계산합니다. 그런데 현재 <span class="uiref">검사 실행</span> 화면은 합격/불량 <strong>개수</strong>만 저장하고, 실측값은 한 번도 저장하지 않습니다. 그래서:</p>
+      <ul>
+        <li>Cpk를 계산할 수 있는 항목이 0개 → <span class="uiref">관리 항목 수 = 0</span></li>
+        <li>평균 낼 Cpk가 없음 → <span class="uiref">평균 Cpk = 0.00</span></li>
+        <li>모델별 항목이 0개라 등급이 기본값으로 떨어짐 → 모든 모델 <span class="tag-rate b-bad">불량</span></li>
+      </ul>
+      <div class="callout danger">
+        <span class="tag">한 줄 진단</span>
+        <p><strong>Cpk는 ‘측정 숫자값’이 있어야만 계산되는 지표인데, 현재 작업 흐름은 ‘합격/불량 개수’만 기록하기 때문에 공정능력 화면이 비어 있는 것입니다. 시스템 고장이 아닙니다.</strong></p>
+      </div>
+      <div class="callout info">
+        <span class="tag">참고: ‘미처리 불량 4건’ 배너는 별개입니다</span>
+        <p>화면 상단의 “미처리 불량 4건” 경고는 <strong>불량 관리</strong> 기능의 알림으로, SPC 알림(미조치 알림 0건)과는 다른 데이터입니다. 혼동하지 마세요.</p>
+      </div>
+
+      <h3>해결 방향 (개념적 — 이 문서는 사용 가이드입니다)</h3>
+      <p>코드 수정은 이 가이드의 범위를 벗어나지만, 무엇이 갖춰져야 공정능력 화면이 살아나는지는 분명합니다. 우선순위 순으로:</p>
+      <ol>
+        <li><strong>수치형 검사 항목과 규격을 먼저 등록</strong>한다 (<span class="path">관리 → 검사 항목</span>, 데이터 유형 ‘수치형’ + 기준값/공차). 이것이 없으면 어떤 방법으로도 Cpk가 안 나옵니다.</li>
+        <li><strong>부품별 실측값을 저장하는 입력 경로를 마련</strong>한다. 세 가지 길이 있습니다:
+          <ul>
+            <li>(a) 검사 화면에 <strong>항목별 측정값 입력란을 추가</strong>해 <code>inspection_results.measured_value</code>에 저장 — 가장 정석.</li>
+            <li>(b) 코드에 이미 존재하는 측정값 저장 함수(<code>submitInspection</code>)를 화면에 <strong>연결</strong> — 현재는 UI에서 호출되지 않는 상태.</li>
+            <li>(c) 측정값을 <strong>일괄(엑셀 등)로 가져오기</strong>.</li>
+          </ul>
+        </li>
+        <li>실측값이 항목당 <strong>최소 2개(권장 25개+)</strong> 쌓이면, 공정능력 탭·KPI 카드·모델 표가 자동으로 채워집니다.</li>
+      </ol>
+      <div class="callout ok">
+        <span class="tag">그동안 당장 쓸 수 있는 것</span>
+        <p>위가 갖춰지기 전이라도 <strong>관리도(불량률 p-관리도)와 SPC 알림은 지금 검사 데이터(검사 수량·불량 수량)만으로 작동</strong>합니다. 즉 “불량률 추세 감시”는 오늘부터 가능합니다. “치수 능력(Cpk) 분석”만 실측값 입력이 갖춰진 뒤에 가능해집니다.</p>
+      </div>
+    </div>
+
+    <div class="lang-vi">
+      <p class="lede">Giải thích chính xác (theo hành vi mã nguồn) trạng thái <strong>Số mục theo dõi 0 · Cpk TB 0.00 · mọi model ‘không đạt’</strong> trong ảnh chụp.</p>
+      <h3>Nguyên nhân: ‘giá trị đo’ cho Cpk chưa được ghi nhận</h3>
+      <p><strong>(B) Động cơ năng lực</strong> (mục 4-3) đọc <code>inspection_results.measured_value</code> (giá trị đo từng chi tiết) để tính Cpk. Nhưng màn hình <span class="uiref">Thực hiện kiểm tra</span> hiện chỉ lưu <strong>số lượng</strong> đạt/lỗi, chưa từng lưu giá trị đo. Do đó:</p>
+      <ul>
+        <li>0 mục tính được Cpk → <span class="uiref">Số mục theo dõi = 0</span></li>
+        <li>Không có Cpk để lấy trung bình → <span class="uiref">Cpk TB = 0.00</span></li>
+        <li>Mỗi model có 0 mục nên hạng rơi về mặc định → mọi model <span class="tag-rate b-bad">không đạt</span></li>
+      </ul>
+      <div class="callout danger">
+        <span class="tag">Chẩn đoán một câu</span>
+        <p><strong>Cpk là chỉ số chỉ tính được khi có ‘con số đo’, nhưng luồng làm việc hiện chỉ ghi ‘số lượng đạt/lỗi’, nên màn hình năng lực trống. Đây không phải lỗi hệ thống.</strong></p>
+      </div>
+      <div class="callout info">
+        <span class="tag">Lưu ý: banner ‘4 lỗi chưa xử lý’ là việc khác</span>
+        <p>Cảnh báo “4 lỗi chưa xử lý” trên đầu màn hình là của chức năng <strong>Quản lý lỗi</strong>, khác với Cảnh báo SPC (đang 0). Đừng nhầm lẫn.</p>
+      </div>
+
+      <h3>Hướng xử lý (về mặt khái niệm — đây là tài liệu hướng dẫn)</h3>
+      <p>Sửa mã nằm ngoài phạm vi tài liệu này, nhưng cần gì để màn hình năng lực “sống lại” thì đã rõ. Theo thứ tự ưu tiên:</p>
+      <ol>
+        <li><strong>Đăng ký mục kiểm dạng số và dung sai trước</strong> (<span class="path">Quản lý → Mục kiểm</span>, loại ‘Dạng số’ + chuẩn/dung sai). Thiếu cái này thì không cách nào ra Cpk.</li>
+        <li><strong>Tạo đường nhập lưu giá trị đo từng chi tiết.</strong> Ba cách:
+          <ul>
+            <li>(a) <strong>Thêm ô nhập giá trị đo theo từng mục</strong> vào màn hình kiểm để lưu vào <code>inspection_results.measured_value</code> — chuẩn nhất.</li>
+            <li>(b) <strong>Kết nối</strong> hàm lưu giá trị đo đã có sẵn trong mã (<code>submitInspection</code>) vào giao diện — hiện chưa được gọi từ UI.</li>
+            <li>(c) <strong>Nhập hàng loạt</strong> giá trị đo (qua Excel…).</li>
+          </ul>
+        </li>
+        <li>Khi mỗi mục có <strong>tối thiểu 2 (khuyến nghị 25+)</strong> giá trị đo, tab năng lực · thẻ KPI · bảng model sẽ tự đầy.</li>
+      </ol>
+      <div class="callout ok">
+        <span class="tag">Cái dùng được ngay trong lúc chờ</span>
+        <p>Dù chưa có phần trên, <strong>Biểu đồ (p-chart tỉ lệ lỗi) và Cảnh báo SPC vẫn chạy chỉ với dữ liệu kiểm hiện tại (SL kiểm · SL lỗi)</strong>. Tức “giám sát xu hướng tỉ lệ lỗi” làm được từ hôm nay. Chỉ “phân tích năng lực kích thước (Cpk)” mới cần có giá trị đo.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 7. INTERPRET & ACT ===================== -->
+  <section id="s7">
+    <h2><span class="num">7</span><span class="lang-ko">결과 해석과 조치</span><span class="lang-vi">Diễn giải kết quả & hành động</span></h2>
+
+    <div class="lang-ko">
+      <h3>7-1. Cpk 등급별 행동 (이 시스템 기준)</h3>
+      <table>
+        <thead><tr><th>등급</th><th>Cpk 범위</th><th>의미</th><th>해야 할 일</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag-rate b-excellent">우수</span></td><td>≥ 1.67</td><td>매우 안정, 불량 거의 없음</td><td>현 상태 유지·표준 문서화</td></tr>
+          <tr><td><span class="tag-rate b-good">양호</span></td><td>1.33 ~ 1.67</td><td>합격 수준, 잘 관리됨</td><td>그대로 모니터링</td></tr>
+          <tr><td><span class="tag-rate b-adequate">보통</span></td><td>1.0 ~ 1.33</td><td>겨우 능력 있음, 위태</td><td>개선 계획·산포/중심 점검</td></tr>
+          <tr><td><span class="tag-rate b-poor">미흡</span></td><td>0.67 ~ 1.0</td><td>불량 위험 높음</td><td>즉시 개선 착수</td></tr>
+          <tr><td><span class="tag-rate b-bad">불량</span></td><td>&lt; 0.67</td><td>능력 부족(불량 다수)</td><td>긴급 조치·원인 규명</td></tr>
+        </tbody>
+      </table>
+      <div class="callout info">
+        <span class="tag">Cpk를 올리는 길은 단 두 가지</span>
+        <p>① <strong>중심 맞추기(centering)</strong> — Cp는 큰데 Cpk만 작다면 평균이 한쪽으로 치우친 것. CNC 오프셋으로 평균만 규격 중심으로 옮기면 Cpk가 바로 오릅니다. ② <strong>산포 줄이기</strong> — Cp도 Cpk도 작다면 흔들림 자체가 큰 것. 변동 원인을 줄여야 합니다.</p>
+      </div>
+
+      <h3>7-2. 알림(이상 신호)별 현장 조치</h3>
+      <table>
+        <thead><tr><th>신호</th><th>대표 원인</th><th>구체적 조치</th></tr></thead>
+        <tbody>
+          <tr><td>R1 한계 이탈(1점)</td><td>설비 이상·측정 오류·단발 불량</td><td>기계 점검, 측정기 재교정, 해당 로트 격리</td></tr>
+          <tr><td>R3 추세(연속 상승/하강)</td><td><strong>공구 마모</strong>·온도 상승</td><td>공구 오프셋 보정 또는 공구 교체(한계 넘기 전에!)</td></tr>
+          <tr><td>R2 평균 이동(한쪽 연속)</td><td>자재 로트 변경·셋업 변경</td><td>변경점 추적, 평균 재중심화</td></tr>
+          <tr><td>R 범위 급증(산포 ↑)</td><td>진동·고정 불량</td><td>지그/클램핑·척 점검, 절삭조건(이송·회전수) 점검</td></tr>
+          <tr><td>R8 혼합 / 교대별 차이</td><td>두 기계/작업자/조 혼재</td><td>차트를 기계·조별로 분리, 작업 표준화·교육</td></tr>
+          <tr><td>R7 층화(15점 1σ 내)</td><td>관리한계 오계산·데이터 섞임</td><td>한계 재계산, 부분군 구성 재검토</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warn">
+        <span class="tag">조치 전 반드시 기억할 것</span>
+        <p>알림은 “조사하라”는 신호일 뿐, 원인을 알려주진 않습니다. 특히 <strong>관리상태(정상)인데 점 하나가 조금 벗어났다고 기계를 건드리면(과조정) 오히려 변동이 커집니다.</strong> 한계 안의 흔들림은 손대지 말고, 한계 이탈·뚜렷한 패턴일 때만 조사하세요.</p>
+      </div>
+    </div>
+
+    <div class="lang-vi">
+      <h3>7-1. Hành động theo hạng Cpk (theo hệ thống)</h3>
+      <table>
+        <thead><tr><th>Hạng</th><th>Khoảng Cpk</th><th>Ý nghĩa</th><th>Việc cần làm</th></tr></thead>
+        <tbody>
+          <tr><td><span class="tag-rate b-excellent">Xuất sắc</span></td><td>≥ 1.67</td><td>Rất ổn định, gần như không lỗi</td><td>Giữ nguyên, chuẩn hóa tài liệu</td></tr>
+          <tr><td><span class="tag-rate b-good">Tốt</span></td><td>1.33 ~ 1.67</td><td>Đạt, quản lý tốt</td><td>Tiếp tục theo dõi</td></tr>
+          <tr><td><span class="tag-rate b-adequate">Trung bình</span></td><td>1.0 ~ 1.33</td><td>Vừa đủ năng lực, bấp bênh</td><td>Lập kế hoạch cải tiến, soát phân tán/tâm</td></tr>
+          <tr><td><span class="tag-rate b-poor">Yếu</span></td><td>0.67 ~ 1.0</td><td>Nguy cơ lỗi cao</td><td>Cải tiến ngay</td></tr>
+          <tr><td><span class="tag-rate b-bad">Không đạt</span></td><td>&lt; 0.67</td><td>Thiếu năng lực (nhiều lỗi)</td><td>Xử lý khẩn, truy nguyên nhân</td></tr>
+        </tbody>
+      </table>
+      <div class="callout info">
+        <span class="tag">Chỉ có hai cách nâng Cpk</span>
+        <p>① <strong>Căn tâm (centering)</strong> — nếu Cp lớn mà Cpk nhỏ là do trung bình lệch một bên. Dùng offset CNC đưa trung bình về tâm dung sai, Cpk lên ngay. ② <strong>Giảm phân tán</strong> — nếu cả Cp và Cpk đều nhỏ là do dao động lớn; phải giảm nguồn gây biến động.</p>
+      </div>
+
+      <h3>7-2. Hành động tại xưởng theo từng cảnh báo</h3>
+      <table>
+        <thead><tr><th>Tín hiệu</th><th>Nguyên nhân điển hình</th><th>Hành động cụ thể</th></tr></thead>
+        <tbody>
+          <tr><td>R1 vượt giới hạn (1 điểm)</td><td>Lỗi thiết bị·đo·lỗi đơn lẻ</td><td>Kiểm máy, hiệu chuẩn lại dụng cụ đo, cách ly lô đó</td></tr>
+          <tr><td>R3 xu hướng (tăng/giảm liên tục)</td><td><strong>Dao mòn</strong>·nhiệt tăng</td><td>Bù offset dao hoặc thay dao (trước khi vượt giới hạn!)</td></tr>
+          <tr><td>R2 dịch trung bình (liên tiếp một bên)</td><td>Đổi lô vật liệu·đổi set-up</td><td>Truy điểm thay đổi, căn lại tâm</td></tr>
+          <tr><td>Phạm vi tăng vọt (phân tán ↑)</td><td>Rung·kẹp không chắc</td><td>Kiểm jig/kẹp·mâm cặp, soát chế độ cắt (ăn dao·tốc độ)</td></tr>
+          <tr><td>R8 trộn lẫn / khác theo ca</td><td>Lẫn 2 máy/thợ/ca</td><td>Tách biểu đồ theo máy·ca, chuẩn hóa·đào tạo</td></tr>
+          <tr><td>R7 phân tầng (15 điểm trong 1σ)</td><td>Tính sai giới hạn·trộn dữ liệu</td><td>Tính lại giới hạn, soát lại cách lập nhóm con</td></tr>
+        </tbody>
+      </table>
+      <div class="callout warn">
+        <span class="tag">Nhớ trước khi hành động</span>
+        <p>Cảnh báo chỉ nói “hãy điều tra”, không cho biết nguyên nhân. Đặc biệt, <strong>quá trình đang bình thường mà thấy một điểm lệch nhẹ rồi vội chỉnh máy (điều chỉnh quá mức) sẽ làm dao động tăng lên.</strong> Đừng đụng vào dao động trong giới hạn; chỉ điều tra khi vượt giới hạn hoặc có hình mẫu rõ ràng.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 8. PITFALLS ===================== -->
+  <section id="s8">
+    <h2><span class="num">8</span><span class="lang-ko">초보자가 자주 하는 실수</span><span class="lang-vi">Lỗi người mới hay mắc</span></h2>
+    <div class="lang-ko">
+      <ol>
+        <li><strong>관리한계 ↔ 규격한계 혼동.</strong> 가장 흔합니다. 한계 이탈은 ‘공정 변화’ 신호일 뿐, 곧바로 ‘불량’이 아닙니다. (→ <a href="#vov">3-2</a>)</li>
+        <li><strong>과조정(tampering).</strong> 정상 잡음에 매번 기계를 건드리면 변동이 더 커집니다. (샤워기 온도 맞추기 비유)</li>
+        <li><strong>‘한계 안 = 무조건 정상’ 착각.</strong> 한계 안이라도 쏠림·추세 패턴이면 이상 신호입니다.</li>
+        <li><strong>합격/불합격(OK/NG)으로 Cpk를 내려 함.</strong> 평균·표준편차를 알 수 없어 불가능합니다. 실측 숫자값이 필수.</li>
+        <li><strong>데이터 부족.</strong> 5~10개로 한계선/Cpk를 확정하면 신뢰할 수 없습니다(25개+ 권장).</li>
+        <li><strong>불안정한 공정에 Cpk 계산.</strong> 먼저 ‘안정(관리상태)’을 확인한 뒤에 능력을 봅니다 — 순서가 중요합니다.</li>
+        <li><strong>데이터를 크기순으로 정렬.</strong> 시간 순서가 깨지면 추세·이상신호를 못 봅니다. 항상 ‘만든 순서’대로.</li>
+        <li><strong>Cpk가 높으면 무조건 좋다고 단정.</strong> 규격(공차) 자체가 잘못 잡혀 있으면 숫자가 높아도 의미가 다를 수 있습니다.</li>
+      </ol>
+    </div>
+    <div class="lang-vi">
+      <ol>
+        <li><strong>Nhầm giới hạn kiểm soát ↔ dung sai.</strong> Phổ biến nhất. Vượt giới hạn chỉ là tín hiệu ‘quá trình đổi’, chưa phải ‘phế phẩm’. (→ 3-2)</li>
+        <li><strong>Điều chỉnh quá mức (tampering).</strong> Cứ đụng máy theo nhiễu bình thường thì dao động tăng. (ví von chỉnh vòi sen)</li>
+        <li><strong>Tưởng ‘trong giới hạn = chắc chắn bình thường’.</strong> Trong giới hạn nhưng lệch/xu hướng vẫn là bất thường.</li>
+        <li><strong>Tính Cpk từ OK/NG.</strong> Không có trung bình·độ lệch chuẩn → bất khả. Bắt buộc có giá trị đo.</li>
+        <li><strong>Thiếu dữ liệu.</strong> Chốt giới hạn/Cpk với 5~10 mẫu là không đáng tin (khuyến nghị 25+).</li>
+        <li><strong>Tính Cpk cho quá trình bất ổn.</strong> Phải xác nhận ‘ổn định’ trước rồi mới xét năng lực — thứ tự rất quan trọng.</li>
+        <li><strong>Sắp xếp dữ liệu theo độ lớn.</strong> Mất thứ tự thời gian là mất luôn xu hướng/tín hiệu. Luôn theo ‘thứ tự sản xuất’.</li>
+        <li><strong>Cứ Cpk cao là kết luận tốt.</strong> Nếu dung sai đặt sai thì số cao cũng có ý nghĩa khác.</li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ===================== 9. GLOSSARY & FAQ ===================== -->
+  <section id="s9">
+    <h2><span class="num">9</span><span class="lang-ko">용어 사전 & 자주 묻는 질문</span><span class="lang-vi">Thuật ngữ & Câu hỏi thường gặp</span></h2>
+
+    <div class="lang-ko">
+      <h3>용어 빠른 사전</h3>
+      <table>
+        <thead><tr><th>용어</th><th>뜻</th></tr></thead>
+        <tbody>
+          <tr><td><strong>SPC</strong></td><td>통계적 공정관리. 과정을 숫자로 지켜 불량을 예방.</td></tr>
+          <tr><td><strong>CL / UCL / LCL</strong></td><td>중심선 / 관리상한 / 관리하한 (보통 평균 ±3σ).</td></tr>
+          <tr><td><strong>USL / LSL</strong></td><td>규격상한 / 규격하한 (고객·도면이 정한 합격 범위).</td></tr>
+          <tr><td><strong>σ (시그마)</strong></td><td>표준편차. 데이터가 평균에서 흩어진 정도.</td></tr>
+          <tr><td><strong>Cp</strong></td><td>흩어짐(폭)만 본 잠재 능력.</td></tr>
+          <tr><td><strong>Cpk</strong></td><td>흩어짐+치우침을 본 실제 능력. 1.33↑ 합격.</td></tr>
+          <tr><td><strong>Pp / Ppk</strong></td><td>장기(전체) 산포로 본 능력. Ppk ≤ Cpk.</td></tr>
+          <tr><td><strong>PPM</strong></td><td>100만 개당 불량 수.</td></tr>
+          <tr><td><strong>p-관리도</strong></td><td>샘플별 불량률을 찍는 계수형 관리도.</td></tr>
+          <tr><td><strong>공통/특별 원인</strong></td><td>정상 잡음 / 진짜 문제. 후자만 조치.</td></tr>
+        </tbody>
+      </table>
+      <h3>FAQ</h3>
+      <details><summary>Q. 관리도가 비어 있어요(“SPC 데이터가 없습니다”).</summary><p>해당 기간·모델에 검사 기록이 없거나 너무 적은 것입니다. 기간을 넓히고, <span class="uiref">검사 실행</span>으로 데이터를 쌓으세요. 알림 패턴 감지는 한 모델에 최소 7일치가 필요합니다.</p></details>
+      <details><summary>Q. 공정능력 탭이 “데이터 부족”이라고 떠요.</summary><p>그 항목의 실측값이 부족합니다(최소 2개, 권장 25개+). 더 근본적으로는 현재 실측값 입력 경로가 없을 수 있습니다 → <a href="#s6">6장</a>.</p></details>
+      <details><summary>Q. 불량률은 보이는데 Cpk만 0이에요. 왜죠?</summary><p>정상입니다. 불량률(관리도)은 ‘개수’로, Cpk(공정능력)는 ‘실측값’으로 계산되는데 실측값이 없기 때문입니다. (→ <a href="#s6">6장</a>)</p></details>
+      <details><summary>Q. 우리 회사 기준은 Cpk 1.67인데, 시스템은 1.33을 양호로 표시해요.</summary><p>1.33은 양산 유지의 통상 최소선이고, 자동차 신규 공정 승인(PPAP)은 보통 1.67을 요구합니다. 업종·고객·단계에 따라 합격 기준은 다를 수 있으니, 회사 기준을 우선하세요.</p></details>
+    </div>
+
+    <div class="lang-vi">
+      <h3>Từ điển nhanh</h3>
+      <table>
+        <thead><tr><th>Thuật ngữ</th><th>Nghĩa</th></tr></thead>
+        <tbody>
+          <tr><td><strong>SPC</strong></td><td>Kiểm soát quá trình bằng thống kê; theo dõi bằng số để phòng lỗi.</td></tr>
+          <tr><td><strong>CL / UCL / LCL</strong></td><td>Đường tâm / giới hạn trên / dưới (thường TB ±3σ).</td></tr>
+          <tr><td><strong>USL / LSL</strong></td><td>Giới hạn dung sai trên/dưới (khách·bản vẽ định).</td></tr>
+          <tr><td><strong>σ (sigma)</strong></td><td>Độ lệch chuẩn; mức phân tán quanh trung bình.</td></tr>
+          <tr><td><strong>Cp</strong></td><td>Năng lực tiềm năng (chỉ xét độ rộng).</td></tr>
+          <tr><td><strong>Cpk</strong></td><td>Năng lực thực (phân tán + lệch tâm). ≥1.33 là đạt.</td></tr>
+          <tr><td><strong>Pp / Ppk</strong></td><td>Năng lực theo phân tán dài hạn. Ppk ≤ Cpk.</td></tr>
+          <tr><td><strong>PPM</strong></td><td>Số lỗi trên một triệu.</td></tr>
+          <tr><td><strong>p-chart</strong></td><td>Biểu đồ thuộc tính chấm tỉ lệ lỗi theo mẫu.</td></tr>
+          <tr><td><strong>NN chung/đặc biệt</strong></td><td>Nhiễu bình thường / vấn đề thật. Chỉ xử lý loại sau.</td></tr>
+        </tbody>
+      </table>
+      <h3>FAQ</h3>
+      <details><summary>H. Biểu đồ trống (“Không có dữ liệu SPC”).</summary><p>Khoảng/model đó chưa có hoặc quá ít bản ghi. Mở rộng khoảng thời gian và nhập thêm ở <span class="uiref">Thực hiện kiểm tra</span>. Phát hiện hình mẫu cần tối thiểu 7 ngày cho một model.</p></details>
+      <details><summary>H. Tab năng lực báo “không đủ dữ liệu”.</summary><p>Mục đó thiếu giá trị đo (tối thiểu 2, khuyến nghị 25+). Sâu xa hơn, có thể chưa có đường nhập giá trị đo → <a href="#s6">Chương 6</a>.</p></details>
+      <details><summary>H. Thấy tỉ lệ lỗi nhưng Cpk vẫn 0. Vì sao?</summary><p>Bình thường. Tỉ lệ lỗi (biểu đồ) tính bằng ‘số lượng’, còn Cpk (năng lực) tính bằng ‘giá trị đo’ — mà giá trị đo chưa có. (→ <a href="#s6">Chương 6</a>)</p></details>
+      <details><summary>H. Công ty tôi yêu cầu Cpk 1.67 nhưng hệ thống xếp 1.33 là Tốt.</summary><p>1.33 là mức tối thiểu duy trì sản xuất; phê duyệt quá trình mới ô tô (PPAP) thường yêu cầu 1.67. Tiêu chí đạt khác nhau theo ngành·khách·giai đoạn — hãy ưu tiên chuẩn công ty bạn.</p></details>
+    </div>
+  </section>
+
+  <!-- ===================== 10. SOURCES ===================== -->
+  <section id="s10">
+    <h2><span class="num">10</span><span class="lang-ko">참고 출처 (검증됨)</span><span class="lang-vi">Nguồn tham khảo (đã kiểm chứng)</span></h2>
+    <p class="lede">
+      <span class="lang-ko">개념 설명과 수치는 아래 권위 있는 출처로 교차 검증했습니다. 이 시스템 고유의 동작(7점 규칙, USL/LSL 계산 등)은 실제 코드를 기준으로 했습니다.</span>
+      <span class="lang-vi">Các giải thích và con số được đối chiếu với những nguồn uy tín dưới đây. Hành vi riêng của hệ thống (quy tắc 7 điểm, cách tính USL/LSL…) dựa trên mã nguồn thực tế.</span>
+    </p>
+    <ul class="src">
+      <li>NIST/SEMATECH e-Handbook of Statistical Methods, Ch.6 — Process or Product Monitoring and Control. <a href="https://www.itl.nist.gov/div898/handbook/pmc/pmc.htm">itl.nist.gov</a> (6.1.6 공정능력, 6.3.1 관리도, 6.3.2 WECO 규칙, 6.3.3.2 p-관리도)</li>
+      <li>ASQ — What is SPC / What is a Control Chart. <a href="https://asq.org/quality-resources/statistical-process-control">asq.org/…/statistical-process-control</a>, <a href="https://asq.org/quality-resources/control-chart">…/control-chart</a></li>
+      <li>Minitab Support — Tests for special causes; Cp &amp; Cpk; Specification limits. <a href="https://support.minitab.com/">support.minitab.com</a></li>
+      <li>eeSemi — Cpk vs ppm (Cpk–시그마–PPM 환산표). <a href="https://www.eesemi.com/cpkppm.htm">eesemi.com/cpkppm.htm</a></li>
+      <li>1factory Quality Academy — Guide to Cp/Cpk and Pp/Ppk. <a href="https://www.1factory.com/quality-academy/guide-process-capability.html">1factory.com</a></li>
+      <li>Wikipedia — Nelson rules / Western Electric rules. <a href="https://en.wikipedia.org/wiki/Nelson_rules">en.wikipedia.org/wiki/Nelson_rules</a></li>
+      <li>Advantive SPC 101 — Control vs Specification limits (Voice of Process vs Customer). <a href="https://www.advantive.com/solutions/spc-software/spc-101/control-limits/">advantive.com</a></li>
+      <li>CNC Optimization / Competitive Production — SPC in CNC machining. <a href="https://www.cncoptimization.com/solutions/automotive-manufacturing/spc-process-control-cnc/">cncoptimization.com</a></li>
+    </ul>
+    <div class="callout info">
+      <span class="tag"><span class="lang-ko">검증 메모</span><span class="lang-vi">Ghi chú kiểm chứng</span></span>
+      <p>
+        <span class="lang-ko">Cpk 1.33의 예상 불량은 ‘약 63ppm’으로 흔히 인용되지만 엄밀히 1.33을 대입하면 ≈66ppm입니다(63ppm은 정확히 4σ=Cpk 1.3333 지점). PPM 환산은 ‘정규분포·중심·안정 공정’ 가정에 의존합니다.</span>
+        <span class="lang-vi">Lỗi ước tính tại Cpk 1.33 thường được trích là ‘~63ppm’, nhưng nếu thế đúng 1.33 thì ≈66ppm (63ppm ứng với đúng 4σ = Cpk 1.3333). Quy đổi PPM phụ thuộc giả định ‘phân bố chuẩn · căn tâm · ổn định’.</span>
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <span class="lang-ko">CNC QC KPI · SPC 분석 사용 가이드 — 2026-06-03 생성. 이 문서는 시스템 사용 안내이며 코드 변경을 포함하지 않습니다.</span>
+    <span class="lang-vi">CNC QC KPI · Hướng dẫn dùng Phân tích SPC — tạo ngày 2026-06-03. Tài liệu này hướng dẫn sử dụng, không bao gồm thay đổi mã nguồn.</span>
+  </footer>
+</div>
+
+<script>
+  function setLang(l){
+    document.body.classList.toggle('show-vi', l==='vi');
+    document.body.classList.toggle('show-ko', l==='ko');
+    document.getElementById('btn-ko').classList.toggle('active', l==='ko');
+    document.getElementById('btn-vi').classList.toggle('active', l==='vi');
+    document.documentElement.lang = l;
+    try{ localStorage.setItem('spcGuideLang', l); }catch(e){}
+  }
+  (function(){
+    var saved='ko';
+    try{ saved = localStorage.getItem('spcGuideLang') || 'ko'; }catch(e){}
+    setLang(saved);
+  })();
+</script>
+</body>
+</html>
