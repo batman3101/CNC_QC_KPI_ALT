@@ -4,6 +4,7 @@
  */
 
 import Dexie, { type Table } from 'dexie'
+import type { DefectPointEntry } from '@/types/spc'
 
 // Offline inspection record type
 export interface OfflineInspection {
@@ -23,6 +24,7 @@ export interface OfflineInspection {
   defect_quantity: number
   photo_data: string | null // Base64 encoded
   notes: string | null
+  defect_points: DefectPointEntry[] | null
   status: 'pending' | 'syncing' | 'synced' | 'error'
   created_at: string
   synced_at: string | null

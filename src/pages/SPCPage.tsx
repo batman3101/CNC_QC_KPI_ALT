@@ -15,25 +15,23 @@ import type { ControlChartType } from '@/types/spc'
 import {
   PControlChart,
   SPCKPICards,
-  ProcessCapabilityCard,
   SPCAlertsList,
   SPCFilters,
-  ModelSPCSummaryTable,
   SPCAlertDialog,
   SPCGuide,
 } from '@/components/spc'
+import { DefectPointParetoChart } from '@/components/spc/DefectPointParetoChart'
+import { ModelDefectRateTable } from '@/components/spc/ModelDefectRateTable'
 
 import type { SPCAlert } from '@/types/spc'
 
 // SPC Services
 import {
   getPChartData,
-  fetchAllItemCpkValues,
-  transformToKPISummary,
-  transformToModelSummary,
+  getModelDefectRates,
   generateAndUpsertAlerts,
   getSPCAlerts,
-  getProcessCapabilityData,
+  getDefectPointPareto,
   getProductModels,
   getInspectionProcesses,
   getInspectionItems,
@@ -121,20 +119,37 @@ export function SPCPage() {
     enabled: !!selectedModelId,
   })
 
-  // Fetch all item Cpk data (shared single query for KPI + Model summary)
-  const { data: allCpkData } = useQuery({
-    queryKey: ['spc-all-cpk-data', activeFactoryId],
-    queryFn: () => fetchAllItemCpkValues(activeFactoryId || undefined),
+  // The DB stores the process CODE string in inspections.inspection_process,
+  // but SPCFilters emits the process id. Translate id -> code for queries.
+  const selectedProcessCode = useMemo(
+    () => inspectionProcesses.find((p) => p.id === selectedProcessId)?.code,
+    [inspectionProcesses, selectedProcessId],
+  )
+
+  // Fetch model-level defect rates (inspections 집계 기반)
+  const { data: modelDefectRates = [] } = useQuery({
+    queryKey: ['spc-model-defect-rates', selectedProcessCode, dateRange, activeFactoryId, productModels],
+    queryFn: () =>
+      getModelDefectRates(
+        {
+          process_id: selectedProcessCode,
+          date_from: dateRange?.from || defaultDateRange.from,
+          date_to: dateRange?.to || defaultDateRange.to,
+        },
+        productModels.map((m) => ({ id: m.id, name: m.name, code: m.code })),
+        activeFactoryId || undefined,
+      ),
+    enabled: productModels.length > 0,
   })
 
   // Fetch P-Chart Data
   const { data: pChartData } = useQuery({
-    queryKey: ['spc-pchart', selectedModelId, selectedProcessId, dateRange, activeFactoryId],
+    queryKey: ['spc-pchart', selectedModelId, selectedProcessCode, dateRange, activeFactoryId],
     queryFn: () =>
       getPChartData(
         {
           model_id: selectedModelId,
-          process_id: selectedProcessId,
+          process_id: selectedProcessCode,
           date_from: dateRange?.from || defaultDateRange.from,
           date_to: dateRange?.to || defaultDateRange.to,
         },
@@ -168,48 +183,34 @@ export function SPCPage() {
     enabled: alertsGenerated,
   })
 
-  // Derive KPI summary from shared Cpk data + p-chart trend + real alert counts
-  const kpiSummary = useMemo(() => {
-    if (!allCpkData) return undefined
-    const trend: 'improving' | 'stable' | 'declining' = pChartData
-      ? pChartData.statistics.avgDefectRate < 3 ? 'improving'
-        : pChartData.statistics.avgDefectRate < 5 ? 'stable' : 'declining'
-      : 'stable'
-    const summary = transformToKPISummary(allCpkData, trend)
-    const openAlerts = allAlerts.filter(a => a.status === 'open')
-    summary.open_alerts = openAlerts.length
-    summary.critical_alerts = openAlerts.filter(a => a.severity === 'critical').length
-    return summary
-  }, [allCpkData, pChartData, allAlerts])
-
-  // Derive Model summary from shared Cpk data + real alert counts
-  const modelSummary = useMemo(() => {
-    if (!allCpkData) return []
-    const summaries = transformToModelSummary(allCpkData, productModels)
-    // 모델별 알림 카운트 연결
-    const openAlerts = allAlerts.filter(a => a.status === 'open')
-    for (const s of summaries) {
-      const modelAlerts = openAlerts.filter(a => a.model_id === s.model_id)
-      s.open_alerts_count = modelAlerts.length
-      s.critical_alerts_count = modelAlerts.filter(a => a.severity === 'critical').length
-    }
-    return summaries
-  }, [allCpkData, productModels, allAlerts])
-
-  // Fetch Process Capability (when item is selected)
-  const { data: capabilityData } = useQuery({
-    queryKey: ['spc-capability', selectedItemId, selectedModelId, dateRange, activeFactoryId],
+  // Fetch Defect Point Pareto data
+  const { data: defectPareto = [] } = useQuery({
+    queryKey: ['spc-defect-pareto', selectedModelId, selectedProcessCode, dateRange, activeFactoryId],
     queryFn: () =>
-      getProcessCapabilityData(
-        selectedItemId!,
-        selectedModelId!,
-        dateRange?.from && dateRange?.to
-          ? { from: dateRange.from, to: dateRange.to }
-          : undefined,
-        activeFactoryId || undefined
+      getDefectPointPareto(
+        {
+          model_id: selectedModelId,
+          process_id: selectedProcessCode,
+          date_from: dateRange?.from || defaultDateRange.from,
+          date_to: dateRange?.to || defaultDateRange.to,
+        },
+        activeFactoryId || undefined,
       ),
-    enabled: !!selectedItemId && !!selectedModelId,
   })
+
+  // Derive defect-centric KPI metrics from p-chart stats + pareto + alerts
+  const defectKpi = useMemo(() => {
+    const inspected = pChartData?.statistics.totalInspections ?? 0
+    const defects = pChartData?.statistics.totalDefects ?? 0
+    const rate = inspected > 0 ? (defects / inspected) * 100 : 0
+    const top = defectPareto[0]
+    return {
+      inspectedQty: inspected,
+      defectRate: rate,
+      openAlerts: allAlerts.filter((a) => a.status === 'open').length,
+      topDefectPoint: top ? `${top.item_name} (${top.defect_count})` : '-',
+    }
+  }, [pChartData, defectPareto, allAlerts])
 
   return (
     <Box>
@@ -241,23 +242,21 @@ export function SPCPage() {
           onDateRangeChange={setDateRange}
           onReset={handleResetFilters}
           showChartTypeFilter={tabValue === 1}
-          showItemFilter={tabValue === 2}
+          showItemFilter={false}
         />
       </Box>
 
       {/* KPI Cards */}
-      {kpiSummary && (
-        <Box sx={{ mb: 3 }}>
-          <SPCKPICards data={kpiSummary} />
-        </Box>
-      )}
+      <Box sx={{ mb: 3 }}>
+        <SPCKPICards defect={defectKpi} />
+      </Box>
 
       {/* Tabs */}
       <Box>
         <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
           <Tab label={t('spc.dashboard')} />
           <Tab label={t('spc.controlChart')} />
-          <Tab label={t('spc.processCapability')} />
+          <Tab label={t('spc.defectAnalysis.tabTitle')} />
           <Tab label={t('spc.alertsTitle')} />
         </Tabs>
 
@@ -269,10 +268,10 @@ export function SPCPage() {
               <SPCGuide />
             </Grid>
 
-            {/* Model Summary Table */}
+            {/* Model Defect Rate Table */}
             <Grid size={{ xs: 12, lg: 8 }}>
-              <ModelSPCSummaryTable
-                data={modelSummary}
+              <ModelDefectRateTable
+                data={modelDefectRates}
                 onRowClick={(modelId) => {
                   setSelectedModelId(modelId)
                   setTabValue(1) // Switch to control chart tab
@@ -380,64 +379,9 @@ export function SPCPage() {
           </Grid>
         </TabPanel>
 
-        {/* Process Capability Tab */}
+        {/* Defect Point Pareto Tab */}
         <TabPanel value={tabValue} index={2}>
-          {!selectedModelId ? (
-            <Box
-              sx={{
-                p: 8,
-                textAlign: 'center',
-                bgcolor: 'background.paper',
-                borderRadius: 2,
-                border: 1,
-                borderColor: 'divider',
-              }}
-            >
-              <Typography color="text.secondary">
-                {t('spc.selectModel')}
-              </Typography>
-            </Box>
-          ) : !selectedItemId ? (
-            <Box
-              sx={{
-                p: 8,
-                textAlign: 'center',
-                bgcolor: 'background.paper',
-                borderRadius: 2,
-                border: 1,
-                borderColor: 'divider',
-              }}
-            >
-              <Typography color="text.secondary">
-                {t('spc.selectItem')}
-              </Typography>
-            </Box>
-          ) : capabilityData && capabilityData.values.length > 0 ? (
-            <ProcessCapabilityCard
-              capability={capabilityData.capability}
-              statistics={capabilityData.statistics}
-              histogram={capabilityData.histogram}
-              usl={capabilityData.usl}
-              lsl={capabilityData.lsl}
-              target={capabilityData.target}
-              itemName={inspectionItems.find(i => i.id === selectedItemId)?.name}
-            />
-          ) : (
-            <Box
-              sx={{
-                p: 8,
-                textAlign: 'center',
-                bgcolor: 'background.paper',
-                borderRadius: 2,
-                border: 1,
-                borderColor: 'divider',
-              }}
-            >
-              <Typography color="text.secondary">
-                {t('spc.insufficientData')}
-              </Typography>
-            </Box>
-          )}
+          <DefectPointParetoChart data={defectPareto} />
         </TabPanel>
 
         {/* Alerts Tab */}

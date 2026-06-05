@@ -84,8 +84,11 @@ export function useNetworkStatus() {
       setStatus((prev) => ({ ...prev, isOnline: false }))
     }
 
+    const handleQueueUpdated = () => { updatePendingCount() }
+
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
+    window.addEventListener('offline-queue-updated', handleQueueUpdated)
 
     // Initial load
     updatePendingCount()
@@ -96,6 +99,7 @@ export function useNetworkStatus() {
     return () => {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('offline-queue-updated', handleQueueUpdated)
     }
   }, [updatePendingCount])
 

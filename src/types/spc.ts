@@ -415,3 +415,24 @@ export interface PChartLimits {
   lcl: number               // 하한 (음수면 0)
   centerLine: number        // 중심선 (= p_bar)
 }
+
+// ============================================
+// 10. 불량 포인트 입력 (Exception Defect-Point Logger)
+// ============================================
+
+/** 입력 중인 불량 포인트 1건 */
+export interface DefectPointEntry {
+  item_id: string
+  item_name: string
+  measured_value: number | null
+}
+
+/** 한 부품 = 불량 포인트 묶음 */
+export type DefectPart = DefectPointEntry[]
+
+/** 포인트별 Pareto 1행 */
+export interface DefectPointParetoRow {
+  item_id: string
+  item_name: string
+  defect_count: number
+}

@@ -149,6 +149,7 @@
     "saveInspectionRecord": "Lưu kết quả kiểm tra",
     "submittingRecord": "Đang lưu...",
     "submitSuccess": "Kết quả kiểm tra đã được đăng ký",
+    "savedOffline": "Đã lưu ngoại tuyến — sẽ tự động đăng ký khi có kết nối Internet",
     "photo": "Ảnh",
     "uploadPhoto": "Tải ảnh lên",
     "photoHelper": "Chỉ tải lên tệp ảnh (tối đa 10MB)",
@@ -680,6 +681,35 @@
     "messages": {
       "alertResolved": "Đã xử lý cảnh báo",
       "calculationSuccess": "Đã tính toán giới hạn kiểm soát"
+    },
+    "defectPoint": {
+      "panelTitle": "Nhập điểm lỗi",
+      "panelHelper": "Tìm số điểm bị lỗi và nhập giá trị đo. Điểm đạt thì không nhập.",
+      "searchPlaceholder": "Tìm số điểm (VD: 37)",
+      "measuredValue": "Giá trị đo",
+      "spec": "Quy cách",
+      "add": "Thêm",
+      "addPart": "Thêm chi tiết",
+      "part": "Chi tiết",
+      "noNumericItems": "Model·công đoạn này chưa có hạng mục dạng số. (Đăng ký bằng Excel ở Quản lý → Hạng mục kiểm tra)",
+      "withinSpecWarning": "Giá trị nằm trong quy cách — vẫn ghi nhận là lỗi?",
+      "duplicatePoint": "Điểm này đã được thêm",
+      "defectiveParts": "Số chi tiết lỗi",
+      "noPoints": "Chưa thêm điểm lỗi nào",
+      "remove": "Xóa"
+    },
+    "defectAnalysis": {
+      "tabTitle": "Phân tích điểm lỗi",
+      "paretoTitle": "Pareto lỗi theo điểm kiểm tra",
+      "pointName": "Điểm kiểm tra",
+      "defectCount": "Số lỗi",
+      "noData": "Không có dữ liệu điểm lỗi trong khoảng đã chọn"
+    },
+    "kpi2": {
+      "inspectedQty": "Số lượng kiểm",
+      "defectRate": "Tỉ lệ lỗi",
+      "topDefectPoint": "Điểm lỗi nhiều nhất",
+      "modelDefectRate": "Tỉ lệ lỗi theo model"
     },
     "guide": {
       "title": "Hướng dẫn chỉ số SPC",

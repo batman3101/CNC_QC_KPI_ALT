@@ -14,6 +14,8 @@ import {
 } from '@/lib/offlineDb'
 import * as inspectionService from '@/services/inspectionService'
 import * as managementService from '@/services/managementService'
+import type { DefectPointEntry } from '@/types/spc'
+import imageCompression from 'browser-image-compression'
 
 // Check online status
 export function isOnline(): boolean {
@@ -36,6 +38,7 @@ export interface OfflineInspectionInput {
   defect_quantity: number
   photo_data: string | null
   notes: string | null
+  defect_points: DefectPointEntry[] | null
   factory_id: string
 }
 
@@ -55,6 +58,31 @@ export async function saveInspectionOffline(
 
   await offlineDb.offlineInspections.add(inspection)
   return inspection
+}
+
+// File → compressed Base64 dataURL (for offline storage; no network)
+export async function compressImageToBase64(file: File): Promise<string> {
+  const compressed = await imageCompression(file, {
+    maxSizeMB: 0.5,
+    maxWidthOrHeight: 1600,
+    useWebWorker: true,
+  })
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result as string)
+    reader.onerror = () => reject(new Error('Failed to read image'))
+    reader.readAsDataURL(compressed)
+  })
+}
+
+// Base64 dataURL → File (for upload at sync time)
+function dataUrlToFile(dataUrl: string, filename: string): File {
+  const [head, body] = dataUrl.split(',')
+  const mime = head.match(/:(.*?);/)?.[1] || 'image/jpeg'
+  const binary = atob(body)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return new File([bytes], filename, { type: mime })
 }
 
 // Get pending inspections count
@@ -90,22 +118,49 @@ export async function syncPendingInspections(): Promise<{
       // Update status to syncing
       await offlineDb.offlineInspections.update(inspection.id, { status: 'syncing' })
 
-      // Submit to server
-      await inspectionService.createInspectionRecord({
-        model_id: inspection.model_id,
-        inspection_process: {
-          code: inspection.inspection_process_code,
-          name: inspection.inspection_process_name,
-        },
-        defect_type_id: inspection.defect_type_id,
-        machine_id: inspection.machine_id || null,
-        machine_number: inspection.machine_name,
-        inspector_id: inspection.inspector_id,
-        inspection_quantity: inspection.inspection_quantity,
-        defect_quantity: inspection.defect_quantity,
-        photo_url: inspection.photo_data,
-        factory_id: inspection.factory_id,
-      })
+      // Upload photo (stored as Base64 offline) now that we're online
+      let photoUrl: string | null = null
+      if (inspection.photo_data) {
+        const file = dataUrlToFile(inspection.photo_data, `${inspection.id}.jpg`)
+        photoUrl = await inspectionService.uploadDefectPhoto(file, inspection.id)
+      }
+
+      if (inspection.defect_points && inspection.defect_points.length > 0) {
+        // 측정 공정: inspections + inspection_results(불량 포인트) 기록
+        await inspectionService.submitInspection({
+          userId: inspection.inspector_id,
+          machineId: inspection.machine_id || undefined,
+          modelId: inspection.model_id,
+          inspectionProcess: inspection.inspection_process_code,
+          inspectionQuantity: inspection.inspection_quantity,
+          defectQuantity: inspection.defect_quantity,
+          results: inspection.defect_points.map((p) => ({
+            itemId: p.item_id,
+            measuredValue: p.measured_value ?? 0,
+            result: 'fail' as const,
+          })),
+          defectType: inspection.defect_type_id || undefined,
+          photoUrl: photoUrl || undefined,
+          factoryId: inspection.factory_id || undefined,
+        })
+      } else {
+        // 카운트 기반 경로
+        await inspectionService.createInspectionRecord({
+          model_id: inspection.model_id,
+          inspection_process: {
+            code: inspection.inspection_process_code,
+            name: inspection.inspection_process_name,
+          },
+          defect_type_id: inspection.defect_type_id,
+          machine_id: inspection.machine_id || null,
+          machine_number: inspection.machine_name,
+          inspector_id: inspection.inspector_id,
+          inspection_quantity: inspection.inspection_quantity,
+          defect_quantity: inspection.defect_quantity,
+          photo_url: photoUrl,
+          factory_id: inspection.factory_id,
+        })
+      }
 
       // Mark as synced
       await offlineDb.offlineInspections.update(inspection.id, {

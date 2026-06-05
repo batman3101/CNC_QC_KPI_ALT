@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -42,6 +42,8 @@ import type { InspectionProcess, InspectionRecordInput } from '@/types/inspectio
 import { useAuth } from '@/hooks/useAuth'
 import * as managementService from '@/services/managementService'
 import type { Database } from '@/types/database'
+import { DefectPointLogger } from '@/components/spc/DefectPointLogger'
+import type { DefectPart } from '@/types/spc'
 
 type Machine = Database['public']['Tables']['machines']['Row']
 
@@ -51,7 +53,7 @@ interface InspectionRecordFormProps {
   modelCode: string
   inspectionProcess: InspectionProcess
   factoryId?: string | null
-  onSubmit: (data: InspectionRecordInput, photoFile: File | null) => Promise<void>
+  onSubmit: (data: InspectionRecordInput, photoFile: File | null, defectParts: DefectPart[], meta: { defectTypeName: string | null; inspectorName: string }) => Promise<void>
   onCancel: () => void
 }
 
@@ -114,6 +116,23 @@ export function InspectionRecordForm({
     },
   })
 
+  const [defectParts, setDefectParts] = useState<DefectPart[]>([])
+
+  const { data: numericItems = [] } = useQuery({
+    queryKey: ['inspection-items-numeric', modelId, inspectionProcess.id],
+    queryFn: () => managementService.getInspectionItems(modelId),
+    enabled: !!modelId,
+    select: (items) =>
+      items.filter(
+        (it) =>
+          it.data_type === 'numeric' &&
+          (it.process_id == null || it.process_id === inspectionProcess.id),
+      ),
+  })
+
+  const hasNumericItems = numericItems.length > 0
+  const defectivePartCount = defectParts.filter((p) => p.length > 0).length
+
   // Fetch defect types
   const { data: defectTypes = [], isLoading: defectTypesLoading } = useQuery({
     queryKey: ['defect-types'],
@@ -133,6 +152,10 @@ export function InspectionRecordForm({
     queryFn: () => managementService.searchMachines(machineInputValue, factoryId || undefined),
     staleTime: 1000 * 60, // 1분간 캐시
   })
+
+  useEffect(() => {
+    if (hasNumericItems) setValue('defectQuantity', defectivePartCount)
+  }, [hasNumericItems, defectivePartCount, setValue])
 
   const watchedValues = watch()
   const inspectionQuantity = watchedValues.inspectionQuantity || 0
@@ -256,7 +279,7 @@ export function InspectionRecordForm({
         inspector_id: values.inspectorId,
         inspection_quantity: values.inspectionQuantity,
         defect_quantity: values.defectQuantity,
-      }, photoFile)
+      }, photoFile, defectParts, { defectTypeName: selectedDefectType?.name ?? null, inspectorName: (canSelectInspector ? selectedInspector?.name : profile?.name) ?? '' })
     } finally {
       setIsSubmitting(false)
     }
@@ -484,6 +507,14 @@ export function InspectionRecordForm({
                 />
               </Box>
             </Paper>
+
+            {hasNumericItems && (
+              <DefectPointLogger
+                items={numericItems}
+                parts={defectParts}
+                onChange={setDefectParts}
+              />
+            )}
 
             <Paper variant="outlined" sx={{ p: { xs: 2, sm: 2.5 }, borderRadius: 2 }}>
               <SectionHeader

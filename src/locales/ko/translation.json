@@ -149,6 +149,7 @@
     "saveInspectionRecord": "검사 실적 저장",
     "submittingRecord": "저장 중...",
     "submitSuccess": "검사 실적이 등록되었습니다",
+    "savedOffline": "오프라인 저장됨 — 인터넷 연결 시 자동으로 등록됩니다",
     "photo": "사진",
     "uploadPhoto": "사진 업로드",
     "photoHelper": "이미지 파일만 업로드 가능 (최대 10MB)",
@@ -680,6 +681,35 @@
     "messages": {
       "alertResolved": "알림이 처리되었습니다",
       "calculationSuccess": "관리한계가 계산되었습니다"
+    },
+    "defectPoint": {
+      "panelTitle": "불량 포인트 입력",
+      "panelHelper": "불량난 포인트 번호를 검색해 측정값을 입력하세요. 합격 포인트는 입력하지 않습니다.",
+      "searchPlaceholder": "포인트 번호 검색 (예: 37)",
+      "measuredValue": "측정값",
+      "spec": "규격",
+      "add": "추가",
+      "addPart": "부품 추가",
+      "part": "부품",
+      "noNumericItems": "이 모델·공정에는 수치형 검사 항목이 없습니다. (관리 → 검사 항목에서 Excel로 등록)",
+      "withinSpecWarning": "규격 내 값입니다 — 그래도 불량으로 기록할까요?",
+      "duplicatePoint": "이미 추가된 포인트입니다",
+      "defectiveParts": "불량 부품 수",
+      "noPoints": "추가된 불량 포인트가 없습니다",
+      "remove": "삭제"
+    },
+    "defectAnalysis": {
+      "tabTitle": "불량 포인트 분석",
+      "paretoTitle": "검사 포인트별 불량 Pareto",
+      "pointName": "검사 포인트",
+      "defectCount": "불량 수",
+      "noData": "선택한 기간에 불량 포인트 데이터가 없습니다"
+    },
+    "kpi2": {
+      "inspectedQty": "검사 수량",
+      "defectRate": "불량률",
+      "topDefectPoint": "TOP 불량 포인트",
+      "modelDefectRate": "모델별 불량률"
     },
     "guide": {
       "title": "SPC 지표 가이드",
