@@ -55,6 +55,7 @@ interface InspectionItemDialogProps {
 function createFormSchema(t: (key: string) => string) {
   return z.object({
     model_id: z.string().min(1, t('validation.selectModel')),
+    machining_process: z.string().optional(),
     process_id: z.string().optional().nullable(),
     name: z
       .string()
@@ -64,7 +65,8 @@ function createFormSchema(t: (key: string) => string) {
       required_error: t('validation.selectDataType'),
     }),
     standard_value: z.number().optional(),
-    tolerance: z.number().optional(),
+    tolerance_plus: z.number().optional(),
+    tolerance_minus: z.number().optional(),
     unit: z.string().optional(),
   })
 }
@@ -98,11 +100,13 @@ export function InspectionItemDialog({
     resolver: zodResolver(formSchema),
     defaultValues: {
       model_id: '',
+      machining_process: '',
       process_id: null,
       name: '',
       data_type: 'ok_ng',
       standard_value: 0,
-      tolerance: 0,
+      tolerance_plus: 0,
+      tolerance_minus: 0,
       unit: '',
     },
   })
@@ -113,27 +117,31 @@ export function InspectionItemDialog({
   useEffect(() => {
     if (open) {
       if (item) {
-        const tolerance =
-          item.data_type === 'numeric'
-            ? item.tolerance_max - item.standard_value
-            : 0
+        const isNumeric = item.data_type === 'numeric'
+        // DB stores absolute LSL/USL; convert back to ± offsets for editing.
+        const tolerancePlus = isNumeric ? item.tolerance_max - item.standard_value : 0
+        const toleranceMinus = isNumeric ? item.standard_value - item.tolerance_min : 0
         form.reset({
           model_id: item.model_id,
+          machining_process: item.machining_process || '',
           process_id: item.process_id || null,
           name: item.name,
           data_type: item.data_type,
           standard_value: item.standard_value || 0,
-          tolerance: tolerance,
+          tolerance_plus: tolerancePlus,
+          tolerance_minus: toleranceMinus,
           unit: item.unit || '',
         })
       } else {
         form.reset({
           model_id: '',
+          machining_process: '',
           process_id: null,
           name: '',
           data_type: 'ok_ng',
           standard_value: 0,
-          tolerance: 0,
+          tolerance_plus: 0,
+          tolerance_minus: 0,
           unit: '',
         })
       }
@@ -185,28 +193,36 @@ export function InspectionItemDialog({
   })
 
   const onSubmit = (values: FormValues) => {
-    const { tolerance, ...rest } = values
-
     let itemData: InspectionItemInsert | InspectionItemUpdate
 
-    // Handle process_id - convert empty string to null
+    // Handle optional fields - convert empty string to null
     const processId = values.process_id && values.process_id !== '' ? values.process_id : null
+    const machiningProcess =
+      values.machining_process && values.machining_process.trim() !== ''
+        ? values.machining_process.trim()
+        : null
 
     if (values.data_type === 'numeric') {
       const standardValue = values.standard_value || 0
-      const toleranceValue = tolerance || 0
+      const plus = values.tolerance_plus || 0
+      const minus = values.tolerance_minus || 0
+      // Convert ± offsets into absolute spec limits (LSL/USL) for storage.
       itemData = {
-        ...rest,
+        model_id: values.model_id,
+        machining_process: machiningProcess,
         process_id: processId,
+        name: values.name,
+        data_type: 'numeric',
         standard_value: standardValue,
-        tolerance_min: standardValue - toleranceValue,
-        tolerance_max: standardValue + toleranceValue,
+        tolerance_min: standardValue - minus,
+        tolerance_max: standardValue + plus,
         unit: values.unit || 'mm',
       }
     } else {
       // OK/NG type
       itemData = {
         model_id: values.model_id,
+        machining_process: machiningProcess,
         process_id: processId,
         name: values.name,
         data_type: 'ok_ng',
@@ -269,6 +285,25 @@ export function InspectionItemDialog({
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="machining_process"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t('management.machiningProcessOptional')}</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={t('management.machiningProcessPlaceholder')}
+                      {...field}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <FormDescription>{t('management.machiningProcessDescription')}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -372,7 +407,6 @@ export function InspectionItemDialog({
                             disabled={isLoading}
                           />
                         </FormControl>
-                        <FormDescription>{t('common.optional')}</FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -380,17 +414,14 @@ export function InspectionItemDialog({
 
                   <FormField
                     control={form.control}
-                    name="tolerance"
+                    name="unit"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>{t('management.tolerance')} (±)</FormLabel>
+                        <FormLabel>{t('management.unit')}</FormLabel>
                         <FormControl>
                           <Input
-                            type="number"
-                            step="0.01"
-                            placeholder="0"
+                            placeholder="mm"
                             {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
                             disabled={isLoading}
                           />
                         </FormControl>
@@ -401,24 +432,51 @@ export function InspectionItemDialog({
                   />
                 </div>
 
-                <FormField
-                  control={form.control}
-                  name="unit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{t('management.unit')}</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="mm"
-                          {...field}
-                          disabled={isLoading}
-                        />
-                      </FormControl>
-                      <FormDescription>{t('common.optional')}</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="tolerance_plus"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('management.tolerancePlus')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0"
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormDescription>{t('management.tolerancePlusHint')}</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="tolerance_minus"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('management.toleranceMinus')}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0"
+                            {...field}
+                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            disabled={isLoading}
+                          />
+                        </FormControl>
+                        <FormDescription>{t('management.toleranceMinusHint')}</FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
               </>
             )}
 

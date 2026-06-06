@@ -113,6 +113,7 @@ export type Database = {
           created_at: string
           data_type: 'numeric' | 'ok_ng'
           id: string
+          machining_process: string | null
           model_id: string
           name: string
           process_id: string | null
@@ -125,6 +126,7 @@ export type Database = {
           created_at?: string
           data_type?: 'numeric' | 'ok_ng'
           id?: string
+          machining_process?: string | null
           model_id: string
           name: string
           process_id?: string | null
@@ -137,6 +139,7 @@ export type Database = {
           created_at?: string
           data_type?: 'numeric' | 'ok_ng'
           id?: string
+          machining_process?: string | null
           model_id?: string
           name?: string
           process_id?: string | null

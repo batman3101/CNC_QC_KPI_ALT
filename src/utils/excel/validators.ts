@@ -34,6 +34,11 @@ export function createInspectionItemSchema(
           (code) => existingModelCodes.length === 0 || existingModelCodes.includes(code),
           t('bulkImport.modelNotFound')
         ),
+      machining_process: z
+        .string()
+        .optional()
+        .nullable()
+        .transform((val) => (val === '' ? null : val)),
       process_code: z
         .string()
         .optional()
@@ -48,8 +53,8 @@ export function createInspectionItemSchema(
         errorMap: () => ({ message: t('bulkImport.invalidDataType') }),
       }),
       standard_value: z.number().optional().nullable(),
-      tolerance_min: z.number().optional().nullable(),
-      tolerance_max: z.number().optional().nullable(),
+      tolerance_plus: z.number().optional().nullable(),
+      tolerance_minus: z.number().optional().nullable(),
       unit: z.string().max(20).optional().default('mm'),
     })
     .refine(
@@ -58,10 +63,10 @@ export function createInspectionItemSchema(
           return (
             data.standard_value !== null &&
             data.standard_value !== undefined &&
-            data.tolerance_min !== null &&
-            data.tolerance_min !== undefined &&
-            data.tolerance_max !== null &&
-            data.tolerance_max !== undefined
+            data.tolerance_plus !== null &&
+            data.tolerance_plus !== undefined &&
+            data.tolerance_minus !== null &&
+            data.tolerance_minus !== undefined
           )
         }
         return true

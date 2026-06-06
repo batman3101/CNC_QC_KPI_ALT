@@ -413,12 +413,15 @@ export async function bulkCreateProductModels(
 export async function bulkCreateInspectionItems(
   data: Array<{
     model_code: string
+    machining_process?: string | null
     process_code?: string | null
     name: string
     data_type: 'numeric' | 'ok_ng'
     standard_value?: number
-    tolerance_min?: number
-    tolerance_max?: number
+    /** Upper tolerance offset (USL = standard_value + tolerance_plus) */
+    tolerance_plus?: number
+    /** Lower tolerance offset magnitude (LSL = standard_value - tolerance_minus) */
+    tolerance_minus?: number
     unit?: string
   }>,
   onProgress?: (current: number, total: number) => void
@@ -446,15 +449,22 @@ export async function bulkCreateInspectionItems(
         processId = processCodeToId.get(item.process_code.toLowerCase()) || null
       }
 
+      const isNumeric = item.data_type === 'numeric'
+      const standardValue = item.standard_value ?? 0
+      // Convert ± offsets into absolute spec limits (LSL/USL) stored in the DB.
+      const tolMin = isNumeric ? standardValue - (item.tolerance_minus ?? 0) : 0
+      const tolMax = isNumeric ? standardValue + (item.tolerance_plus ?? 0) : 0
+
       await createInspectionItem({
         model_id: modelId,
+        machining_process: item.machining_process || null,
         process_id: processId,
         name: item.name,
         data_type: item.data_type,
-        standard_value: item.standard_value ?? 0,
-        tolerance_min: item.tolerance_min ?? 0,
-        tolerance_max: item.tolerance_max ?? 0,
-        unit: item.unit ?? 'mm',
+        standard_value: isNumeric ? standardValue : 0,
+        tolerance_min: tolMin,
+        tolerance_max: tolMax,
+        unit: isNumeric ? item.unit ?? 'mm' : '',
       })
       result.success++
     } catch (error) {

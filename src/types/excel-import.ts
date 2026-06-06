@@ -98,12 +98,15 @@ export interface ProductModelImportData {
 
 export interface InspectionItemImportData {
   model_code: string
+  machining_process?: string
   process_code?: string
   name: string
   data_type: 'numeric' | 'ok_ng'
   standard_value?: number
-  tolerance_min?: number
-  tolerance_max?: number
+  /** Upper tolerance offset from standard value (e.g. 0.05 => USL = standard + 0.05) */
+  tolerance_plus?: number
+  /** Lower tolerance offset magnitude from standard value (e.g. 0.03 => LSL = standard - 0.03) */
+  tolerance_minus?: number
   unit?: string
 }
 

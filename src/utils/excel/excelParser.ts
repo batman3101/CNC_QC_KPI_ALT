@@ -22,54 +22,62 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 type TranslationFn = (key: string) => string
 
 /**
- * Process pattern regex for auto-separation from model code
- * Matches: -CNC1, -CNC2, -IQC, -PQC, -OQC, etc.
+ * Machining-process suffix pattern, e.g. -CNC0, -CNC1, -CNC2 ...
+ * These map to the `machining_process` column (the manufacturing step),
+ * NOT the inspection process.
  */
-const PROCESS_PATTERN = /^(.+)-([A-Z0-9]+\d*)$/i
+const MACHINING_PATTERN = /^CNC\d+$/i
 
 /**
- * Known process codes that should be auto-separated
+ * Known inspection process codes that should be auto-separated into `process_code`.
  */
-const KNOWN_PROCESS_CODES = ['CNC1', 'CNC2', 'CNC3', 'IQC', 'PQC', 'OQC', 'FQC']
+const KNOWN_INSPECTION_CODES = ['IQC', 'PQC', 'OQC', 'FQC']
 
 /**
- * Parse model-process combined string into separate model and process codes
- * e.g., "B7 MMW-CNC2" => { model: "B7 MMW", process: "CNC2" }
- * e.g., "M1" => { model: "M1", process: null }
+ * Parse a combined "model[-suffix]" string into model code plus an optional
+ * machining process and/or inspection process code.
+ *
+ * - "B6 SUB-CNC2"  => { model: "B6 SUB", machining: "CNC2", process: null }  (CNC* => machining)
+ * - "B6 SUB-IQC"   => { model: "B6 SUB", machining: null,  process: "IQC" }  (known/registered => inspection)
+ * - "M1"           => { model: "M1",     machining: null,  process: null }
+ *
+ * Only recognized suffixes are split off; unknown suffixes are kept as part of
+ * the model code to avoid corrupting legitimate model names.
  */
 export function parseModelProcessCode(
   combinedCode: string,
   existingProcessCodes: string[] = []
-): { model: string; process: string | null } {
+): { model: string; machining: string | null; process: string | null } {
   if (!combinedCode) {
-    return { model: '', process: null }
+    return { model: '', machining: null, process: null }
   }
 
   const trimmed = combinedCode.trim()
-
-  // Check for known process code patterns at the end
-  const allProcessCodes = [...new Set([...KNOWN_PROCESS_CODES, ...existingProcessCodes.map(c => c.toUpperCase())])]
-
-  for (const processCode of allProcessCodes) {
-    const suffix = `-${processCode}`
-    if (trimmed.toUpperCase().endsWith(suffix.toUpperCase())) {
-      const modelPart = trimmed.slice(0, -suffix.length).trim()
-      return { model: modelPart, process: processCode }
-    }
+  const dashIndex = trimmed.lastIndexOf('-')
+  if (dashIndex <= 0 || dashIndex === trimmed.length - 1) {
+    return { model: trimmed, machining: null, process: null }
   }
 
-  // Fallback: try regex pattern match
-  const match = trimmed.match(PROCESS_PATTERN)
-  if (match) {
-    const potentialProcess = match[2].toUpperCase()
-    // Only split if the suffix looks like a process code (contains numbers or is in known list)
-    if (/\d/.test(potentialProcess) || allProcessCodes.includes(potentialProcess)) {
-      return { model: match[1].trim(), process: potentialProcess }
-    }
+  const modelPart = trimmed.slice(0, dashIndex).trim()
+  const suffix = trimmed.slice(dashIndex + 1).trim()
+  const suffixUpper = suffix.toUpperCase()
+
+  // CNC* suffix => machining process step
+  if (MACHINING_PATTERN.test(suffix)) {
+    return { model: modelPart, machining: suffixUpper, process: null }
   }
 
-  // No process code found, return as model only
-  return { model: trimmed, process: null }
+  // Known or registered inspection process => inspection process code
+  const inspectionCodes = new Set([
+    ...KNOWN_INSPECTION_CODES,
+    ...existingProcessCodes.map((c) => c.toUpperCase()),
+  ])
+  if (inspectionCodes.has(suffixUpper)) {
+    return { model: modelPart, machining: null, process: suffixUpper }
+  }
+
+  // Unknown suffix: keep the whole string as the model code
+  return { model: trimmed, machining: null, process: null }
 }
 
 /**
@@ -272,14 +280,18 @@ export async function parseExcelFile<T = Record<string, unknown>>(
       }
     })
 
-    // Auto-separate model and process codes for inspection items
-    // e.g., "B7 MMW-CNC2" => model: "B7 MMW", process: "CNC2"
+    // Auto-separate machining/inspection codes embedded in the model code.
+    // e.g., "B6 SUB-CNC2" => model: "B6 SUB", machining_process: "CNC2"
+    //       "B6 SUB-IQC"  => model: "B6 SUB", process_code: "IQC"
+    // Only runs when the dedicated columns are empty, so explicit values win.
     if (entityType === 'inspectionItem' && rowData.model_code) {
       const modelCodeValue = String(rowData.model_code)
-      // Only auto-parse if process_code is empty/not provided
-      if (!rowData.process_code) {
+      if (!rowData.machining_process && !rowData.process_code) {
         const parsed = parseModelProcessCode(modelCodeValue, options?.existingProcessCodes || [])
         rowData.model_code = parsed.model
+        if (parsed.machining) {
+          rowData.machining_process = parsed.machining
+        }
         if (parsed.process) {
           rowData.process_code = parsed.process
         }

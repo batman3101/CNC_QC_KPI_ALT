@@ -156,6 +156,24 @@ export function InspectionItemManagement() {
         searchable: false,
       },
       {
+        id: 'machining_process',
+        header: t('management.machiningProcess'),
+        cell: (row) =>
+          row.machining_process ? (
+            <Chip
+              label={row.machining_process}
+              size="small"
+              color="info"
+              variant="outlined"
+            />
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              -
+            </Typography>
+          ),
+        searchable: false,
+      },
+      {
         id: 'process_id',
         header: t('management.processCode'),
         cell: (row) => {
@@ -209,14 +227,28 @@ export function InspectionItemManagement() {
         searchable: false,
       },
       {
-        id: 'tolerance',
-        header: t('management.tolerance'),
+        id: 'tolerance_plus',
+        header: t('management.tolerancePlus'),
         align: 'right',
         sortable: false,
         cell: (row) => (
-          <Typography variant="body2">
+          <Typography variant="body2" color="success.main">
             {row.data_type === 'numeric'
-              ? `±${((row.tolerance_max - row.standard_value) || 0).toFixed(2)}`
+              ? `+${((row.tolerance_max - row.standard_value) || 0).toFixed(2)}`
+              : '-'}
+          </Typography>
+        ),
+        searchable: false,
+      },
+      {
+        id: 'tolerance_minus',
+        header: t('management.toleranceMinus'),
+        align: 'right',
+        sortable: false,
+        cell: (row) => (
+          <Typography variant="body2" color="error.main">
+            {row.data_type === 'numeric'
+              ? `-${((row.standard_value - row.tolerance_min) || 0).toFixed(2)}`
               : '-'}
           </Typography>
         ),
