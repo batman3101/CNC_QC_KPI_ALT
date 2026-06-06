@@ -1,6 +1,6 @@
 /**
  * SPC Guide 컴포넌트
- * SPC 지표에 대한 설명 및 개선 방법 안내
+ * 불량 중심 SPC 분석 페이지(대시보드 · P 관리도 · 불량 포인트 분석 · 알림)에 대한 안내
  */
 
 import { useTranslation } from 'react-i18next'
@@ -9,8 +9,9 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Badge } from '@/components/ui/badge'
 import {
   Info,
-  TrendingUp,
+  Percent,
   BarChart3,
+  ListOrdered,
   AlertTriangle,
   CheckCircle,
   XCircle,
@@ -45,51 +46,47 @@ export function SPCGuide() {
             </AccordionContent>
           </AccordionItem>
 
-          {/* Cpk 설명 */}
-          <AccordionItem value="cpk">
+          {/* 불량률 지표 (대시보드 KPI) */}
+          <AccordionItem value="defect-rate">
             <AccordionTrigger className="text-sm font-medium hover:no-underline">
               <span className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-green-600" />
-                {t('spc.guide.cpkTitle')}
+                <Percent className="h-4 w-4 text-green-600" />
+                {t('spc.guide.defectRateTitle')}
               </span>
             </AccordionTrigger>
             <AccordionContent>
               <div className="space-y-3">
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  {t('spc.guide.cpkDesc')}
+                  {t('spc.guide.defectRateDesc')}
                 </p>
 
-                {/* Cpk 등급 */}
+                {/* 불량률 등급 (KPI 카드 색상과 동일 기준) */}
                 <div className="space-y-2 mt-3">
                   <div className="flex items-start gap-2">
-                    <Badge className="bg-green-500 text-white shrink-0 mt-0.5">≥1.67</Badge>
-                    <span className="text-sm">{t('spc.guide.cpkExcellent')}</span>
+                    <Badge className="bg-green-500 text-white shrink-0 mt-0.5">≤1%</Badge>
+                    <span className="text-sm">{t('spc.guide.defectRateGood')}</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Badge className="bg-blue-500 text-white shrink-0 mt-0.5">1.33~1.67</Badge>
-                    <span className="text-sm">{t('spc.guide.cpkGood')}</span>
+                    <Badge className="bg-yellow-500 text-black shrink-0 mt-0.5">1~3%</Badge>
+                    <span className="text-sm">{t('spc.guide.defectRateWarning')}</span>
                   </div>
                   <div className="flex items-start gap-2">
-                    <Badge className="bg-yellow-500 text-black shrink-0 mt-0.5">1.0~1.33</Badge>
-                    <span className="text-sm">{t('spc.guide.cpkAdequate')}</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Badge className="bg-red-500 text-white shrink-0 mt-0.5">&lt;1.0</Badge>
-                    <span className="text-sm">{t('spc.guide.cpkPoor')}</span>
+                    <Badge className="bg-red-500 text-white shrink-0 mt-0.5">&gt;3%</Badge>
+                    <span className="text-sm">{t('spc.guide.defectRateDanger')}</span>
                   </div>
                 </div>
 
                 {/* 개선 방법 */}
                 <div className="mt-3 p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
                   <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                    💡 {t('spc.guide.cpkImprove')}
+                    💡 {t('spc.guide.defectRateImprove')}
                   </p>
                 </div>
               </div>
             </AccordionContent>
           </AccordionItem>
 
-          {/* 관리도 설명 */}
+          {/* P 관리도 설명 */}
           <AccordionItem value="control-chart">
             <AccordionTrigger className="text-sm font-medium hover:no-underline">
               <span className="flex items-center gap-2">
@@ -123,6 +120,30 @@ export function SPCGuide() {
                 <div className="mt-3 p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
                   <p className="text-sm font-medium text-purple-800 dark:text-purple-200">
                     ⚠️ {t('spc.guide.controlChartImprove')}
+                  </p>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
+          {/* 불량 포인트 분석 (파레토) */}
+          <AccordionItem value="pareto">
+            <AccordionTrigger className="text-sm font-medium hover:no-underline">
+              <span className="flex items-center gap-2">
+                <ListOrdered className="h-4 w-4 text-rose-600" />
+                {t('spc.guide.paretoTitle')}
+              </span>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  {t('spc.guide.paretoDesc')}
+                </p>
+
+                {/* 활용 팁 */}
+                <div className="mt-3 p-3 bg-rose-100 dark:bg-rose-900/30 rounded-lg">
+                  <p className="text-sm font-medium text-rose-800 dark:text-rose-200">
+                    🎯 {t('spc.guide.paretoTip')}
                   </p>
                 </div>
               </div>
