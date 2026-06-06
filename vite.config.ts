@@ -16,7 +16,10 @@ export default defineConfig({
         theme_color: '#1976d2',
         background_color: '#ffffff',
         display: 'standalone',
-        orientation: 'portrait-primary',
+        // 'any' lets the installed app follow the device: portrait on phones,
+        // landscape on tablets. 'portrait-primary' previously letterboxed the
+        // standalone app on landscape tablets.
+        orientation: 'any',
         scope: '/',
         start_url: '/',
         icons: [
