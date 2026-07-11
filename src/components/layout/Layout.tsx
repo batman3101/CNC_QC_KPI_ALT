@@ -24,7 +24,6 @@ export function Layout({ userName, userRole }: LayoutProps) {
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
-        userRole={userRole}
       />
       <Box
         component="main"

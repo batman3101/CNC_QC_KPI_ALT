@@ -473,7 +473,13 @@
     "searchByNameOrEmail": "Tìm theo tên hoặc email",
     "emailDuplicate": "Email đã được sử dụng",
     "cannotDeleteSelf": "Không thể xóa chính mình",
-    "permissionNote": "Hệ thống hiện tại sử dụng phân quyền cố định theo vai trò. Vui lòng liên hệ quản trị viên nếu cần thay đổi quyền."
+    "permissionNote": "Các thay đổi được áp dụng ngay cho chính sách quyền Supabase của nhà máy đang chọn.",
+    "permissionFactory": "Quyền chức năng theo vai trò của nhà máy {{factory}}",
+    "permissionReadOnly": "Chỉ quản trị viên mới có thể thay đổi cài đặt quyền.",
+    "selectFactoryForPermissions": "Vui lòng chọn nhà máy trước khi xem quyền.",
+    "permissionLoadError": "Không thể tải cài đặt quyền. Vui lòng thử lại.",
+    "permissionSaveSuccess": "Đã lưu cài đặt quyền.",
+    "permissionSaveError": "Không thể lưu cài đặt quyền. Vui lòng thử lại."
   },
   "bulkImport": {
     "title": "Nhập hàng loạt từ Excel",

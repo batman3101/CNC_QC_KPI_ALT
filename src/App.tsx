@@ -13,6 +13,8 @@ import { useFactoryStore } from '@/stores/factoryStore'
 import { supabase } from '@/lib/supabase'
 import { subscribeToRealtime, unsubscribeFromRealtime } from '@/services/realtimeService'
 import { InstallPrompt } from '@/components/pwa'
+import { usePermissions } from '@/hooks/usePermissions'
+import { PERMISSION_KEYS, PERMISSION_ROUTES, type PermissionKey } from '@/types/permissions'
 import '@/i18n/config'
 
 const DashboardPage = lazy(() => import('@/pages/DashboardPage').then((module) => ({ default: module.DashboardPage })))
@@ -33,6 +35,34 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+function FirstAllowedRoute() {
+  const { hasPermission, isLoading, isError } = usePermissions()
+
+  if (isLoading) {
+    return <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">Loading...</div>
+  }
+
+  const firstPermission = PERMISSION_KEYS.find(hasPermission)
+  if (firstPermission) {
+    return <Navigate to={PERMISSION_ROUTES[firstPermission]} replace />
+  }
+
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center text-center">
+      <div>
+        <h1 className="text-2xl font-bold text-destructive">접근 거부</h1>
+        <p className="mt-2 text-muted-foreground">
+          {isError ? '권한 정보를 불러오지 못했습니다.' : '접근 가능한 기능이 없습니다.'}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function permissionRoute(permission: PermissionKey, page: React.ReactNode) {
+  return <ProtectedRoute requiredPermission={permission}>{page}</ProtectedRoute>
+}
 
 function AppRoutes() {
   const { profile, user, setUser, setProfile, setLoading } = useAuthStore()
@@ -122,58 +152,16 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/inspection" element={<InspectionPage />} />
-        <Route path="/defects" element={<DefectsPage />} />
-        <Route
-          path="/analytics"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <AnalyticsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/spc"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <SPCPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/reports"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <ReportsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/ai-insights"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <AIInsightsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/management"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <ManagementPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/users"
-          element={
-            <ProtectedRoute allowedRoles={['admin', 'manager']}>
-              <UserManagementPage />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/" element={<FirstAllowedRoute />} />
+        <Route path="/dashboard" element={permissionRoute('dashboard', <DashboardPage />)} />
+        <Route path="/inspection" element={permissionRoute('inspection', <InspectionPage />)} />
+        <Route path="/defects" element={permissionRoute('defects', <DefectsPage />)} />
+        <Route path="/analytics" element={permissionRoute('analytics', <AnalyticsPage />)} />
+        <Route path="/spc" element={permissionRoute('spc', <SPCPage />)} />
+        <Route path="/reports" element={permissionRoute('reports', <ReportsPage />)} />
+        <Route path="/ai-insights" element={permissionRoute('aiInsights', <AIInsightsPage />)} />
+        <Route path="/management" element={permissionRoute('management', <ManagementPage />)} />
+        <Route path="/users" element={permissionRoute('userManagement', <UserManagementPage />)} />
       </Route>
       </Routes>
     </Suspense>

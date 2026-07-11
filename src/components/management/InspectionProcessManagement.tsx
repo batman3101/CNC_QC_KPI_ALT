@@ -30,7 +30,11 @@ import * as managementService from '@/services/managementService'
 
 type InspectionProcess = Database['public']['Tables']['inspection_processes']['Row']
 
-export function InspectionProcessManagement() {
+interface InspectionProcessManagementProps {
+  readOnly?: boolean
+}
+
+export function InspectionProcessManagement({ readOnly = true }: InspectionProcessManagementProps) {
   const { t, i18n } = useTranslation()
   const isVietnamese = i18n.language === 'vi'
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -136,22 +140,25 @@ export function InspectionProcessManagement() {
   )
 
   const handleAddClick = () => {
+    if (readOnly) return
     setEditingProcess(null)
     setDialogOpen(true)
   }
 
   const handleEditClick = (process: InspectionProcess) => {
+    if (readOnly) return
     setEditingProcess(process)
     setDialogOpen(true)
   }
 
   const handleDeleteClick = (id: string) => {
+    if (readOnly) return
     setDeletingId(id)
     setDeleteDialogOpen(true)
   }
 
   const handleConfirmDelete = () => {
-    if (deletingId) {
+    if (!readOnly && deletingId) {
       deleteMutation.mutate(deletingId)
     }
   }
@@ -209,22 +216,24 @@ export function InspectionProcessManagement() {
         loading={isLoading}
         title={t('management.inspectionProcesses')}
         getRowId={(row) => row.id}
-        renderActions={renderActions}
-        toolbarActions={toolbarActions}
+        renderActions={readOnly ? undefined : renderActions}
+        toolbarActions={readOnly ? undefined : toolbarActions}
         searchPlaceholder={t('management.searchByNameOrCode')}
         pageSize={20}
         enableFilters={true}
       />
 
-      <InspectionProcessDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onSuccess={handleDialogSuccess}
-        editingProcess={editingProcess}
-      />
+      {!readOnly && (
+        <InspectionProcessDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          onSuccess={handleDialogSuccess}
+          editingProcess={editingProcess}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      {!readOnly && <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>{t('management.deleteInspectionProcess')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -239,10 +248,10 @@ export function InspectionProcessManagement() {
             {t('common.delete')}
           </Button>
         </DialogActions>
-      </Dialog>
+      </Dialog>}
 
       {/* Bulk Import Dialog */}
-      <ExcelBulkImportDialog
+      {!readOnly && <ExcelBulkImportDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         entityType="inspectionProcess"
@@ -252,7 +261,7 @@ export function InspectionProcessManagement() {
           queryClient.invalidateQueries({ queryKey: ['inspection-processes'] })
           queryClient.invalidateQueries({ queryKey: ['inspection-process-codes'] })
         }}
-      />
+      />}
     </>
   )
 }

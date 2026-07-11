@@ -9,6 +9,93 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      app_features: {
+        Row: {
+          key: string
+          label_key: string
+          route: string
+          sort_order: number
+          is_active: boolean
+          created_at: string
+        }
+        Insert: {
+          key: string
+          label_key: string
+          route: string
+          sort_order: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Update: {
+          key?: string
+          label_key?: string
+          route?: string
+          sort_order?: number
+          is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      role_feature_permissions: {
+        Row: {
+          factory_id: string
+          role: 'admin' | 'manager' | 'inspector'
+          feature_key: string
+          allowed: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          factory_id: string
+          role: 'admin' | 'manager' | 'inspector'
+          feature_key: string
+          allowed?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          factory_id?: string
+          role?: 'admin' | 'manager' | 'inspector'
+          feature_key?: string
+          allowed?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      permission_audit: {
+        Row: {
+          id: number
+          factory_id: string
+          role: 'admin' | 'manager' | 'inspector'
+          feature_key: string
+          old_allowed: boolean | null
+          new_allowed: boolean
+          changed_by: string
+          changed_at: string
+        }
+        Insert: {
+          id?: number
+          factory_id: string
+          role: 'admin' | 'manager' | 'inspector'
+          feature_key: string
+          old_allowed?: boolean | null
+          new_allowed: boolean
+          changed_by: string
+          changed_at?: string
+        }
+        Update: {
+          id?: number
+          factory_id?: string
+          role?: 'admin' | 'manager' | 'inspector'
+          feature_key?: string
+          old_allowed?: boolean | null
+          new_allowed?: boolean
+          changed_by?: string
+          changed_at?: string
+        }
+        Relationships: []
+      }
       defect_types: {
         Row: {
           code: string
@@ -404,7 +491,42 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_my_permissions: {
+        Args: Record<PropertyKey, never>
+        Returns: { feature_key: string }[]
+      }
+      get_user_directory: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          role: 'admin' | 'manager' | 'inspector'
+          factory_id: string | null
+        }[]
+      }
+      get_public_monitor_data: {
+        Args: {
+          p_factory_id: string
+          p_start_at: string
+          p_end_at: string
+        }
+        Returns: Json
+      }
+      get_role_permissions: {
+        Args: { p_factory_id: string }
+        Returns: {
+          factory_id: string
+          role: 'admin' | 'manager' | 'inspector'
+          feature_key: string
+          allowed: boolean
+          updated_at: string | null
+          updated_by: string | null
+        }[]
+      }
+      set_role_permissions: {
+        Args: { p_factory_id: string; p_changes: Json }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

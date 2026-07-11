@@ -30,7 +30,11 @@ import * as managementService from '@/services/managementService'
 
 type DefectType = Database['public']['Tables']['defect_types']['Row']
 
-export function DefectTypeManagement() {
+interface DefectTypeManagementProps {
+  readOnly?: boolean
+}
+
+export function DefectTypeManagement({ readOnly = true }: DefectTypeManagementProps) {
   const { t, i18n } = useTranslation()
   const isVietnamese = i18n.language === 'vi'
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -164,22 +168,25 @@ export function DefectTypeManagement() {
   )
 
   const handleAddClick = () => {
+    if (readOnly) return
     setEditingType(null)
     setDialogOpen(true)
   }
 
   const handleEditClick = (type: DefectType) => {
+    if (readOnly) return
     setEditingType(type)
     setDialogOpen(true)
   }
 
   const handleDeleteClick = (id: string) => {
+    if (readOnly) return
     setDeletingId(id)
     setDeleteDialogOpen(true)
   }
 
   const handleConfirmDelete = () => {
-    if (deletingId) {
+    if (!readOnly && deletingId) {
       deleteMutation.mutate(deletingId)
     }
   }
@@ -237,22 +244,24 @@ export function DefectTypeManagement() {
         loading={isLoading}
         title={t('management.defectTypes')}
         getRowId={(row) => row.id}
-        renderActions={renderActions}
-        toolbarActions={toolbarActions}
+        renderActions={readOnly ? undefined : renderActions}
+        toolbarActions={readOnly ? undefined : toolbarActions}
         searchPlaceholder={t('management.searchByNameOrCode')}
         pageSize={20}
         enableFilters={true}
       />
 
-      <DefectTypeDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        onSuccess={handleDialogSuccess}
-        editingType={editingType}
-      />
+      {!readOnly && (
+        <DefectTypeDialog
+          open={dialogOpen}
+          onClose={() => setDialogOpen(false)}
+          onSuccess={handleDialogSuccess}
+          editingType={editingType}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      {!readOnly && <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>{t('management.deleteDefectType')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -267,10 +276,10 @@ export function DefectTypeManagement() {
             {t('common.delete')}
           </Button>
         </DialogActions>
-      </Dialog>
+      </Dialog>}
 
       {/* Bulk Import Dialog */}
-      <ExcelBulkImportDialog
+      {!readOnly && <ExcelBulkImportDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         entityType="defectType"
@@ -281,7 +290,7 @@ export function DefectTypeManagement() {
           queryClient.invalidateQueries({ queryKey: ['defect-types'] })
           queryClient.invalidateQueries({ queryKey: ['defect-type-codes'] })
         }}
-      />
+      />}
     </>
   )
 }

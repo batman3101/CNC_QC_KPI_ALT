@@ -30,22 +30,32 @@ import {
   Description,
   Settings,
   People,
+  QueryStats,
 } from '@mui/icons-material'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
-import { useAuthStore } from '@/stores/authStore'
+import { usePermissions } from '@/hooks/usePermissions'
+import type { PermissionKey } from '@/types/permissions'
 
-const mobileNavItems = [
-  { path: '/dashboard', icon: Dashboard, labelKey: 'nav.dashboard' },
-  { path: '/inspection', icon: Assignment, labelKey: 'nav.inspection' },
-  { path: '/defects', icon: Warning, labelKey: 'nav.defects' },
-  { path: '/ai-insights', icon: AutoAwesome, labelKey: 'nav.aiInsights' },
+interface MobileNavItem {
+  path: string
+  icon: typeof Dashboard
+  labelKey: string
+  permission: PermissionKey
+}
+
+const mobileNavItems: MobileNavItem[] = [
+  { path: '/dashboard', icon: Dashboard, labelKey: 'nav.dashboard', permission: 'dashboard' },
+  { path: '/inspection', icon: Assignment, labelKey: 'nav.inspection', permission: 'inspection' },
+  { path: '/defects', icon: Warning, labelKey: 'nav.defects', permission: 'defects' },
+  { path: '/ai-insights', icon: AutoAwesome, labelKey: 'nav.aiInsights', permission: 'aiInsights' },
 ]
 
-const hiddenNavItems = [
-  { path: '/analytics', icon: TrendingUp, labelKey: 'nav.analytics', roles: ['admin', 'manager'] },
-  { path: '/reports', icon: Description, labelKey: 'nav.reports', roles: ['admin', 'manager'] },
-  { path: '/management', icon: Settings, labelKey: 'nav.management', roles: ['admin', 'manager'] },
-  { path: '/users', icon: People, labelKey: 'nav.userManagement', roles: ['admin', 'manager'] },
+const hiddenNavItems: MobileNavItem[] = [
+  { path: '/analytics', icon: TrendingUp, labelKey: 'nav.analytics', permission: 'analytics' },
+  { path: '/spc', icon: QueryStats, labelKey: 'nav.spc', permission: 'spc' },
+  { path: '/reports', icon: Description, labelKey: 'nav.reports', permission: 'reports' },
+  { path: '/management', icon: Settings, labelKey: 'nav.management', permission: 'management' },
+  { path: '/users', icon: People, labelKey: 'nav.userManagement', permission: 'userManagement' },
 ]
 
 export function MobileBottomNav() {
@@ -55,16 +65,16 @@ export function MobileBottomNav() {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const { pendingCount } = useNetworkStatus()
-  const { profile } = useAuthStore()
+  const { hasPermission } = usePermissions()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   if (!isMobile) return null
 
-  const userRole = profile?.role || 'inspector'
-  const visibleHiddenItems = hiddenNavItems.filter(item => item.roles.includes(userRole))
+  const visibleMobileItems = mobileNavItems.filter((item) => hasPermission(item.permission))
+  const visibleHiddenItems = hiddenNavItems.filter((item) => hasPermission(item.permission))
 
   // Check if current path is in mobile nav items
-  const mobileNavMatch = mobileNavItems.find((item) =>
+  const mobileNavMatch = visibleMobileItems.find((item) =>
     location.pathname === item.path || location.pathname.startsWith(item.path + '/')
   )
 
@@ -122,7 +132,7 @@ export function MobileBottomNav() {
             },
           }}
         >
-          {mobileNavItems.map((item) => (
+          {visibleMobileItems.map((item) => (
             <BottomNavigationAction
               key={item.path}
               value={item.path}

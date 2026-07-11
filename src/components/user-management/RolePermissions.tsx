@@ -1,163 +1,181 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { useSnackbar } from 'notistack'
 import {
+  Alert,
   Box,
+  Button,
+  CircularProgress,
   Paper,
-  Typography,
+  Switch,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
+  Typography,
 } from '@mui/material'
-import { Check, Close } from '@mui/icons-material'
+import { useAuthStore } from '@/stores/authStore'
+import { useFactoryStore } from '@/stores/factoryStore'
+import {
+  permissionQueryKeys,
+  permissionService,
+  type PermissionChange,
+} from '@/services/permissionService'
+import {
+  PERMISSION_KEYS,
+  PERMISSION_LABEL_KEYS,
+  type PermissionKey,
+} from '@/types/permissions'
 
-interface Permission {
-  feature: string
-  featureKey: string
-  admin: boolean
-  manager: boolean
-  inspector: boolean
+type EditableRole = 'manager' | 'inspector'
+type PermissionMatrix = Record<EditableRole, Record<PermissionKey, boolean>>
+
+function emptyPermissionMatrix(): PermissionMatrix {
+  return {
+    manager: Object.fromEntries(PERMISSION_KEYS.map((key) => [key, false])) as Record<PermissionKey, boolean>,
+    inspector: Object.fromEntries(PERMISSION_KEYS.map((key) => [key, false])) as Record<PermissionKey, boolean>,
+  }
 }
 
 export function RolePermissions() {
   const { t } = useTranslation()
+  const { enqueueSnackbar } = useSnackbar()
+  const queryClient = useQueryClient()
+  const profile = useAuthStore((state) => state.profile)
+  const activeFactoryId = useFactoryStore((state) => state.activeFactoryId)
+  const [matrix, setMatrix] = useState<PermissionMatrix>(emptyPermissionMatrix)
+  const [isDirty, setIsDirty] = useState(false)
+  const canEdit = profile?.role === 'admin'
 
-  // 역할별 권한 정의 (하드코딩된 시스템 권한 기반)
-  const permissions: Permission[] = useMemo(
-    () => [
-      {
-        feature: t('nav.dashboard'),
-        featureKey: 'dashboard',
-        admin: true,
-        manager: true,
-        inspector: true,
-      },
-      {
-        feature: t('nav.inspection'),
-        featureKey: 'inspection',
-        admin: true,
-        manager: true,
-        inspector: true,
-      },
-      {
-        feature: t('nav.defects'),
-        featureKey: 'defects',
-        admin: true,
-        manager: true,
-        inspector: true,
-      },
-      {
-        feature: t('nav.analytics'),
-        featureKey: 'analytics',
-        admin: true,
-        manager: true,
-        inspector: false,
-      },
-      {
-        feature: t('nav.spc'),
-        featureKey: 'spc',
-        admin: true,
-        manager: true,
-        inspector: false,
-      },
-      {
-        feature: t('nav.reports'),
-        featureKey: 'reports',
-        admin: true,
-        manager: true,
-        inspector: false,
-      },
-      {
-        feature: t('nav.management'),
-        featureKey: 'management',
-        admin: true,
-        manager: true,
-        inspector: false,
-      },
-      {
-        feature: t('nav.userManagement'),
-        featureKey: 'userManagement',
-        admin: true,
-        manager: true,
-        inspector: false,
-      },
-    ],
-    [t]
+  const rolePermissionsQuery = useQuery({
+    queryKey: permissionQueryKeys.roles(activeFactoryId),
+    queryFn: () => permissionService.getRolePermissions(activeFactoryId!),
+    enabled: Boolean(activeFactoryId),
+  })
+
+  useEffect(() => {
+    if (!rolePermissionsQuery.data) return
+    const next = emptyPermissionMatrix()
+    for (const permission of rolePermissionsQuery.data) {
+      if (permission.role === 'manager' || permission.role === 'inspector') {
+        next[permission.role][permission.feature_key] = permission.allowed
+      }
+    }
+    setMatrix(next)
+    setIsDirty(false)
+  }, [rolePermissionsQuery.data])
+
+  const changes = useMemo<PermissionChange[]>(
+    () => (['manager', 'inspector'] as const).flatMap((role) =>
+      PERMISSION_KEYS.map((feature_key) => ({
+        role,
+        feature_key,
+        allowed: matrix[role][feature_key],
+      }))
+    ),
+    [matrix]
   )
 
-  const renderAccessChip = (hasAccess: boolean) => (
-    <Chip
-      icon={hasAccess ? <Check fontSize="small" /> : <Close fontSize="small" />}
-      label={hasAccess ? t('userManagement.hasAccess') : t('userManagement.noAccess')}
-      color={hasAccess ? 'success' : 'default'}
-      size="small"
-      variant={hasAccess ? 'filled' : 'outlined'}
-    />
-  )
+  const saveMutation = useMutation({
+    mutationFn: () => permissionService.setRolePermissions(activeFactoryId!, changes),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: permissionQueryKeys.all })
+      setIsDirty(false)
+      enqueueSnackbar(t('userManagement.permissionSaveSuccess'), { variant: 'success' })
+    },
+    onError: () => {
+      enqueueSnackbar(t('userManagement.permissionSaveError'), { variant: 'error' })
+    },
+  })
+
+  const togglePermission = (role: EditableRole, featureKey: PermissionKey) => {
+    if (!canEdit) return
+    setMatrix((current) => ({
+      ...current,
+      [role]: {
+        ...current[role],
+        [featureKey]: !current[role][featureKey],
+      },
+    }))
+    setIsDirty(true)
+  }
+
+  if (!activeFactoryId) {
+    return <Alert severity="info">{t('userManagement.selectFactoryForPermissions')}</Alert>
+  }
 
   return (
     <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h6" fontWeight={600} gutterBottom>
-          {t('userManagement.permissionTable')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {t('userManagement.description')}
-        </Typography>
+      <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'flex-start' }}>
+        <Box>
+          <Typography variant="h6" fontWeight={600} gutterBottom>
+            {t('userManagement.permissionTable')}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {t('userManagement.permissionFactory', { factory: activeFactoryId })}
+          </Typography>
+        </Box>
+        {canEdit && (
+          <Button
+            variant="contained"
+            disabled={!isDirty || saveMutation.isPending || rolePermissionsQuery.isLoading}
+            onClick={() => saveMutation.mutate()}
+          >
+            {saveMutation.isPending ? <CircularProgress size={20} color="inherit" /> : t('common.save')}
+          </Button>
+        )}
       </Box>
+
+      {!canEdit && <Alert severity="info" sx={{ mb: 2 }}>{t('userManagement.permissionReadOnly')}</Alert>}
+      {rolePermissionsQuery.isError && (
+        <Alert severity="error" sx={{ mb: 2 }}>{t('userManagement.permissionLoadError')}</Alert>
+      )}
 
       <TableContainer component={Paper} elevation={3}>
         <Table>
           <TableHead>
             <TableRow sx={{ backgroundColor: 'grey.100' }}>
-              <TableCell sx={{ fontWeight: 600, minWidth: 200 }}>
-                {t('userManagement.feature')}
-              </TableCell>
-              <TableCell align="center" sx={{ fontWeight: 600, minWidth: 150 }}>
-                {t('userManagement.roleAdmin')}
-              </TableCell>
-              <TableCell align="center" sx={{ fontWeight: 600, minWidth: 150 }}>
-                {t('userManagement.roleManager')}
-              </TableCell>
-              <TableCell align="center" sx={{ fontWeight: 600, minWidth: 150 }}>
-                {t('userManagement.roleInspector')}
-              </TableCell>
+              <TableCell sx={{ fontWeight: 600, minWidth: 200 }}>{t('userManagement.feature')}</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 600, minWidth: 150 }}>{t('userManagement.roleAdmin')}</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 600, minWidth: 150 }}>{t('userManagement.roleManager')}</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 600, minWidth: 150 }}>{t('userManagement.roleInspector')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {permissions.map((permission) => (
-              <TableRow
-                key={permission.featureKey}
-                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
-              >
+            {PERMISSION_KEYS.map((featureKey) => (
+              <TableRow key={featureKey} sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                 <TableCell component="th" scope="row">
-                  <Typography variant="body2" fontWeight={500}>
-                    {permission.feature}
-                  </Typography>
+                  <Typography variant="body2" fontWeight={500}>{t(PERMISSION_LABEL_KEYS[featureKey])}</Typography>
                 </TableCell>
                 <TableCell align="center">
-                  {renderAccessChip(permission.admin)}
+                  <Switch checked disabled inputProps={{ 'aria-label': `${t('userManagement.roleAdmin')} ${t(PERMISSION_LABEL_KEYS[featureKey])}` }} />
                 </TableCell>
-                <TableCell align="center">
-                  {renderAccessChip(permission.manager)}
-                </TableCell>
-                <TableCell align="center">
-                  {renderAccessChip(permission.inspector)}
-                </TableCell>
+                {(['manager', 'inspector'] as const).map((role) => (
+                  <TableCell key={role} align="center">
+                    {rolePermissionsQuery.isLoading ? (
+                      <CircularProgress size={20} />
+                    ) : (
+                      <Switch
+                        checked={matrix[role][featureKey]}
+                        disabled={!canEdit || rolePermissionsQuery.isError || saveMutation.isPending}
+                        onChange={() => togglePermission(role, featureKey)}
+                        inputProps={{ 'aria-label': `${t(`userManagement.role${role === 'manager' ? 'Manager' : 'Inspector'}`)} ${t(PERMISSION_LABEL_KEYS[featureKey])}` }}
+                      />
+                    )}
+                  </TableCell>
+                ))}
               </TableRow>
             ))}
           </TableBody>
         </Table>
       </TableContainer>
 
-      <Box sx={{ mt: 3, p: 2, bgcolor: 'info.lighter', borderRadius: 1 }}>
-        <Typography variant="body2" color="text.secondary">
-          * {t('userManagement.permissionNote') || '현재 시스템은 하드코딩된 역할 기반 권한을 사용합니다. 권한 수정이 필요한 경우 시스템 관리자에게 문의하세요.'}
-        </Typography>
-      </Box>
+      <Alert severity="info" sx={{ mt: 3 }}>
+        {t('userManagement.permissionNote')}
+      </Alert>
     </Box>
   )
 }

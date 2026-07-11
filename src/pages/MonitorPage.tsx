@@ -21,8 +21,7 @@ import {
   LabelList,
 } from 'recharts'
 
-import * as inspectionService from '@/services/inspectionService'
-import { getMachines, getProductModels, getDefectTypes } from '@/services/managementService'
+import { EMPTY_PUBLIC_MONITOR_DATA, getPublicMonitorData } from '@/services/monitorService'
 import {
   getBusinessDate,
   getBusinessDayEnd,
@@ -41,6 +40,7 @@ export function MonitorPage() {
   const { t, i18n } = useTranslation()
   const queryClient = useQueryClient()
   const { activeFactoryId, setActiveFactory } = useFactoryStore()
+  const monitorFactoryId = activeFactoryId ?? 'ALT'
 
   const [currentTime, setCurrentTime] = useState(new Date())
 
@@ -55,12 +55,10 @@ export function MonitorPage() {
     const interval = setInterval(() => {
       const newLang = i18n.language === 'ko' ? 'vi' : 'ko'
       i18n.changeLanguage(newLang)
-      queryClient.invalidateQueries({ queryKey: ['monitor-defects', activeFactoryId] })
-      queryClient.invalidateQueries({ queryKey: ['monitor-inspections', activeFactoryId] })
-      queryClient.invalidateQueries({ queryKey: ['machines', activeFactoryId] })
+      queryClient.invalidateQueries({ queryKey: ['public-monitor-data', monitorFactoryId] })
     }, AUTO_REFRESH_INTERVAL)
     return () => clearInterval(interval)
-  }, [i18n, queryClient, activeFactoryId])
+  }, [i18n, queryClient, monitorFactoryId])
 
   const timeStr = currentTime.toLocaleTimeString('ko-KR', { timeZone: 'Asia/Ho_Chi_Minh', hour12: false })
   const dateStr = currentTime.toLocaleDateString('ko-KR', { timeZone: 'Asia/Ho_Chi_Minh', year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' })
@@ -79,34 +77,19 @@ export function MonitorPage() {
   }), [businessMonthStartDate, businessMonthEndDate])
 
   // Queries
-  const { data: allDefects = [], isLoading: defectsLoading, isError } = useQuery({
-    queryKey: ['monitor-defects', activeFactoryId, currentBusinessMonth],
-    queryFn: () => inspectionService.getDefects({
-      factoryId: activeFactoryId || undefined,
-      startDate: businessMonthRange.startDate,
-      endDate: businessMonthRange.endDate,
-    }),
+  const { data: monitorData = EMPTY_PUBLIC_MONITOR_DATA, isLoading: defectsLoading, isError } = useQuery({
+    queryKey: ['public-monitor-data', monitorFactoryId, currentBusinessMonth],
+    queryFn: () => getPublicMonitorData(
+      monitorFactoryId,
+      businessMonthRange.startDate,
+      businessMonthRange.endDate
+    ),
   })
-  const { data: machines = [] } = useQuery({
-    queryKey: ['machines', activeFactoryId],
-    queryFn: () => getMachines(activeFactoryId || undefined),
-  })
-  const { data: models = [] } = useQuery({
-    queryKey: ['product-models'],
-    queryFn: getProductModels,
-  })
-  const { data: defectTypes = [] } = useQuery({
-    queryKey: ['defect-types'],
-    queryFn: getDefectTypes,
-  })
-  const { data: inspections = [] } = useQuery({
-    queryKey: ['monitor-inspections', activeFactoryId, currentBusinessMonth],
-    queryFn: () => inspectionService.getInspections({
-      factoryId: activeFactoryId || undefined,
-      startDate: businessMonthRange.startDate,
-      endDate: businessMonthRange.endDate,
-    }),
-  })
+  const allDefects = monitorData.defects
+  const inspections = monitorData.inspections
+  const machines = monitorData.machines
+  const models = monitorData.product_models
+  const defectTypes = monitorData.defect_types
 
   // Build inspection_id -> machine_id map
   const inspectionMachineMap = useMemo(() => {
@@ -251,17 +234,17 @@ export function MonitorPage() {
         <div className="flex items-center gap-3">
           <img src="/A symbol BLUE-02.png" className="w-12 h-12" alt="logo" />
           <div>
-            <h1 className="text-2xl font-bold text-white">{activeFactoryId === 'ALV' ? 'ALMUS VINA' : 'ALMUS TECH'} {t('monitor.title')}</h1>
-            <p className="text-base text-slate-400">{t('monitor.teamName').replace('ALMUS TECH', activeFactoryId === 'ALV' ? 'ALMUS VINA' : 'ALMUS TECH')}</p>
+            <h1 className="text-2xl font-bold text-white">{monitorFactoryId === 'ALV' ? 'ALMUS VINA' : 'ALMUS TECH'} {t('monitor.title')}</h1>
+            <p className="text-base text-slate-400">{t('monitor.teamName').replace('ALMUS TECH', monitorFactoryId === 'ALV' ? 'ALMUS VINA' : 'ALMUS TECH')}</p>
           </div>
           <div className="flex gap-1 ml-2">
             <button
               onClick={() => setActiveFactory('ALT')}
-              className={`px-3 py-1 rounded text-sm font-bold ${activeFactoryId === 'ALT' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}
+              className={`px-3 py-1 rounded text-sm font-bold ${monitorFactoryId === 'ALT' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}
             >ALT</button>
             <button
               onClick={() => setActiveFactory('ALV')}
-              className={`px-3 py-1 rounded text-sm font-bold ${activeFactoryId === 'ALV' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}
+              className={`px-3 py-1 rounded text-sm font-bold ${monitorFactoryId === 'ALV' ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-400'}`}
             >ALV</button>
           </div>
         </div>

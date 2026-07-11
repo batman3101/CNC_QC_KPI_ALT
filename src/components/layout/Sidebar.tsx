@@ -12,18 +12,19 @@ import {
   People as PeopleIcon,
   QueryStats as QueryStatsIcon,
 } from '@mui/icons-material'
+import { usePermissions } from '@/hooks/usePermissions'
+import type { PermissionKey } from '@/types/permissions'
 
 interface SidebarProps {
   isOpen: boolean
   onClose: () => void
-  userRole?: 'admin' | 'manager' | 'inspector'
 }
 
 interface NavItem {
   titleKey: string
   href: string
   icon: React.ComponentType
-  roles: ('admin' | 'manager' | 'inspector')[]
+  permission: PermissionKey
   hideOnMobile?: boolean // 모바일에서 숨길 메뉴
 }
 
@@ -32,80 +33,79 @@ const getNavItems = (): NavItem[] => [
     titleKey: 'nav.dashboard',
     href: '/dashboard',
     icon: DashboardIcon,
-    roles: ['admin', 'manager', 'inspector'],
+    permission: 'dashboard',
   },
   {
     titleKey: 'nav.inspection',
     href: '/inspection',
     icon: AssignmentIcon,
-    roles: ['admin', 'manager', 'inspector'],
+    permission: 'inspection',
   },
   {
     titleKey: 'nav.defects',
     href: '/defects',
     icon: WarningIcon,
-    roles: ['admin', 'manager', 'inspector'],
+    permission: 'defects',
   },
   {
     titleKey: 'nav.analytics',
     href: '/analytics',
     icon: TrendingUpIcon,
-    roles: ['admin', 'manager'],
+    permission: 'analytics',
     hideOnMobile: true, // 웹 전용
   },
   {
     titleKey: 'nav.spc',
     href: '/spc',
     icon: QueryStatsIcon,
-    roles: ['admin', 'manager'],
+    permission: 'spc',
     hideOnMobile: true, // 웹 전용
   },
   {
     titleKey: 'nav.reports',
     href: '/reports',
     icon: DescriptionIcon,
-    roles: ['admin', 'manager'],
+    permission: 'reports',
     hideOnMobile: true, // 웹 전용
   },
   {
     titleKey: 'nav.aiInsights',
     href: '/ai-insights',
     icon: AutoAwesomeIcon,
-    roles: ['admin', 'manager'],
+    permission: 'aiInsights',
   },
   {
     titleKey: 'nav.management',
     href: '/management',
     icon: SettingsIcon,
-    roles: ['admin', 'manager'],
+    permission: 'management',
     hideOnMobile: true, // 웹 전용
   },
   {
     titleKey: 'nav.userManagement',
     href: '/users',
     icon: PeopleIcon,
-    roles: ['admin', 'manager'],
+    permission: 'userManagement',
     hideOnMobile: true, // 웹 전용
   },
 ]
 
 const drawerWidth = 256
 
-export function Sidebar({ isOpen, onClose, userRole = 'inspector' }: SidebarProps) {
+export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { t } = useTranslation()
   const location = useLocation()
   const theme = useTheme()
   const isMdUp = useMediaQuery(theme.breakpoints.up('md'))
   const navItems = getNavItems()
+  const { hasPermission } = usePermissions()
 
   // 데스크탑: 권한 기반 필터링만
-  const desktopNavItems = navItems.filter((item) =>
-    item.roles.includes(userRole)
-  )
+  const desktopNavItems = navItems.filter((item) => hasPermission(item.permission))
 
   // 모바일: 권한 + hideOnMobile 필터링
   const mobileNavItems = navItems.filter((item) =>
-    item.roles.includes(userRole) && !item.hideOnMobile
+    hasPermission(item.permission) && !item.hideOnMobile
   )
 
   const renderDrawerContent = (items: NavItem[]) => (

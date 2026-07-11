@@ -1,19 +1,21 @@
 import { Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore'
-import type { UserRole } from '@/stores/authStore'
+import { usePermissions } from '@/hooks/usePermissions'
+import type { PermissionKey } from '@/types/permissions'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
-  allowedRoles?: UserRole[]
+  requiredPermission?: PermissionKey
 }
 
 export function ProtectedRoute({
   children,
-  allowedRoles,
+  requiredPermission,
 }: ProtectedRouteProps) {
-  const { user, profile, isLoading } = useAuthStore()
+  const { user, isLoading } = useAuthStore()
+  const permissionState = usePermissions()
 
-  if (isLoading) {
+  if (isLoading || (requiredPermission && permissionState.isLoading)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
@@ -28,7 +30,11 @@ export function ProtectedRoute({
     return <Navigate to="/login" replace />
   }
 
-  if (allowedRoles && profile && !allowedRoles.includes(profile.role)) {
+  // Fail closed: an RPC error or a missing permission never grants access.
+  if (
+    requiredPermission &&
+    (permissionState.isError || !permissionState.hasPermission(requiredPermission))
+  ) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">

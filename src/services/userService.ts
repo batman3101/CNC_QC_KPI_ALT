@@ -24,6 +24,26 @@ export interface UpdateUserInput {
   factory_id?: string
 }
 
+async function getFunctionErrorMessage(error: unknown): Promise<string> {
+  const context = (error as { context?: unknown } | null)?.context
+  if (context instanceof Response) {
+    try {
+      const payload: unknown = await context.json()
+      if (
+        typeof payload === 'object' &&
+        payload !== null &&
+        'error' in payload &&
+        typeof payload.error === 'string'
+      ) {
+        return payload.error
+      }
+    } catch {
+      // Fall through to the stable client-facing message.
+    }
+  }
+  return '사용자 생성에 실패했습니다'
+}
+
 /**
  * 모든 사용자 조회
  */
@@ -65,68 +85,19 @@ export async function getUserById(id: string): Promise<User | null> {
 }
 
 /**
- * 사용자 생성 (Supabase Auth 사용)
+ * 사용자 생성 (관리자 전용 Edge Function)
  */
 export async function createUser(input: CreateUserInput): Promise<User> {
-  // 이메일 중복 체크
-  const { data: existingUser } = await supabase
-    .from('users')
-    .select('id')
-    .eq('email', input.email)
-    .single()
-
-  if (existingUser) {
-    throw new Error('이미 사용 중인 이메일입니다')
-  }
-
-  // Supabase Auth를 통해 사용자 생성
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email: input.email,
-    password: input.password,
-    options: {
-      data: {
-        name: input.name,
-        role: input.role,
-        factory_id: input.factory_id,
-      },
-    },
+  const { data, error } = await supabase.functions.invoke<{ user: User }>('admin-create-user', {
+    body: input,
   })
 
-  if (authError) {
-    console.error('Auth error:', authError)
-    throw new Error('사용자 생성에 실패했습니다: ' + authError.message)
+  if (error || !data?.user) {
+    console.error('Admin create user function error:', error?.message)
+    throw new Error(await getFunctionErrorMessage(error))
   }
 
-  if (!authData.user) {
-    throw new Error('사용자 생성에 실패했습니다')
-  }
-
-  // users 테이블에 추가 정보 저장
-  const { data: userData, error: userError } = await supabase
-    .from('users')
-    .update({
-      name: input.name,
-      role: input.role,
-      factory_id: input.factory_id || null,
-    })
-    .eq('id', authData.user.id)
-    .select()
-    .single()
-
-  if (userError) {
-    console.error('User table update error:', userError)
-    // Auth 사용자는 생성되었으므로 기본 정보 반환
-    return {
-      id: authData.user.id,
-      email: input.email,
-      name: input.name,
-      role: input.role,
-      factory_id: input.factory_id || null,
-      created_at: new Date().toISOString(),
-    }
-  }
-
-  return userData
+  return data.user
 }
 
 /**

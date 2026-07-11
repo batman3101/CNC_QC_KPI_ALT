@@ -40,7 +40,11 @@ type ProductModel = Database['public']['Tables']['product_models']['Row']
 type InspectionItem = Database['public']['Tables']['inspection_items']['Row']
 type InspectionProcess = Database['public']['Tables']['inspection_processes']['Row']
 
-export function InspectionItemManagement() {
+interface InspectionItemManagementProps {
+  readOnly?: boolean
+}
+
+export function InspectionItemManagement({ readOnly = true }: InspectionItemManagementProps) {
   const { t } = useTranslation()
   const [selectedModelId, setSelectedModelId] = useState<string>('all')
   const [selectedProcessId, setSelectedProcessId] = useState<string>('all')
@@ -269,22 +273,25 @@ export function InspectionItemManagement() {
   )
 
   const handleAdd = () => {
+    if (readOnly) return
     setEditingItem(null)
     setDialogOpen(true)
   }
 
   const handleEdit = (item: InspectionItem) => {
+    if (readOnly) return
     setEditingItem(item)
     setDialogOpen(true)
   }
 
   const handleDelete = (id: string) => {
+    if (readOnly) return
     setDeletingId(id)
     setDeleteDialogOpen(true)
   }
 
   const confirmDelete = () => {
-    if (deletingId) {
+    if (!readOnly && deletingId) {
       deleteMutation.mutate(deletingId)
     }
   }
@@ -376,20 +383,24 @@ export function InspectionItemManagement() {
         }}
       />
 
-      <Button
-        variant="outlined"
-        startIcon={<Upload />}
-        onClick={() => setImportDialogOpen(true)}
-      >
-        {t('bulkImport.import')}
-      </Button>
-      <Button
-        variant="contained"
-        startIcon={<Add />}
-        onClick={handleAdd}
-      >
-        {t('management.addInspectionItem')}
-      </Button>
+      {!readOnly && (
+        <>
+          <Button
+            variant="outlined"
+            startIcon={<Upload />}
+            onClick={() => setImportDialogOpen(true)}
+          >
+            {t('bulkImport.import')}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={handleAdd}
+          >
+            {t('management.addInspectionItem')}
+          </Button>
+        </>
+      )}
     </Box>
   )
 
@@ -401,7 +412,7 @@ export function InspectionItemManagement() {
         loading={isLoading}
         title={t('management.inspectionItemList')}
         getRowId={(row) => row.id}
-        renderActions={renderActions}
+        renderActions={readOnly ? undefined : renderActions}
         toolbarActions={toolbarActions}
         pageSize={20}
         enableSearch={false}
@@ -409,16 +420,18 @@ export function InspectionItemManagement() {
       />
 
       {/* Add/Edit Dialog */}
-      <InspectionItemDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        item={editingItem}
-        models={models}
-        processes={processes}
-      />
+      {!readOnly && (
+        <InspectionItemDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          item={editingItem}
+          models={models}
+          processes={processes}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      {!readOnly && <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>{t('management.deleteInspectionItem')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -433,10 +446,10 @@ export function InspectionItemManagement() {
             {t('common.delete')}
           </Button>
         </DialogActions>
-      </Dialog>
+      </Dialog>}
 
       {/* Bulk Import Dialog */}
-      <ExcelBulkImportDialog
+      {!readOnly && <ExcelBulkImportDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         entityType="inspectionItem"
@@ -446,7 +459,7 @@ export function InspectionItemManagement() {
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['inspection-items'] })
         }}
-      />
+      />}
     </>
   )
 }

@@ -6,6 +6,7 @@
 import { supabase } from '@/lib/supabase'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import type { QueryClient } from '@tanstack/react-query'
+import { permissionQueryKeys } from './permissionService'
 
 let realtimeChannel: RealtimeChannel | null = null
 
@@ -125,6 +126,18 @@ export function subscribeToRealtime(queryClient: QueryClient, _factoryId?: strin
         console.log('[Realtime] product_models changed:', payload.eventType)
         queryClient.invalidateQueries({ queryKey: ['product-models'] })
         queryClient.invalidateQueries({ queryKey: ['spc-product-models'] })
+      }
+    )
+    // 역할별 기능 권한 변경
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'role_feature_permissions',
+      },
+      () => {
+        queryClient.invalidateQueries({ queryKey: permissionQueryKeys.all })
       }
     )
     .subscribe((status) => {

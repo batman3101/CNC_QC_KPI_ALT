@@ -6,6 +6,7 @@
 import { supabase } from '@/lib/supabase'
 import { paginatedFetch } from '@/lib/supabasePagination'
 import type { Database } from '@/types/database'
+import { getUserDirectory, type DirectoryUser } from '@/services/userDirectoryService'
 
 type ProductModel = Database['public']['Tables']['product_models']['Row']
 type ProductModelInsert = Database['public']['Tables']['product_models']['Insert']
@@ -24,7 +25,6 @@ type DefectTypeInsert = Database['public']['Tables']['defect_types']['Insert']
 type DefectTypeUpdate = Database['public']['Tables']['defect_types']['Update']
 
 type Machine = Database['public']['Tables']['machines']['Row']
-type User = Database['public']['Tables']['users']['Row']
 
 // ============= Product Models CRUD =============
 
@@ -372,14 +372,8 @@ export async function searchMachines(query: string, factoryId?: string): Promise
 
 // ============= Users =============
 
-export async function getUsers(): Promise<User[]> {
-  return paginatedFetch<User>((from, to) =>
-    supabase
-      .from('users')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(from, to)
-  )
+export async function getUsers(): Promise<DirectoryUser[]> {
+  return getUserDirectory()
 }
 
 // ============= Bulk Import Functions =============

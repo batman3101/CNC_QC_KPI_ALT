@@ -5,6 +5,7 @@ import { ProductModelManagement } from '@/components/management/ProductModelMana
 import { InspectionItemManagement } from '@/components/management/InspectionItemManagement'
 import { InspectionProcessManagement } from '@/components/management/InspectionProcessManagement'
 import { DefectTypeManagement } from '@/components/management/DefectTypeManagement'
+import { useAuthStore } from '@/stores/authStore'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -33,6 +34,7 @@ export function ManagementPage() {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [tabValue, setTabValue] = useState(0)
+  const isAdmin = useAuthStore((state) => state.profile?.role === 'admin')
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue)
@@ -58,19 +60,19 @@ export function ManagementPage() {
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>
-          <ProductModelManagement />
+          <ProductModelManagement readOnly={!isAdmin} />
         </TabPanel>
 
         <TabPanel value={tabValue} index={1}>
-          <InspectionItemManagement />
+          <InspectionItemManagement readOnly={!isAdmin} />
         </TabPanel>
 
         <TabPanel value={tabValue} index={2}>
-          <InspectionProcessManagement />
+          <InspectionProcessManagement readOnly={!isAdmin} />
         </TabPanel>
 
         <TabPanel value={tabValue} index={3}>
-          <DefectTypeManagement />
+          <DefectTypeManagement readOnly={!isAdmin} />
         </TabPanel>
       </Box>
     </Box>

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { paginatedFetch } from '@/lib/supabasePagination'
+import { getUserDirectory } from '@/services/userDirectoryService'
 import {
   getBusinessDateRangeFilter,
   parseBusinessDate,
@@ -79,11 +80,13 @@ export async function getKPISummary(
   const inspectorDefects: Record<string, { name: string; inspectionQty: number; defectQty: number }> = {}
   if (inspections) {
     const userIds = [...new Set(inspections.map((i: { user_id: string }) => i.user_id).filter(Boolean))]
-    const { data: userProfiles } = await supabase
-      .from('users')
-      .select('id, name')
-      .in('id', userIds)
-    const userNameMap = new Map(userProfiles?.map((u: { id: string; name: string }) => [u.id, u.name]) || [])
+    const userProfiles = await getUserDirectory()
+    const requestedUserIds = new Set(userIds)
+    const userNameMap = new Map(
+      userProfiles
+        .filter((user) => requestedUserIds.has(user.id))
+        .map((user) => [user.id, user.name])
+    )
 
     for (const inspection of inspections as Array<{ user_id: string; inspection_quantity: number; defect_quantity: number }>) {
       if (inspection.user_id) {
@@ -466,15 +469,10 @@ export async function getInspectorPerformance(
 
 // 8. Get Inspector List
 export async function getInspectorList(): Promise<{ id: string; name: string }[]> {
-  const rows = await paginatedFetch<{ id: string; name: string; role: string }>((from, to) =>
-    supabase
-      .from('users')
-      .select('id, name, role')
-      .eq('role', 'inspector')
-      .order('name')
-      .range(from, to)
-  )
-  return rows.map(user => ({ id: user.id, name: user.name }))
+  const rows = await getUserDirectory()
+  return rows
+    .filter((user) => user.role === 'inspector')
+    .map((user) => ({ id: user.id, name: user.name }))
 }
 
 // 9. Get Inspector Detailed KPI
@@ -486,13 +484,8 @@ export async function getInspectorDetailedKPI(
   const dateFilter = buildDateFilter(filters)
 
   // Get inspector info
-  const { data: inspector, error: inspectorError } = await supabase
-    .from('users')
-    .select('id, name')
-    .eq('id', inspectorId)
-    .single()
-
-  if (inspectorError || !inspector) return null
+  const inspector = (await getUserDirectory()).find((user) => user.id === inspectorId)
+  if (!inspector) return null
 
   // Fetch process code-to-name mapping (paginated to bypass 1000-row cap)
   const processesData = await paginatedFetch<{ code: string; name: string }>((from, to) =>

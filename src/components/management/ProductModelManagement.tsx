@@ -33,7 +33,11 @@ import { formatVietnamDate } from '@/lib/dateUtils'
 
 type ProductModel = Database['public']['Tables']['product_models']['Row']
 
-export function ProductModelManagement() {
+interface ProductModelManagementProps {
+  readOnly?: boolean
+}
+
+export function ProductModelManagement({ readOnly = true }: ProductModelManagementProps) {
   const { t } = useTranslation()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingModel, setEditingModel] = useState<ProductModel | null>(null)
@@ -114,22 +118,25 @@ export function ProductModelManagement() {
   )
 
   const handleAdd = () => {
+    if (readOnly) return
     setEditingModel(null)
     setDialogOpen(true)
   }
 
   const handleEdit = (model: ProductModel) => {
+    if (readOnly) return
     setEditingModel(model)
     setDialogOpen(true)
   }
 
   const handleDelete = (id: string) => {
+    if (readOnly) return
     setDeletingId(id)
     setDeleteDialogOpen(true)
   }
 
   const confirmDelete = () => {
-    if (deletingId) {
+    if (!readOnly && deletingId) {
       deleteMutation.mutate(deletingId)
     }
   }
@@ -182,21 +189,23 @@ export function ProductModelManagement() {
         loading={isLoading}
         title={t('management.productModelList')}
         getRowId={(row) => row.id}
-        renderActions={renderActions}
-        toolbarActions={toolbarActions}
+        renderActions={readOnly ? undefined : renderActions}
+        toolbarActions={readOnly ? undefined : toolbarActions}
         pageSize={20}
         enableFilters={false}
       />
 
       {/* Add/Edit Dialog */}
-      <ProductModelDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        model={editingModel}
-      />
+      {!readOnly && (
+        <ProductModelDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          model={editingModel}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      {!readOnly && <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>{t('management.deleteProductModel')}</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -211,10 +220,10 @@ export function ProductModelManagement() {
             {t('common.delete')}
           </Button>
         </DialogActions>
-      </Dialog>
+      </Dialog>}
 
       {/* Bulk Import Dialog */}
-      <ExcelBulkImportDialog
+      {!readOnly && <ExcelBulkImportDialog
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         entityType="productModel"
@@ -224,7 +233,7 @@ export function ProductModelManagement() {
           queryClient.invalidateQueries({ queryKey: ['product-models'] })
           queryClient.invalidateQueries({ queryKey: ['product-model-codes'] })
         }}
-      />
+      />}
     </>
   )
 }
