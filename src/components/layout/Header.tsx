@@ -35,14 +35,14 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
     setActiveFactory(next)
   }
 
-  // Fetch pending defect count for notification badge
-  const { data: defects = [] } = useQuery({
-    queryKey: ['defects', activeFactoryId],
-    queryFn: () => inspectionService.getDefects({ factoryId: activeFactoryId || undefined }),
+  // Fetch pending defect count for notification badge.
+  // Counted in the database: the header is mounted on every screen, so pulling
+  // the whole defects table here (as this once did) taxed every page load.
+  const { data: pendingDefectCount = 0 } = useQuery({
+    queryKey: ['defect-pending-count', activeFactoryId],
+    queryFn: () => inspectionService.getPendingDefectCount(activeFactoryId || undefined),
     refetchInterval: 30000, // 30초마다 자동 갱신
   })
-
-  const pendingDefectCount = defects.filter((d) => d.status === 'pending').length
 
   const toggleLanguage = () => {
     const newLang = i18n.language === 'ko' ? 'vi' : 'ko'

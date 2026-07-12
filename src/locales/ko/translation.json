@@ -15,6 +15,7 @@
     "none": "없음",
     "optional": "선택사항",
     "loading": "로딩 중...",
+    "retry": "다시 시도",
     "noData": "데이터가 없습니다",
     "error": "오류가 발생했습니다",
     "success": "성공",
@@ -43,7 +44,15 @@
     "invalidCredentials": "이메일 또는 비밀번호가 올바르지 않습니다",
     "forgotPassword": "비밀번호를 잊으셨나요?",
     "noAccount": "계정이 없으신가요? 관리자에게 문의하세요",
-    "backToMain": "← 메인으로 돌아가기"
+    "backToMain": "← 메인으로 돌아가기",
+    "profileMissingTitle": "계정 설정이 완료되지 않았습니다",
+    "profileMissingDescription": "관리자에게 공장 배정을 요청하세요.",
+    "profileErrorTitle": "프로필을 불러오지 못했습니다",
+    "profileErrorDescription": "네트워크 연결을 확인한 뒤 다시 시도하세요.",
+    "accessDeniedTitle": "접근 거부",
+    "accessDeniedDescription": "이 페이지에 접근할 권한이 없습니다.",
+    "permissionLoadFailed": "권한 정보를 불러오지 못했습니다.",
+    "noAccessibleFeatures": "접근 가능한 기능이 없습니다."
   },
   "nav": {
     "dashboard": "대시보드",

@@ -69,6 +69,10 @@ export function subscribeToRealtime(queryClient: QueryClient, _factoryId?: strin
       (payload) => {
         console.log('[Realtime] defects changed:', payload.eventType)
         queryClient.invalidateQueries({ queryKey: ['defects'] })
+        // Defect counts live in separate count-only queries and are not
+        // refreshed by invalidating the list.
+        queryClient.invalidateQueries({ queryKey: ['defect-stats'] })
+        queryClient.invalidateQueries({ queryKey: ['defect-pending-count'] })
         queryClient.invalidateQueries({ queryKey: ['dashboard'] })
         queryClient.invalidateQueries({ queryKey: ['monitor-defects'] })
         queryClient.invalidateQueries({ queryKey: ['spc-alerts'] })

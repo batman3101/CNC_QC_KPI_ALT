@@ -185,14 +185,38 @@ export async function syncPendingInspections(): Promise<{
   return { success, failed, errors }
 }
 
-// Cache reference data for offline use
-export async function cacheReferenceData(factoryId?: string): Promise<void> {
-  if (!isOnline()) return
+/**
+ * Runs of cacheReferenceData that are still in flight, keyed by factory.
+ *
+ * useNetworkStatus() calls cacheReferenceData() on mount, and both
+ * OfflineIndicator and MobileBottomNav use that hook, so every page load used
+ * to start two concurrent runs (four under StrictMode's double-mount). Callers
+ * for the same factory now share a single run instead of racing each other.
+ */
+const inFlightCacheRuns = new Map<string, Promise<void>>()
 
+// Cache reference data for offline use
+export function cacheReferenceData(factoryId?: string): Promise<void> {
+  if (!isOnline()) return Promise.resolve()
+
+  const key = factoryId ?? ''
+  const existing = inFlightCacheRuns.get(key)
+  if (existing) return existing
+
+  const run = runCacheReferenceData(factoryId).finally(() => {
+    inFlightCacheRuns.delete(key)
+  })
+  inFlightCacheRuns.set(key, run)
+  return run
+}
+
+async function runCacheReferenceData(factoryId?: string): Promise<void> {
   try {
     const now = new Date().toISOString()
 
-    // Fetch all reference data in parallel
+    // Fetch all reference data in parallel. This must complete before the
+    // transaction below opens: awaiting a non-Dexie promise inside a Dexie
+    // transaction commits it early.
     const [models, processes, defectTypes, machines] = await Promise.all([
       managementService.getProductModels(),
       managementService.getInspectionProcesses(),
@@ -200,51 +224,64 @@ export async function cacheReferenceData(factoryId?: string): Promise<void> {
       managementService.getMachines(factoryId),
     ])
 
-    // Clear and repopulate caches
-    await offlineDb.productModels.clear()
-    await offlineDb.productModels.bulkAdd(
-      models.map((m): CachedProductModel => ({
-        id: m.id,
-        code: m.code,
-        name: m.name,
-        is_active: true, // product_models don't have is_active, assume all are active
-        cached_at: now,
-      }))
-    )
+    const cachedModels = models.map((m): CachedProductModel => ({
+      id: m.id,
+      code: m.code,
+      name: m.name,
+      is_active: true, // product_models don't have is_active, assume all are active
+      cached_at: now,
+    }))
 
-    await offlineDb.inspectionProcesses.clear()
-    await offlineDb.inspectionProcesses.bulkAdd(
-      processes.map((p): CachedInspectionProcess => ({
-        id: p.id,
-        code: p.code,
-        name: p.name,
-        is_active: p.is_active,
-        cached_at: now,
-      }))
-    )
+    const cachedProcesses = processes.map((p): CachedInspectionProcess => ({
+      id: p.id,
+      code: p.code,
+      name: p.name,
+      is_active: p.is_active,
+      cached_at: now,
+    }))
 
-    await offlineDb.defectTypes.clear()
-    await offlineDb.defectTypes.bulkAdd(
-      defectTypes.map((d): CachedDefectType => ({
-        id: d.id,
-        code: d.code,
-        name: d.name,
-        severity: d.severity,
-        is_active: d.is_active,
-        cached_at: now,
-      }))
-    )
+    const cachedDefectTypes = defectTypes.map((d): CachedDefectType => ({
+      id: d.id,
+      code: d.code,
+      name: d.name,
+      severity: d.severity,
+      is_active: d.is_active,
+      cached_at: now,
+    }))
 
-    await offlineDb.machines.clear()
-    await offlineDb.machines.bulkAdd(
-      machines.map((m): CachedMachine => ({
-        id: m.id,
-        name: m.name,
-        model: m.model || null,
-        status: m.status,
-        factory_id: (m as unknown as { factory_id?: string }).factory_id || factoryId || '',
-        cached_at: now,
-      }))
+    const cachedMachines = machines.map((m): CachedMachine => ({
+      id: m.id,
+      name: m.name,
+      model: m.model || null,
+      status: m.status,
+      factory_id: (m as unknown as { factory_id?: string }).factory_id || factoryId || '',
+      cached_at: now,
+    }))
+
+    // One transaction for the whole swap: clear() and the repopulate used to be
+    // separate transactions, so a second run could insert rows in between and
+    // the first one's bulkAdd would then collide on the primary key. bulkPut
+    // also makes the write idempotent rather than throwing BulkError on a
+    // duplicate id.
+    await offlineDb.transaction(
+      'rw',
+      offlineDb.productModels,
+      offlineDb.inspectionProcesses,
+      offlineDb.defectTypes,
+      offlineDb.machines,
+      async () => {
+        await offlineDb.productModels.clear()
+        await offlineDb.productModels.bulkPut(cachedModels)
+
+        await offlineDb.inspectionProcesses.clear()
+        await offlineDb.inspectionProcesses.bulkPut(cachedProcesses)
+
+        await offlineDb.defectTypes.clear()
+        await offlineDb.defectTypes.bulkPut(cachedDefectTypes)
+
+        await offlineDb.machines.clear()
+        await offlineDb.machines.bulkPut(cachedMachines)
+      }
     )
 
     console.log('[OfflineSync] Reference data cached successfully')

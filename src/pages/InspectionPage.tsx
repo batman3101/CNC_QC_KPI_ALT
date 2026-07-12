@@ -85,6 +85,11 @@ export function InspectionPage() {
         .then(() => {
           queryClient.invalidateQueries({ queryKey: ['inspections'] })
           queryClient.invalidateQueries({ queryKey: ['defects'] })
+          // Defect counts are their own queries now, so they need their own
+          // invalidation - refetching the list alone would leave the header
+          // badge and the summary cards showing pre-submission numbers.
+          queryClient.invalidateQueries({ queryKey: ['defect-stats'] })
+          queryClient.invalidateQueries({ queryKey: ['defect-pending-count'] })
           queryClient.invalidateQueries({ queryKey: ['dashboard-defects'] })
           queryClient.invalidateQueries({ queryKey: ['spc-pchart'] })
           queryClient.invalidateQueries({ queryKey: ['spc-defect-pareto'] })

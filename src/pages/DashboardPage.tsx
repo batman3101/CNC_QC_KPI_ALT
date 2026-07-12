@@ -52,10 +52,16 @@ export function DashboardPage() {
     queryFn: () => inspectionService.getInspections({ factoryId: activeFactoryId || undefined }),
   })
 
-  // Fetch recent defects
-  const { data: allDefects = [], isLoading: defectsLoading } = useQuery({
+  // Fetch recent defects. Only the five shown below are requested: this used to
+  // page the entire defects table into the browser and then .slice(0, 5) it.
+  const { data: recentDefectsPage, isLoading: defectsLoading } = useQuery({
     queryKey: ['dashboard-defects', activeFactoryId],
-    queryFn: () => inspectionService.getDefects({ factoryId: activeFactoryId || undefined }),
+    queryFn: () =>
+      inspectionService.getDefectsPage({
+        page: 0,
+        pageSize: 5,
+        factoryId: activeFactoryId || undefined,
+      }),
   })
 
   // Fetch machines from Management
@@ -178,7 +184,7 @@ export function DashboardPage() {
   ].slice(0, 10)
 
   // Get recent defects (최근 5개)
-  const recentDefects = allDefects.slice(0, 5)
+  const recentDefects = recentDefectsPage?.rows ?? []
 
   return (
     <Box>

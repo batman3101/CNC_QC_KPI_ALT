@@ -15,6 +15,7 @@
     "none": "Không có",
     "optional": "Tùy chọn",
     "loading": "Đang tải...",
+    "retry": "Thử lại",
     "noData": "Không có dữ liệu",
     "error": "Đã xảy ra lỗi",
     "success": "Thành công",
@@ -43,7 +44,15 @@
     "invalidCredentials": "Email hoặc mật khẩu không đúng",
     "forgotPassword": "Quên mật khẩu?",
     "noAccount": "Chưa có tài khoản? Vui lòng liên hệ quản trị viên",
-    "backToMain": "← Quay lại trang chính"
+    "backToMain": "← Quay lại trang chính",
+    "profileMissingTitle": "Tài khoản chưa được thiết lập hoàn tất",
+    "profileMissingDescription": "Vui lòng liên hệ quản trị viên để được phân bổ nhà máy.",
+    "profileErrorTitle": "Không tải được hồ sơ người dùng",
+    "profileErrorDescription": "Vui lòng kiểm tra kết nối mạng rồi thử lại.",
+    "accessDeniedTitle": "Từ chối truy cập",
+    "accessDeniedDescription": "Bạn không có quyền truy cập trang này.",
+    "permissionLoadFailed": "Không tải được thông tin phân quyền.",
+    "noAccessibleFeatures": "Không có chức năng nào bạn được phép truy cập."
   },
   "nav": {
     "dashboard": "Bảng điều khiển",

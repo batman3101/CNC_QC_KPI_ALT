@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider, useQueryClient } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { Suspense, lazy, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { SnackbarProvider } from 'notistack'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
@@ -37,10 +38,11 @@ const queryClient = new QueryClient({
 })
 
 function FirstAllowedRoute() {
+  const { t } = useTranslation()
   const { hasPermission, isLoading, isError } = usePermissions()
 
   if (isLoading) {
-    return <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">Loading...</div>
+    return <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">{t('common.loading')}</div>
   }
 
   const firstPermission = PERMISSION_KEYS.find(hasPermission)
@@ -51,9 +53,9 @@ function FirstAllowedRoute() {
   return (
     <div className="flex min-h-[40vh] items-center justify-center text-center">
       <div>
-        <h1 className="text-2xl font-bold text-destructive">접근 거부</h1>
+        <h1 className="text-2xl font-bold text-destructive">{t('auth.accessDeniedTitle')}</h1>
         <p className="mt-2 text-muted-foreground">
-          {isError ? '권한 정보를 불러오지 못했습니다.' : '접근 가능한 기능이 없습니다.'}
+          {isError ? t('auth.permissionLoadFailed') : t('auth.noAccessibleFeatures')}
         </p>
       </div>
     </div>
@@ -65,46 +67,27 @@ function permissionRoute(permission: PermissionKey, page: React.ReactNode) {
 }
 
 function AppRoutes() {
-  const { profile, user, setUser, setProfile, setLoading } = useAuthStore()
+  const { profile, user, setUser, setLoading, loadProfile, logout } = useAuthStore()
   const queryClient = useQueryClient()
   const { activeFactoryId } = useFactoryStore()
 
-  // Initialize auth state on app load - 세션 복원
+  // Single auth bootstrap for the app. useAuth() deliberately does not run its
+  // own session restore: two competing bootstraps used to race here, and the
+  // one that lost silently dropped profile-load failures.
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Supabase 세션 확인
         const { data: { session } } = await supabase.auth.getSession()
 
         if (session?.user) {
           setUser(session.user)
-
-          // 프로필 정보 가져오기
-          const { data: userData } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single()
-
-          if (userData) {
-            const factoryId = (userData as { factory_id: string | null }).factory_id
-            setProfile({
-              id: (userData as { id: string }).id,
-              email: (userData as { email: string }).email,
-              name: (userData as { name: string }).name,
-              role: (userData as { role: 'admin' | 'manager' | 'inspector' }).role,
-              factory_id: factoryId,
-            })
-            useFactoryStore.getState().initializeFromUser(factoryId)
-          }
+          await loadProfile(session.user.id)
         } else {
-          setUser(null)
-          setProfile(null)
+          logout()
         }
       } catch (error) {
         console.error('Auth initialization error:', error)
-        setUser(null)
-        setProfile(null)
+        logout()
       } finally {
         setLoading(false)
       }
@@ -113,20 +96,39 @@ function AppRoutes() {
     initializeAuth()
 
     // Auth 상태 변화 리스너
+    //
+    // supabase-js invokes this callback while it still holds the auth lock, and
+    // every PostgREST call re-enters getSession() to mint an Authorization
+    // header. Awaiting a query here therefore deadlocks the client: the query
+    // waits for a lock the callback itself is holding, getSession() never
+    // returns, and the app hangs on its loading spinner with no request ever
+    // leaving the browser. Defer any Supabase work to a later task so the lock
+    // is released first.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (event === 'SIGNED_OUT') {
-          setUser(null)
-          setProfile(null)
+          logout()
           unsubscribeFromRealtime()
-        } else if (session?.user) {
-          setUser(session.user)
+          return
+        }
+
+        if (!session?.user) return
+
+        setUser(session.user)
+
+        // TOKEN_REFRESHED fires on a timer and carries no profile change, so
+        // the profile is only reloaded when the identity itself changes.
+        if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+          const userId = session.user.id
+          setTimeout(() => {
+            loadProfile(userId)
+          }, 0)
         }
       }
     )
 
     return () => subscription.unsubscribe()
-  }, [setUser, setProfile, setLoading])
+  }, [setUser, setLoading, loadProfile, logout])
 
   // Realtime 구독 - 로그인 상태에서만
   useEffect(() => {

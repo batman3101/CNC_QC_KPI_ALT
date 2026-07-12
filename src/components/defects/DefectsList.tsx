@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { useFactoryStore } from '@/stores/factoryStore'
@@ -36,7 +36,7 @@ import {
 import { useSnackbar } from 'notistack'
 import { DefectDetailDialog } from './DefectDetailDialog'
 import { DefectEditDialog } from './DefectEditDialog'
-import { DataTable, type ColumnDef } from '@/components/common/DataTable'
+import { DataTable, type ColumnDef, type SortConfig } from '@/components/common/DataTable'
 import type { Database } from '@/types/database'
 
 // Supabase 서비스
@@ -82,10 +82,68 @@ export function DefectsList() {
     },
   }
 
-  // Fetch defects
-  const { data: defects = [], isLoading } = useQuery({
-    queryKey: ['defects', activeFactoryId],
-    queryFn: () => inspectionService.getDefects({ factoryId: activeFactoryId || undefined }),
+  // Server-driven paging: the table holds ~15k rows, so only the visible page
+  // is fetched. Page/sort/filter state lives here and is sent to the database.
+  const [page, setPage] = useState(0)
+  const [rowsPerPage, setRowsPerPage] = useState(isMobile ? 5 : 20)
+  const [sort, setSort] = useState<SortConfig | null>(null)
+
+  // Changing what is listed invalidates the current page number. Each control
+  // resets the page as part of the same state update, so the query never fires
+  // once for the stale page and again for page 0. The factory is switched from
+  // the header, outside this component, so it still needs an effect.
+  useEffect(() => {
+    setPage(0)
+  }, [activeFactoryId])
+
+  const changeStatusFilter = (value: string) => {
+    setStatusFilter(value)
+    setPage(0)
+  }
+
+  const changeDefectTypeFilter = (value: string) => {
+    setDefectTypeFilter(value)
+    setPage(0)
+  }
+
+  const changeRowsPerPage = (value: number) => {
+    setRowsPerPage(value)
+    setPage(0)
+  }
+
+  const changeSort = (value: SortConfig | null) => {
+    setSort(value)
+    setPage(0)
+  }
+
+  const { data: defectsPage, isLoading } = useQuery({
+    queryKey: [
+      'defects',
+      activeFactoryId,
+      { page, rowsPerPage, statusFilter, defectTypeFilter, sort },
+    ],
+    queryFn: () =>
+      inspectionService.getDefectsPage({
+        page,
+        pageSize: rowsPerPage,
+        status: statusFilter,
+        defectType: defectTypeFilter,
+        factoryId: activeFactoryId || undefined,
+        sort,
+      }),
+    // Keep the previous page on screen while the next one loads, so paging
+    // doesn't flash an empty table.
+    placeholderData: (previous) => previous,
+  })
+
+  const defects = defectsPage?.rows ?? []
+  const totalCount = defectsPage?.totalCount ?? 0
+
+  // Status counts span the whole table, not the current page, so they come from
+  // dedicated count-only queries rather than from the rows on screen.
+  const { data: stats } = useQuery({
+    queryKey: ['defect-stats', activeFactoryId],
+    queryFn: () => inspectionService.getDefectStats(activeFactoryId || undefined),
   })
 
   // Fetch product models for model code display
@@ -125,24 +183,13 @@ export function DefectsList() {
       return result
     },
     onSuccess: (updatedDefect) => {
-      // 캐시 데이터를 직접 업데이트하여 즉시 UI에 반영
-      queryClient.setQueryData<Defect[]>(['defects', activeFactoryId], (oldData) => {
-        if (!oldData) return oldData
-        return oldData.map((defect) =>
-          defect.id === updatedDefect.id
-            ? { ...defect, status: updatedDefect.status }
-            : defect
-        )
-      })
-      // 대시보드의 불량 데이터도 업데이트
-      queryClient.setQueryData<Defect[]>(['dashboard-defects', activeFactoryId], (oldData) => {
-        if (!oldData) return oldData
-        return oldData.map((defect) =>
-          defect.id === updatedDefect.id
-            ? { ...defect, status: updatedDefect.status }
-            : defect
-        )
-      })
+      // The list is server-paged, so a status change can move the row onto a
+      // different page and shifts the status counts. Refetch rather than
+      // patching a cached array that no longer represents the whole result set.
+      queryClient.invalidateQueries({ queryKey: ['defects'] })
+      queryClient.invalidateQueries({ queryKey: ['defect-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['defect-pending-count'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard-defects', activeFactoryId] })
 
       // 상태별로 다른 알림 메시지 표시
       const alertMessage = updatedDefect.status === 'in_progress'
@@ -165,7 +212,9 @@ export function DefectsList() {
   const deleteDefectMutation = useMutation({
     mutationFn: (id: string) => inspectionService.deleteDefect(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['defects', activeFactoryId] })
+      queryClient.invalidateQueries({ queryKey: ['defects'] })
+      queryClient.invalidateQueries({ queryKey: ['defect-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['defect-pending-count'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-defects', activeFactoryId] })
       enqueueSnackbar(t('defects.deleteSuccess'), { variant: 'success', autoHideDuration: 3000 })
       setDeleteDialogOpen(false)
@@ -181,7 +230,9 @@ export function DefectsList() {
     mutationFn: ({ id, data }: { id: string; data: Record<string, string> }) =>
       inspectionService.updateDefect(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['defects', activeFactoryId] })
+      queryClient.invalidateQueries({ queryKey: ['defects'] })
+      queryClient.invalidateQueries({ queryKey: ['defect-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['defect-pending-count'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-defects', activeFactoryId] })
       enqueueSnackbar(t('defects.editSuccess'), { variant: 'success', autoHideDuration: 3000 })
     },
@@ -190,17 +241,8 @@ export function DefectsList() {
     },
   })
 
-  // Filter defects by status and defect type
-  const filteredDefects = useMemo(() => {
-    let result = defects
-    if (statusFilter !== 'all') {
-      result = result.filter((defect) => defect.status === statusFilter)
-    }
-    if (defectTypeFilter !== 'all') {
-      result = result.filter((defect) => defect.defect_type === defectTypeFilter)
-    }
-    return result
-  }, [defects, statusFilter, defectTypeFilter])
+  // Status and defect-type filtering is done by the database (see the
+  // getDefectsPage query above), so `defects` is already the page to render.
 
   // Column definitions - 새로운 컬럼 순서
   // 1. 등록일시 2. 모델 코드 3. 불량 유형 4. 설명 5. 상태 6. 작업
@@ -268,12 +310,6 @@ export function DefectsList() {
             />
           )
         },
-        filterType: 'select',
-        filterOptions: [
-          { label: t('defects.statusPending'), value: 'pending' },
-          { label: t('defects.statusInProgress'), value: 'in_progress' },
-          { label: t('defects.statusResolved'), value: 'resolved' },
-        ],
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -379,7 +415,7 @@ export function DefectsList() {
         <Select
           value={defectTypeFilter}
           label={t('defects.defectType')}
-          onChange={(e) => setDefectTypeFilter(e.target.value)}
+          onChange={(e) => changeDefectTypeFilter(e.target.value)}
         >
           <MenuItem value="all">{t('common.all')}</MenuItem>
           {defectTypes.map((dt) => (
@@ -394,7 +430,7 @@ export function DefectsList() {
         <Select
           value={statusFilter}
           label={t('defects.filterByStatus')}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => changeStatusFilter(e.target.value)}
         >
           <MenuItem value="all">{t('common.all')}</MenuItem>
           <MenuItem value="pending">{t('defects.statusPending')}</MenuItem>
@@ -405,12 +441,12 @@ export function DefectsList() {
     </Box>
   )
 
-  // Calculate counts
+  // Counts cover every defect in the factory, not the rows on the current page.
   const counts = {
-    all: defects.length,
-    pending: defects.filter((d) => d.status === 'pending').length,
-    in_progress: defects.filter((d) => d.status === 'in_progress').length,
-    resolved: defects.filter((d) => d.status === 'resolved').length,
+    all: stats?.total ?? 0,
+    pending: stats?.pending ?? 0,
+    in_progress: stats?.inProgress ?? 0,
+    resolved: stats?.resolved ?? 0,
   }
 
   return (
@@ -524,7 +560,16 @@ export function DefectsList() {
 
       {/* Defects Table */}
       <DataTable
-        data={filteredDefects}
+        data={defects}
+        serverPagination={{
+          totalCount,
+          page,
+          rowsPerPage,
+          onPageChange: setPage,
+          onRowsPerPageChange: changeRowsPerPage,
+          sort,
+          onSortChange: changeSort,
+        }}
         columns={columns}
         loading={isLoading}
         title={t('defects.listTitle')}
@@ -532,8 +577,10 @@ export function DefectsList() {
         renderActions={renderActions}
         toolbarActions={toolbarActions}
         enableSearch={false}
-        pageSize={isMobile ? 5 : 20}
-        enableFilters={true}
+        // The column filter panel filters in memory, which in server mode would
+        // only narrow the visible page. The toolbar selects above filter in the
+        // database instead and already cover status and defect type.
+        enableFilters={false}
         renderMobileCard={(defect) => {
           const config = statusConfig[defect.status]
           const Icon = config.icon

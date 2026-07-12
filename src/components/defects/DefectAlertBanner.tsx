@@ -15,21 +15,23 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material'
 import * as inspectionService from '@/services/inspectionService'
+import { useFactoryStore } from '@/stores/factoryStore'
 
 export function DefectAlertBanner() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [dismissed, setDismissed] = useState(false)
+  const { activeFactoryId } = useFactoryStore()
 
-  // Fetch defects to count pending ones
-  const { data: defects = [] } = useQuery({
-    queryKey: ['defects'],
-    queryFn: () => inspectionService.getDefects(),
+  // Counted in the database, and scoped to the active factory so the number
+  // matches the /defects list this banner links to. It previously pulled every
+  // defect row and counted them client-side, unscoped — which for an admin
+  // mixed both factories into a count that the linked page would not agree with.
+  const { data: pendingCount = 0 } = useQuery({
+    queryKey: ['defect-pending-count', activeFactoryId],
+    queryFn: () => inspectionService.getPendingDefectCount(activeFactoryId || undefined),
     refetchInterval: 30000, // 30초마다 자동 갱신
   })
-
-  // Count pending defects
-  const pendingCount = defects.filter((d) => d.status === 'pending').length
 
   // Don't show if no pending defects or dismissed
   if (pendingCount === 0 || dismissed) {

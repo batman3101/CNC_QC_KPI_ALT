@@ -160,6 +160,79 @@ export async function getDefects(filters?: {
   })
 }
 
+/**
+ * Columns the defect list is allowed to sort by. The sort key reaches
+ * PostgREST's `order` clause, so it is matched against this list rather than
+ * passed through from the UI.
+ */
+const DEFECT_SORT_COLUMNS = [
+  'created_at',
+  'model_id',
+  'defect_type',
+  'description',
+  'status',
+] as const
+
+export type DefectSortColumn = (typeof DEFECT_SORT_COLUMNS)[number]
+
+export interface DefectsPageParams {
+  /** Zero-based page index. */
+  page: number
+  pageSize: number
+  status?: string
+  defectType?: string
+  modelId?: string
+  startDate?: string
+  endDate?: string
+  factoryId?: string
+  sort?: { key: string; direction: 'asc' | 'desc' } | null
+}
+
+export interface DefectsPage {
+  rows: Defect[]
+  /** Rows matching the filters across the whole table, not just this page. */
+  totalCount: number
+}
+
+/**
+ * Fetch a single page of defects, filtered and sorted by the database.
+ *
+ * The list previously called `getDefects()`, which walked every 1000-row page
+ * until the table was exhausted — ~15k rows over 16 round trips to render 20.
+ * That cost grows with the table, so paging is done server-side here.
+ */
+export async function getDefectsPage(params: DefectsPageParams): Promise<DefectsPage> {
+  const from = params.page * params.pageSize
+  const to = from + params.pageSize - 1
+
+  const sortKey = DEFECT_SORT_COLUMNS.includes(params.sort?.key as DefectSortColumn)
+    ? (params.sort!.key as DefectSortColumn)
+    : 'created_at'
+  const ascending = params.sort ? params.sort.direction === 'asc' : false
+
+  let query = supabase
+    .from('defects')
+    .select('*', { count: 'exact' })
+    .order(sortKey, { ascending })
+    .range(from, to)
+
+  if (params.status && params.status !== 'all') {
+    query = query.eq('status', params.status as 'pending' | 'in_progress' | 'resolved')
+  }
+  if (params.defectType && params.defectType !== 'all') {
+    query = query.eq('defect_type', params.defectType)
+  }
+  if (params.modelId) query = query.eq('model_id', params.modelId)
+  if (params.startDate) query = query.gte('created_at', params.startDate)
+  if (params.endDate) query = query.lte('created_at', params.endDate)
+  if (params.factoryId) query = query.eq('factory_id', params.factoryId)
+
+  const { data, error, count } = await query
+  if (error) throw error
+
+  return { rows: data ?? [], totalCount: count ?? 0 }
+}
+
 export async function getDefectById(id: string): Promise<Defect | null> {
   const { data, error } = await supabase
     .from('defects')
@@ -278,25 +351,60 @@ export async function submitInspection(data: InspectionSubmitData): Promise<{
 
 // ============= Statistics =============
 
+/**
+ * Number of unresolved defects, for the header badge and the alert banner.
+ *
+ * Both callers previously paged the entire defects table into the browser and
+ * ran `.filter(d => d.status === 'pending').length` on it — every 30 seconds,
+ * on every screen, because the header is always mounted. This counts in
+ * Postgres and transfers no rows.
+ */
+export async function getPendingDefectCount(factoryId?: string): Promise<number> {
+  let query = supabase
+    .from('defects')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending')
+
+  if (factoryId) query = query.eq('factory_id', factoryId)
+
+  const { count, error } = await query
+  if (error) throw error
+  return count ?? 0
+}
+
+/**
+ * Defect counts by status.
+ *
+ * Uses head-only `count: 'exact'` queries: Postgres does the counting and no
+ * rows cross the wire. The previous implementation paged every defect row into
+ * the browser just to tally four numbers.
+ */
 export async function getDefectStats(factoryId?: string): Promise<{
   total: number
   pending: number
   inProgress: number
   resolved: number
 }> {
-  const allRows = await paginatedFetch<{ status: string | null }>((from, to) => {
-    let query = supabase.from('defects').select('status').range(from, to)
+  const countDefects = async (
+    status?: 'pending' | 'in_progress' | 'resolved'
+  ): Promise<number> => {
+    let query = supabase.from('defects').select('*', { count: 'exact', head: true })
     if (factoryId) query = query.eq('factory_id', factoryId)
-    return query
-  })
+    if (status) query = query.eq('status', status)
 
-  const stats = { total: allRows.length, pending: 0, inProgress: 0, resolved: 0 }
-  allRows.forEach(d => {
-    if (d.status === 'pending') stats.pending++
-    else if (d.status === 'in_progress') stats.inProgress++
-    else if (d.status === 'resolved') stats.resolved++
-  })
-  return stats
+    const { count, error } = await query
+    if (error) throw error
+    return count ?? 0
+  }
+
+  const [total, pending, inProgress, resolved] = await Promise.all([
+    countDefects(),
+    countDefects('pending'),
+    countDefects('in_progress'),
+    countDefects('resolved'),
+  ])
+
+  return { total, pending, inProgress, resolved }
 }
 
 // ============= Inspection Record (for InspectionPage) =============

@@ -71,22 +71,11 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MB limit for precaching
         runtimeCaching: [
-          {
-            // Supabase REST API caching - Network first for fresh data
-            urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'supabase-api-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24, // 24 hours
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-              networkTimeoutSeconds: 10,
-            },
-          },
+          // Supabase REST responses are deliberately NOT cached here. Workbox keys
+          // entries by URL alone, so a response fetched for one signed-in user
+          // would be replayed to the next one hitting the same URL. Offline reads
+          // and queued writes are owned by Dexie (src/lib/offlineDb.ts), and
+          // TanStack Query handles in-session caching.
           {
             // Supabase Storage caching - Cache first for images
             urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/.*/i,
@@ -96,6 +85,11 @@ export default defineConfig({
               expiration: {
                 maxEntries: 50,
                 maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
+              },
+              cacheableResponse: {
+                // 200 only: opaque (0) responses would let failed/cross-origin
+                // fetches poison the cache.
+                statuses: [200],
               },
             },
           },

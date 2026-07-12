@@ -33,9 +33,31 @@ export interface FilterValue {
   value: string | boolean | null
 }
 
+/**
+ * Server-driven paging/sorting.
+ *
+ * When supplied, `data` is treated as one already-paged, already-sorted slice:
+ * DataTable stops filtering, sorting and slicing in memory and instead reports
+ * every page/sort change back to the owner, which refetches. Required for
+ * tables whose full row count is too large to ship to the browser.
+ */
+export interface ServerPagination {
+  /** Rows matching the current filters across the whole table, not just this page. */
+  totalCount: number
+  /** Zero-based page index. */
+  page: number
+  rowsPerPage: number
+  onPageChange: (page: number) => void
+  onRowsPerPageChange: (rowsPerPage: number) => void
+  sort: SortConfig | null
+  onSortChange: (sort: SortConfig | null) => void
+}
+
 export interface DataTableProps<T> {
   /** 테이블 데이터 */
   data: T[]
+  /** 서버 페이지네이션 (제공 시 메모리 내 필터/정렬/페이징 비활성화) */
+  serverPagination?: ServerPagination
   /** 컬럼 정의 */
   columns: ColumnDef<T>[]
   /** 로딩 상태 */

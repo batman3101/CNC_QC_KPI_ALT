@@ -36,6 +36,7 @@ import type { DataTableProps, SortConfig, ColumnDef, FilterValue } from './types
 
 export function DataTable<T>({
   data,
+  serverPagination,
   columns,
   loading = false,
   emptyMessage,
@@ -57,13 +58,21 @@ export function DataTable<T>({
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
 
+  // In server mode the caller owns page/sort and `data` is already the page to
+  // render, so the in-memory filter/sort/slice pipeline below is bypassed.
+  const isServerMode = serverPagination !== undefined
+
   // State
   const [searchQuery, setSearchQuery] = useState('')
-  const [sortConfig, setSortConfig] = useState<SortConfig | null>(null)
-  const [page, setPage] = useState(0)
-  const [rowsPerPage, setRowsPerPage] = useState(pageSize)
+  const [internalSortConfig, setInternalSortConfig] = useState<SortConfig | null>(null)
+  const [internalPage, setInternalPage] = useState(0)
+  const [internalRowsPerPage, setInternalRowsPerPage] = useState(pageSize)
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState<FilterValue[]>([])
+
+  const sortConfig = isServerMode ? serverPagination.sort : internalSortConfig
+  const page = isServerMode ? serverPagination.page : internalPage
+  const rowsPerPage = isServerMode ? serverPagination.rowsPerPage : internalRowsPerPage
 
   // Use external search if provided, otherwise use internal
   const currentSearch = externalSearch !== undefined ? externalSearch : searchQuery
@@ -83,6 +92,11 @@ export function DataTable<T>({
 
   // Filter data by search and filters
   const filteredData = useMemo(() => {
+    // Server mode: the database already applied the filters. Filtering here
+    // would only narrow the current page and silently hide matching rows that
+    // live on other pages.
+    if (isServerMode) return data
+
     let result = [...data]
 
     // Apply search
@@ -114,10 +128,12 @@ export function DataTable<T>({
     })
 
     return result
-  }, [data, currentSearch, filters, searchableColumns])
+  }, [data, currentSearch, filters, searchableColumns, isServerMode])
 
   // Sort data
   const sortedData = useMemo(() => {
+    // Server mode: ordering was applied by the database across all rows.
+    if (isServerMode) return filteredData
     if (!sortConfig) return filteredData
 
     return [...filteredData].sort((a, b) => {
@@ -144,35 +160,54 @@ export function DataTable<T>({
       const comparison = String(aValue).localeCompare(String(bValue), 'ko')
       return sortConfig.direction === 'asc' ? comparison : -comparison
     })
-  }, [filteredData, sortConfig])
+  }, [filteredData, sortConfig, isServerMode])
 
   // Paginate data
   const paginatedData = useMemo(() => {
+    // Server mode: `data` is already the requested page.
+    if (isServerMode) return sortedData
     if (!enablePagination) return sortedData
     const start = page * rowsPerPage
     return sortedData.slice(start, start + rowsPerPage)
-  }, [sortedData, page, rowsPerPage, enablePagination])
+  }, [sortedData, page, rowsPerPage, enablePagination, isServerMode])
+
+  // Total rows behind the pager: the server's count, or everything we hold.
+  const totalRowCount = isServerMode ? serverPagination.totalCount : sortedData.length
 
   // Handlers
-  const handleSort = useCallback((columnId: string) => {
-    setSortConfig((prev) => {
-      if (!prev || prev.key !== columnId) {
-        return { key: columnId, direction: 'asc' }
+  const nextSort = (prev: SortConfig | null, columnId: string): SortConfig | null => {
+    if (!prev || prev.key !== columnId) return { key: columnId, direction: 'asc' }
+    if (prev.direction === 'asc') return { key: columnId, direction: 'desc' }
+    return null
+  }
+
+  const handleSort = useCallback(
+    (columnId: string) => {
+      if (isServerMode) {
+        serverPagination.onSortChange(nextSort(serverPagination.sort, columnId))
+        return
       }
-      if (prev.direction === 'asc') {
-        return { key: columnId, direction: 'desc' }
-      }
-      return null
-    })
-  }, [])
+      setInternalSortConfig((prev) => nextSort(prev, columnId))
+    },
+    [isServerMode, serverPagination]
+  )
 
   const handleChangePage = (_: unknown, newPage: number) => {
-    setPage(newPage)
+    if (isServerMode) {
+      serverPagination.onPageChange(newPage)
+      return
+    }
+    setInternalPage(newPage)
   }
 
   const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRowsPerPage(parseInt(event.target.value, 10))
-    setPage(0)
+    const nextRowsPerPage = parseInt(event.target.value, 10)
+    if (isServerMode) {
+      serverPagination.onRowsPerPageChange(nextRowsPerPage)
+      return
+    }
+    setInternalRowsPerPage(nextRowsPerPage)
+    setInternalPage(0)
   }
 
   const handleFilterChange = (columnId: string, value: string | boolean | null) => {
@@ -189,13 +224,13 @@ export function DataTable<T>({
       }
       return prev
     })
-    setPage(0)
+    setInternalPage(0)
   }
 
   const clearAllFilters = () => {
     setFilters([])
     handleSearchChange('')
-    setPage(0)
+    setInternalPage(0)
   }
 
   const hasActiveFilters = filters.length > 0 || currentSearch !== ''
@@ -233,7 +268,7 @@ export function DataTable<T>({
               value={currentSearch}
               onChange={(e) => {
                 handleSearchChange(e.target.value)
-                setPage(0)
+                setInternalPage(0)
               }}
               size="small"
               sx={{ flexGrow: 1 }}
@@ -351,7 +386,7 @@ export function DataTable<T>({
             {enablePagination && (
               <TablePagination
                 component="div"
-                count={sortedData.length}
+                count={totalRowCount}
                 page={page}
                 onPageChange={handleChangePage}
                 rowsPerPage={rowsPerPage}
@@ -429,7 +464,7 @@ export function DataTable<T>({
             {enablePagination && (
               <TablePagination
                 component="div"
-                count={sortedData.length}
+                count={totalRowCount}
                 page={page}
                 onPageChange={handleChangePage}
                 rowsPerPage={rowsPerPage}
