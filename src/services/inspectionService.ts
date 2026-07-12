@@ -4,7 +4,6 @@
  */
 
 import { supabase } from '@/lib/supabase'
-import { paginatedFetch } from '@/lib/supabasePagination'
 import type { Database } from '@/types/database'
 import imageCompression from 'browser-image-compression'
 
@@ -23,34 +22,6 @@ type DefectUpdate = Database['public']['Tables']['defects']['Update']
 // Fetch related data separately when needed
 
 // ============= Inspections CRUD =============
-
-export async function getInspections(filters?: {
-  startDate?: string
-  endDate?: string
-  status?: string
-  modelId?: string
-  machineId?: string
-  userId?: string
-  factoryId?: string
-}): Promise<Inspection[]> {
-  return paginatedFetch<Inspection>((from, to) => {
-    let query = supabase
-      .from('inspections')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(from, to)
-
-    if (filters?.startDate) query = query.gte('created_at', filters.startDate)
-    if (filters?.endDate) query = query.lte('created_at', filters.endDate)
-    if (filters?.status) query = query.eq('status', filters.status as 'pending' | 'pass' | 'fail')
-    if (filters?.modelId) query = query.eq('model_id', filters.modelId)
-    if (filters?.machineId) query = query.eq('machine_id', filters.machineId)
-    if (filters?.userId) query = query.eq('user_id', filters.userId)
-    if (filters?.factoryId) query = query.eq('factory_id', filters.factoryId)
-
-    return query
-  })
-}
 
 export async function getInspectionById(id: string): Promise<Inspection | null> {
   const { data, error } = await supabase
@@ -133,32 +104,6 @@ export async function createInspectionResults(data: InspectionResultInsert[]): P
 }
 
 // ============= Defects CRUD =============
-
-export async function getDefects(filters?: {
-  status?: string
-  modelId?: string
-  startDate?: string
-  endDate?: string
-  factoryId?: string
-}): Promise<Defect[]> {
-  return paginatedFetch<Defect>((from, to) => {
-    let query = supabase
-      .from('defects')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(from, to)
-
-    if (filters?.status && filters.status !== 'all') {
-      query = query.eq('status', filters.status as 'pending' | 'in_progress' | 'resolved')
-    }
-    if (filters?.modelId) query = query.eq('model_id', filters.modelId)
-    if (filters?.startDate) query = query.gte('created_at', filters.startDate)
-    if (filters?.endDate) query = query.lte('created_at', filters.endDate)
-    if (filters?.factoryId) query = query.eq('factory_id', filters.factoryId)
-
-    return query
-  })
-}
 
 /**
  * Columns the defect list is allowed to sort by. The sort key reaches
@@ -350,6 +295,81 @@ export async function submitInspection(data: InspectionSubmitData): Promise<{
 }
 
 // ============= Statistics =============
+
+// ============= Dashboard =============
+
+export interface DashboardTodayStats {
+  inspectionCount: number
+  inspectionQty: number
+  defectQty: number
+  failedCount: number
+}
+
+/** Today's KPI cards, counted in Postgres over the current business day. */
+export async function getDashboardTodayStats(
+  factoryId?: string
+): Promise<DashboardTodayStats> {
+  const { data, error } = await supabase.rpc('get_dashboard_today_stats', {
+    p_factory: factoryId ?? null,
+  })
+  if (error) throw error
+
+  const row = (data ?? [])[0]
+  return {
+    inspectionCount: row?.inspection_count ?? 0,
+    inspectionQty: row?.inspection_qty ?? 0,
+    defectQty: row?.defect_qty ?? 0,
+    failedCount: row?.failed_count ?? 0,
+  }
+}
+
+export interface RecentInspection {
+  id: string
+  created_at: string
+  machine_id: string | null
+  model_id: string | null
+  status: string
+  /**
+   * Position of this inspection within its own calendar day, computed by the
+   * database. The dashboard renders it as INS-MMDD-XXX. Deriving it in the
+   * browser would mean holding every inspection of that day in memory, which
+   * is why the dashboard used to fetch the entire table.
+   */
+  day_seq: number
+}
+
+export async function getRecentInspections(
+  factoryId?: string,
+  limit = 10
+): Promise<RecentInspection[]> {
+  const { data, error } = await supabase.rpc('get_dashboard_recent_inspections', {
+    p_factory: factoryId ?? null,
+    p_limit: limit,
+  })
+  if (error) throw error
+  return (data ?? []) as RecentInspection[]
+}
+
+/**
+ * Defects that still need action (pending or in progress).
+ *
+ * The AI insights screen only ever showed unresolved defects, but reached them
+ * by pulling the whole defects table and filtering client-side. Filtering here
+ * turns ~15k rows into ~150.
+ */
+export async function getUnresolvedDefects(factoryId?: string): Promise<Defect[]> {
+  let query = supabase
+    .from('defects')
+    .select('*')
+    .in('status', ['pending', 'in_progress'])
+    .order('created_at', { ascending: false })
+
+  if (factoryId) query = query.eq('factory_id', factoryId)
+
+  const { data, error } = await query
+  if (error) throw error
+  return data ?? []
+}
 
 /**
  * Number of unresolved defects, for the header badge and the alert banner.

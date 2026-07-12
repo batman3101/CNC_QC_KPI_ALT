@@ -4,10 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
-import {
-  getBusinessDateRangeFilter,
-  parseBusinessDate,
-} from '@/lib/dateUtils'
+import { getBusinessDateRangeFilter } from '@/lib/dateUtils'
 import {
   calculatePChartLimits,
   calculateProcessCapability,
@@ -61,27 +58,27 @@ export async function getPChartData(
 }> {
   const dateFilter = getBusinessDateRangeFilter(filters.date_from, filters.date_to)
 
-  let query = supabase
-    .from('inspections')
-    .select('id, created_at, inspection_quantity, defect_quantity, status')
-    .gte('created_at', dateFilter.gte)
-    .lte('created_at', dateFilter.lte)
-    .order('created_at', { ascending: true })
-
-  if (filters.model_id) {
-    query = query.eq('model_id', filters.model_id)
-  }
-  if (filters.process_id) {
-    query = query.eq('inspection_process', filters.process_id)
-  }
-  if (factoryId) {
-    query = query.eq('factory_id', factoryId)
-  }
-
-  const { data: inspections, error } = await query
+  // Grouped by business day in Postgres. The previous version selected the raw
+  // inspection rows with no range() and no limit, so PostgREST silently capped
+  // it at 1000 rows - a 30-day window on ALT is ~4,200 - and the control chart
+  // was drawn from a truncated sample.
+  const { data, error } = await supabase.rpc('get_analytics_defect_rate_trend', {
+    p_from: dateFilter.gte,
+    p_to: dateFilter.lte,
+    p_process: filters.process_id ?? null,
+    p_model: filters.model_id ?? null,
+    p_factory: factoryId ?? null,
+  })
 
   if (error) throw error
-  if (!inspections || inspections.length === 0) {
+
+  const rows = (data ?? []) as Array<{
+    business_day: string
+    inspection_qty: number
+    defect_qty: number
+  }>
+
+  if (rows.length === 0) {
     return {
       points: [],
       limits: { p_bar: 0, ucl: 0, lcl: 0, centerLine: 0 },
@@ -89,16 +86,13 @@ export async function getPChartData(
     }
   }
 
-  // 날짜별로 그룹핑
-  const dailyData = inspections.reduce((acc, insp) => {
-    const date = parseBusinessDate(insp.created_at)
-    if (!acc[date]) {
-      acc[date] = { defect_count: 0, sample_size: 0 }
+  const dailyData: Record<string, { defect_count: number; sample_size: number }> = {}
+  for (const row of rows) {
+    dailyData[row.business_day] = {
+      defect_count: row.defect_qty,
+      sample_size: row.inspection_qty,
     }
-    acc[date].defect_count += insp.defect_quantity || 0
-    acc[date].sample_size += insp.inspection_quantity || 1
-    return acc
-  }, {} as Record<string, { defect_count: number; sample_size: number }>)
+  }
 
   // 관리한계 계산
   const dataForLimits = Object.values(dailyData)
@@ -790,26 +784,35 @@ export async function getModelDefectRates(
   factoryId?: string,
 ): Promise<ModelDefectRate[]> {
   const dateFilter = getBusinessDateRangeFilter(filters.date_from, filters.date_to)
-  let query = supabase
-    .from('inspections')
-    .select('model_id, inspection_quantity, defect_quantity')
-    .gte('created_at', dateFilter.gte)
-    .lte('created_at', dateFilter.lte)
-  if (filters.process_id) query = query.eq('inspection_process', filters.process_id)
-  if (factoryId) query = query.eq('factory_id', factoryId)
 
-  const { data, error } = await query
+  // Grouped by model in Postgres. Same truncation trap as the p-chart above:
+  // the raw select had no limit and was capped at 1000 rows.
+  const { data, error } = await supabase.rpc('get_analytics_model_distribution', {
+    p_from: dateFilter.gte,
+    p_to: dateFilter.lte,
+    p_process: filters.process_id ?? null,
+    p_model: null,
+    p_factory: factoryId ?? null,
+  })
+
   if (error) {
     console.error('[SPC] Failed to fetch model defect rates:', error)
     return []
   }
 
+  const rows = (data ?? []) as Array<{
+    model_id: string | null
+    inspection_qty: number
+    defect_qty: number
+  }>
+
   const agg = new Map<string, { inspected: number; defects: number }>()
-  for (const row of data || []) {
-    const cur = agg.get(row.model_id) ?? { inspected: 0, defects: 0 }
-    cur.inspected += row.inspection_quantity || 0
-    cur.defects += row.defect_quantity || 0
-    agg.set(row.model_id, cur)
+  for (const row of rows) {
+    if (!row.model_id) continue
+    agg.set(row.model_id, {
+      inspected: row.inspection_qty,
+      defects: row.defect_qty,
+    })
   }
 
   return models

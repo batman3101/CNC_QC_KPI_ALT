@@ -1,11 +1,21 @@
+/**
+ * Analytics Service
+ *
+ * Every figure on the analytics screens is a GROUP BY over inspections or
+ * defects, so the grouping runs in Postgres (see the get_analytics_* RPCs) and
+ * only the grouped rows cross the wire. These functions previously paged the
+ * entire matching row set - up to ~17k inspections - into the browser and
+ * reduced it in JavaScript.
+ *
+ * The RPCs are SECURITY INVOKER, so RLS still decides which rows a caller may
+ * aggregate. Inspector names are resolved through getUserDirectory() rather
+ * than joined in SQL: users_select hides other users from an inspector, so a
+ * SQL join would blank out every name but their own.
+ */
+
 import { supabase } from '@/lib/supabase'
-import { paginatedFetch } from '@/lib/supabasePagination'
 import { getUserDirectory } from '@/services/userDirectoryService'
-import {
-  getBusinessDateRangeFilter,
-  parseBusinessDate,
-  getVietnamHour,
-} from '@/lib/dateUtils'
+import { getBusinessDateRangeFilter } from '@/lib/dateUtils'
 import type {
   AnalyticsFilters,
   DefectRateTrend,
@@ -21,9 +31,47 @@ import type {
   InspectorProcessPerformance,
 } from '@/types/analytics'
 
-// Helper function to build date filter using business day logic (08:00 ~ next day 07:59)
-function buildDateFilter(filters: AnalyticsFilters) {
-  return getBusinessDateRangeFilter(filters.dateRange.from, filters.dateRange.to)
+/** Arguments shared by every analytics RPC. */
+interface AnalyticsRpcArgs {
+  p_from: string
+  p_to: string
+  p_process: string | null
+  p_model: string | null
+  p_factory: string | null
+}
+
+// Business day logic (08:00 ~ next day 07:59, Vietnam) lives in both places:
+// here for the range bounds, and in public.business_date() for the grouping.
+function buildRpcArgs(filters: AnalyticsFilters, factoryId?: string): AnalyticsRpcArgs {
+  const range = getBusinessDateRangeFilter(filters.dateRange.from, filters.dateRange.to)
+  return {
+    p_from: range.gte,
+    p_to: range.lte,
+    p_process: filters.processId ?? null,
+    p_model: filters.modelId ?? null,
+    p_factory: factoryId ?? null,
+  }
+}
+
+function rate(defectQty: number, inspectionQty: number): number {
+  return inspectionQty > 0 ? (defectQty / inspectionQty) * 100 : 0
+}
+
+interface InspectorTotalsRow {
+  inspector_id: string
+  inspection_qty: number
+  defect_qty: number
+}
+
+async function fetchInspectorTotals(args: AnalyticsRpcArgs): Promise<InspectorTotalsRow[]> {
+  const { data, error } = await supabase.rpc('get_analytics_inspector_totals', args)
+  if (error) throw error
+  return (data ?? []) as InspectorTotalsRow[]
+}
+
+async function buildInspectorNameMap(): Promise<Map<string, string>> {
+  const directory = await getUserDirectory()
+  return new Map(directory.map((user) => [user.id, user.name]))
 }
 
 // 1. KPI Summary
@@ -31,142 +79,77 @@ export async function getKPISummary(
   filters: AnalyticsFilters,
   factoryId?: string
 ): Promise<KPISummary> {
-  const dateFilter = buildDateFilter(filters)
+  const args = buildRpcArgs(filters, factoryId)
 
-  // Get total inspections
-  const inspections = await paginatedFetch<{
-    id: string; status: string; created_at: string;
-    user_id: string; inspection_quantity: number; defect_quantity: number
-  }>((from, to) => {
-    let q = supabase
-      .from('inspections')
-      .select('id, status, created_at, user_id, inspection_quantity, defect_quantity')
-      .gte('created_at', dateFilter.gte)
-      .lte('created_at', dateFilter.lte)
-      .range(from, to)
-    if (filters.processId) q = q.eq('inspection_process', filters.processId)
-    if (filters.modelId) q = q.eq('model_id', filters.modelId)
-    if (factoryId) q = q.eq('factory_id', factoryId)
-    return q
-  })
-  const totalInspections = inspections.length
+  const [summaryResult, inspectorTotals, nameMap] = await Promise.all([
+    supabase.rpc('get_analytics_kpi_summary', args),
+    fetchInspectorTotals(args),
+    buildInspectorNameMap(),
+  ])
 
-  // Calculate defect rate based on quantities (검사수량 대비 불량수량)
-  const totalInspectionQty = inspections?.reduce(
-    (sum: number, i: { inspection_quantity: number }) => sum + (i.inspection_quantity || 0), 0
-  ) || 0
-  const totalDefectQty = inspections?.reduce(
-    (sum: number, i: { defect_quantity: number }) => sum + (i.defect_quantity || 0), 0
-  ) || 0
-  // Get unique inspectors from already fetched inspections
-  const uniqueInspectors = new Set(
-    inspections?.map((i: { user_id: string }) => i.user_id).filter(Boolean)
-  ).size
+  if (summaryResult.error) throw summaryResult.error
 
-  // Calculate average inspection time (mock data for now)
-  // TODO: Add actual inspection duration tracking
-  const avgInspectionTime = 4.2
-
-  const totalCount = totalInspections || 0
-  // Defect rate = SUM(defect_quantity) / SUM(inspection_quantity) * 100
-  const defectRate = totalInspectionQty > 0 ? (totalDefectQty / totalInspectionQty) * 100 : 0
-  const fpy = 100 - defectRate
-
-  // Calculate average resolution time (mock data for now)
-  // TODO: Add actual defect resolution time tracking
-  const avgResolutionTime = 2.5
-
-  // Get top 3 inspectors by defect quantity found
-  const inspectorDefects: Record<string, { name: string; inspectionQty: number; defectQty: number }> = {}
-  if (inspections) {
-    const userIds = [...new Set(inspections.map((i: { user_id: string }) => i.user_id).filter(Boolean))]
-    const userProfiles = await getUserDirectory()
-    const requestedUserIds = new Set(userIds)
-    const userNameMap = new Map(
-      userProfiles
-        .filter((user) => requestedUserIds.has(user.id))
-        .map((user) => [user.id, user.name])
-    )
-
-    for (const inspection of inspections as Array<{ user_id: string; inspection_quantity: number; defect_quantity: number }>) {
-      if (inspection.user_id) {
-        if (!inspectorDefects[inspection.user_id]) {
-          inspectorDefects[inspection.user_id] = {
-            name: userNameMap.get(inspection.user_id) || inspection.user_id,
-            inspectionQty: 0,
-            defectQty: 0,
-          }
-        }
-        inspectorDefects[inspection.user_id].inspectionQty += (inspection.inspection_quantity || 0)
-        inspectorDefects[inspection.user_id].defectQty += (inspection.defect_quantity || 0)
+  const summary = (summaryResult.data ?? [])[0] as
+    | {
+        total_inspections: number
+        inspection_qty: number
+        defect_qty: number
+        active_inspectors: number
       }
-    }
-  }
+    | undefined
 
-  const topInspectors = Object.entries(inspectorDefects)
-    .sort((a, b) => b[1].defectQty - a[1].defectQty)
+  const totalInspections = summary?.total_inspections ?? 0
+  const totalInspectionQty = summary?.inspection_qty ?? 0
+  const totalDefectQty = summary?.defect_qty ?? 0
+  const defectRate = rate(totalDefectQty, totalInspectionQty)
+
+  const topInspectors = [...inspectorTotals]
+    .sort((a, b) => b.defect_qty - a.defect_qty)
     .slice(0, 3)
-    .map(([, stats], index) => ({
+    .map((row, index) => ({
       rank: index + 1,
-      name: stats.name,
-      inspectionCount: stats.inspectionQty,
-      defectCount: stats.defectQty,
+      name: nameMap.get(row.inspector_id) || row.inspector_id,
+      inspectionCount: row.inspection_qty,
+      defectCount: row.defect_qty,
     }))
 
   return {
-    totalInspections: totalCount,
+    totalInspections,
     totalDefects: totalDefectQty,
     overallDefectRate: defectRate,
-    fpy,
-    avgInspectionTime,
-    avgResolutionTime,
-    activeInspectors: uniqueInspectors,
+    fpy: 100 - defectRate,
+    // TODO: Add actual inspection duration tracking
+    avgInspectionTime: 4.2,
+    // TODO: Add actual defect resolution time tracking
+    avgResolutionTime: 2.5,
+    activeInspectors: summary?.active_inspectors ?? 0,
     topInspectors,
   }
 }
 
-// 2. Defect Rate Trend (Daily)
+// 2. Defect Rate Trend (by business day)
 export async function getDefectRateTrend(
   filters: AnalyticsFilters,
   factoryId?: string
 ): Promise<DefectRateTrend[]> {
-  const dateFilter = buildDateFilter(filters)
+  const { data, error } = await supabase.rpc(
+    'get_analytics_defect_rate_trend',
+    buildRpcArgs(filters, factoryId)
+  )
+  if (error) throw error
 
-  const inspections = await paginatedFetch<{
-    created_at: string; status: string; inspection_quantity: number; defect_quantity: number
-  }>((from, to) => {
-    let q = supabase
-      .from('inspections')
-      .select('created_at, status, inspection_quantity, defect_quantity')
-      .gte('created_at', dateFilter.gte)
-      .lte('created_at', dateFilter.lte)
-      .order('created_at', { ascending: true })
-      .range(from, to)
-    if (filters.processId) q = q.eq('inspection_process', filters.processId)
-    if (filters.modelId) q = q.eq('model_id', filters.modelId)
-    if (factoryId) q = q.eq('factory_id', factoryId)
-    return q
-  })
+  const rows = (data ?? []) as Array<{
+    business_day: string
+    inspection_qty: number
+    defect_qty: number
+  }>
 
-  if (inspections.length === 0) return []
-
-  // Group by business date (08:00 ~ next day 07:59), using quantities
-  const groupedByDate = inspections.reduce((acc, inspection: { created_at: string; status: string; inspection_quantity: number; defect_quantity: number }) => {
-    const date = parseBusinessDate(inspection.created_at)
-    if (!acc[date]) {
-      acc[date] = { totalQty: 0, defectQty: 0 }
-    }
-    acc[date].totalQty += (inspection.inspection_quantity || 0)
-    acc[date].defectQty += (inspection.defect_quantity || 0)
-    return acc
-  }, {} as Record<string, { totalQty: number; defectQty: number }>)
-
-  return Object.entries(groupedByDate).map(([date, stats]) => {
-    const defectRate = stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0
+  return rows.map((row) => {
+    const defectRate = rate(row.defect_qty, row.inspection_qty)
     return {
-      date,
-      totalInspections: stats.totalQty,
-      defectCount: stats.defectQty,
+      date: row.business_day,
+      totalInspections: row.inspection_qty,
+      defectCount: row.defect_qty,
       defectRate,
       passRate: 100 - defectRate,
     }
@@ -178,128 +161,54 @@ export async function getModelDefectDistribution(
   filters: AnalyticsFilters,
   factoryId?: string
 ): Promise<ModelDefectDistribution[]> {
-  const dateFilter = buildDateFilter(filters)
+  const { data, error } = await supabase.rpc(
+    'get_analytics_model_distribution',
+    buildRpcArgs(filters, factoryId)
+  )
+  if (error) throw error
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const inspections = await paginatedFetch<any>((from, to) => {
-    let q = supabase
-      .from('inspections')
-      .select(`
-        status,
-        model_id,
-        inspection_quantity,
-        defect_quantity,
-        product_models (
-          name,
-          code
-        )
-      `)
-      .gte('created_at', dateFilter.gte)
-      .lte('created_at', dateFilter.lte)
-      .range(from, to)
-    if (filters.processId) q = q.eq('inspection_process', filters.processId)
-    if (filters.modelId) q = q.eq('model_id', filters.modelId)
-    if (factoryId) q = q.eq('factory_id', factoryId)
-    return q
-  })
+  const rows = (data ?? []) as Array<{
+    model_name: string
+    model_code: string
+    inspection_qty: number
+    defect_qty: number
+  }>
 
-  if (inspections.length === 0) return []
-
-  // Group by model using quantities
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const groupedByModel = inspections.reduce((acc, inspection: any) => {
-    const modelId = inspection.model_id
-    const modelName = inspection.product_models?.name || 'Unknown'
-    const modelCode = inspection.product_models?.code || 'N/A'
-
-    if (!acc[modelId]) {
-      acc[modelId] = {
-        modelName,
-        modelCode,
-        totalQty: 0,
-        defectQty: 0,
-      }
-    }
-    acc[modelId].totalQty += (inspection.inspection_quantity || 0)
-    acc[modelId].defectQty += (inspection.defect_quantity || 0)
-    return acc
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }, {} as Record<string, any>)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return Object.values(groupedByModel).map((stats: any) => ({
-    modelName: stats.modelName,
-    modelCode: stats.modelCode,
-    totalInspections: stats.totalQty,
-    defectCount: stats.defectQty,
-    defectRate: stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0,
+  return rows.map((row) => ({
+    modelName: row.model_name,
+    modelCode: row.model_code,
+    totalInspections: row.inspection_qty,
+    defectCount: row.defect_qty,
+    defectRate: rate(row.defect_qty, row.inspection_qty),
   }))
 }
 
-// 4. Machine Performance
+// 4. Machine Performance (ordered by defect count, Pareto)
 export async function getMachinePerformance(
   filters: AnalyticsFilters,
   factoryId?: string
 ): Promise<MachinePerformance[]> {
-  const dateFilter = buildDateFilter(filters)
+  const { data, error } = await supabase.rpc(
+    'get_analytics_machine_performance',
+    buildRpcArgs(filters, factoryId)
+  )
+  if (error) throw error
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const inspections = await paginatedFetch<any>((from, to) => {
-    let q = supabase
-      .from('inspections')
-      .select(`
-        status,
-        machine_id,
-        inspection_quantity,
-        defect_quantity,
-        machines (
-          name,
-          model
-        )
-      `)
-      .gte('created_at', dateFilter.gte)
-      .lte('created_at', dateFilter.lte)
-      .range(from, to)
-    if (filters.processId) q = q.eq('inspection_process', filters.processId)
-    if (filters.modelId) q = q.eq('model_id', filters.modelId)
-    if (factoryId) q = q.eq('factory_id', factoryId)
-    return q
-  })
+  const rows = (data ?? []) as Array<{
+    machine_name: string
+    machine_model: string
+    inspection_qty: number
+    defect_qty: number
+  }>
 
-  if (inspections.length === 0) return []
-
-  // Group by machine using quantities
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const groupedByMachine = inspections.reduce((acc, inspection: any) => {
-    const machineId = inspection.machine_id
-    const machineName = inspection.machines?.name || 'Unknown'
-    const machineModel = inspection.machines?.model || 'N/A'
-
-    if (!acc[machineId]) {
-      acc[machineId] = {
-        machineName,
-        machineModel,
-        totalQty: 0,
-        defectQty: 0,
-      }
-    }
-    acc[machineId].totalQty += (inspection.inspection_quantity || 0)
-    acc[machineId].defectQty += (inspection.defect_quantity || 0)
-    return acc
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }, {} as Record<string, any>)
-
-  return Object.values(groupedByMachine)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    .map((stats: any) => ({
-      machineName: stats.machineName,
-      machineModel: stats.machineModel,
-      totalInspections: stats.totalQty,
-      defectCount: stats.defectQty,
-      defectRate: stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0,
-      avgInspectionTime: 4.2, // Mock data
-    }))
-    .sort((a, b) => b.defectCount - a.defectCount) // Sort by defect count (Pareto)
+  return rows.map((row) => ({
+    machineName: row.machine_name,
+    machineModel: row.machine_model,
+    totalInspections: row.inspection_qty,
+    defectCount: row.defect_qty,
+    defectRate: rate(row.defect_qty, row.inspection_qty),
+    avgInspectionTime: 4.2, // Mock data
+  }))
 }
 
 // 5. Defect Type Distribution
@@ -307,55 +216,27 @@ export async function getDefectTypeDistribution(
   filters: AnalyticsFilters,
   factoryId?: string
 ): Promise<DefectTypeDistribution[]> {
-  const dateFilter = buildDateFilter(filters)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const defects = await paginatedFetch<any>((from, to) => {
-    let q = supabase
-      .from('defects')
-      .select(`
-        defect_type,
-        inspections!inner (
-          created_at
-        )
-      `)
-      .gte('inspections.created_at', dateFilter.gte)
-      .lte('inspections.created_at', dateFilter.lte)
-      .range(from, to)
-    if (filters.processId) q = q.eq('inspections.inspection_process', filters.processId)
-    if (filters.modelId) q = q.eq('inspections.model_id', filters.modelId)
-    if (factoryId) q = q.eq('factory_id', factoryId)
-    return q
-  })
-
-  if (defects.length === 0) return []
-
-  // Fetch defect types for name mapping (paginated to bypass 1000-row cap)
-  const defectTypesData = await paginatedFetch<{ id: string; name: string }>((from, to) =>
-    supabase.from('defect_types').select('id, name').range(from, to)
+  const { data, error } = await supabase.rpc(
+    'get_analytics_defect_type_distribution',
+    buildRpcArgs(filters, factoryId)
   )
-  const defectTypeMap = new Map<string, string>(defectTypesData.map(dt => [dt.id, dt.name]))
+  if (error) throw error
 
-  // Group by defect type (using name from defect_types table)
-  const groupedByType: Record<string, number> = {}
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  defects.forEach((defect: any) => {
-    const typeName = defectTypeMap.get(defect.defect_type) || defect.defect_type
-    groupedByType[typeName] = (groupedByType[typeName] || 0) + 1
-  })
+  const rows = (data ?? []) as Array<{ defect_type_name: string; defect_count: number }>
+  const total = rows.reduce((sum, row) => sum + row.defect_count, 0)
+  if (total === 0) return []
 
-  const total = Object.values(groupedByType).reduce((sum, count) => sum + count, 0)
-
-  return Object.entries(groupedByType)
-    .map(([type, count]) => ({
-      defectType: type,
-      count,
-      percentage: (count / total) * 100,
+  return rows
+    .map((row) => ({
+      defectType: row.defect_type_name,
+      count: row.defect_count,
+      percentage: (row.defect_count / total) * 100,
     }))
-    .sort((a, b) =>
-      b.percentage - a.percentage ||
-      b.count - a.count ||
-      a.defectType.localeCompare(b.defectType)
+    .sort(
+      (a, b) =>
+        b.percentage - a.percentage ||
+        b.count - a.count ||
+        a.defectType.localeCompare(b.defectType)
     )
 }
 
@@ -364,47 +245,28 @@ export async function getHourlyDistribution(
   filters: AnalyticsFilters,
   factoryId?: string
 ): Promise<HourlyDistribution[]> {
-  const dateFilter = buildDateFilter(filters)
+  const { data, error } = await supabase.rpc(
+    'get_analytics_hourly_distribution',
+    buildRpcArgs(filters, factoryId)
+  )
+  if (error) throw error
 
-  const inspections = await paginatedFetch<{
-    created_at: string; status: string; inspection_quantity: number; defect_quantity: number
-  }>((from, to) => {
-    let q = supabase
-      .from('inspections')
-      .select('created_at, status, inspection_quantity, defect_quantity')
-      .gte('created_at', dateFilter.gte)
-      .lte('created_at', dateFilter.lte)
-      .range(from, to)
-    if (filters.processId) q = q.eq('inspection_process', filters.processId)
-    if (filters.modelId) q = q.eq('model_id', filters.modelId)
-    if (factoryId) q = q.eq('factory_id', factoryId)
-    return q
-  })
+  const rows = (data ?? []) as Array<{
+    hour_of_day: number
+    inspection_qty: number
+    defect_qty: number
+  }>
+  if (rows.length === 0) return []
 
-  if (inspections.length === 0) return []
+  const byHour = new Map(rows.map((row) => [row.hour_of_day, row]))
 
-  // Group by hour (Vietnam timezone) using quantities
-  const groupedByHour = inspections.reduce((acc, inspection: { created_at: string; status: string; inspection_quantity: number; defect_quantity: number }) => {
-    const hour = getVietnamHour(inspection.created_at)
-    if (!acc[hour]) {
-      acc[hour] = { inspectionQty: 0, defectQty: 0 }
-    }
-    acc[hour].inspectionQty += (inspection.inspection_quantity || 0)
-    acc[hour].defectQty += (inspection.defect_quantity || 0)
-    return acc
-  }, {} as Record<number, { inspectionQty: number; defectQty: number }>)
-
-  // Fill in missing hours with 0
-  const result: HourlyDistribution[] = []
-  for (let hour = 0; hour < 24; hour++) {
-    result.push({
-      hour,
-      inspectionCount: groupedByHour[hour]?.inspectionQty || 0,
-      defectCount: groupedByHour[hour]?.defectQty || 0,
-    })
-  }
-
-  return result
+  // Hours with no inspections are absent from the grouping; the chart expects
+  // all 24 slots.
+  return Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    inspectionCount: byHour.get(hour)?.inspection_qty ?? 0,
+    defectCount: byHour.get(hour)?.defect_qty ?? 0,
+  }))
 }
 
 // 7. Inspector Performance
@@ -412,59 +274,50 @@ export async function getInspectorPerformance(
   filters: AnalyticsFilters,
   factoryId?: string
 ): Promise<InspectorPerformance[]> {
-  const dateFilter = buildDateFilter(filters)
+  const args = buildRpcArgs(filters, factoryId)
+  const [totals, nameMap] = await Promise.all([
+    fetchInspectorTotals(args),
+    buildInspectorNameMap(),
+  ])
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const inspections = await paginatedFetch<any>((from, to) => {
-    let q = supabase
-      .from('inspections')
-      .select(`
-        status,
-        user_id,
-        inspection_quantity,
-        defect_quantity,
-        users (
-          name
-        )
-      `)
-      .gte('created_at', dateFilter.gte)
-      .lte('created_at', dateFilter.lte)
-      .range(from, to)
-    if (filters.processId) q = q.eq('inspection_process', filters.processId)
-    if (filters.modelId) q = q.eq('model_id', filters.modelId)
-    if (factoryId) q = q.eq('factory_id', factoryId)
-    return q
-  })
-
-  if (inspections.length === 0) return []
-
-  // Group by inspector using quantities
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const groupedByInspector = inspections.reduce((acc, inspection: any) => {
-    const userId = inspection.user_id
-    const userName = inspection.users?.name || 'Unknown'
-
-    if (!acc[userId]) {
-      acc[userId] = {
-        userName,
-        totalQty: 0,
-        defectQty: 0,
-      }
-    }
-    acc[userId].totalQty += (inspection.inspection_quantity || 0)
-    acc[userId].defectQty += (inspection.defect_quantity || 0)
-    return acc
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  }, {} as Record<string, any>)
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return Object.values(groupedByInspector).map((stats: any) => ({
-    inspectorName: stats.userName,
-    totalInspections: stats.totalQty,
-    defectCount: stats.defectQty,
-    defectRate: stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0,
+  return totals.map((row) => ({
+    inspectorName: nameMap.get(row.inspector_id) || 'Unknown',
+    totalInspections: row.inspection_qty,
+    defectCount: row.defect_qty,
+    defectRate: rate(row.defect_qty, row.inspection_qty),
     avgInspectionTime: 4.2, // Mock data
   }))
+}
+
+// 7b. AI insights snapshot
+//
+// One round trip for everything the AI page derives from raw inspections:
+// today's totals (business day), the last 7 Vietnam calendar days, and the
+// all-time per-model defect rates.
+export interface AIInsightsSnapshot {
+  today: { inspection_qty: number; defect_qty: number }
+  weekly_trend: Array<{
+    date: string
+    inspection_qty: number
+    defect_qty: number
+    records: number
+  }>
+  model_defect_rates: Array<{
+    model_id: string | null
+    model_code: string
+    inspection_qty: number
+    defect_qty: number
+  }>
+}
+
+export async function getAIInsightsSnapshot(
+  factoryId?: string
+): Promise<AIInsightsSnapshot> {
+  const { data, error } = await supabase.rpc('get_ai_insights_snapshot', {
+    p_factory: factoryId ?? null,
+  })
+  if (error) throw error
+  return data as unknown as AIInsightsSnapshot
 }
 
 // 8. Get Inspector List
@@ -481,167 +334,99 @@ export async function getInspectorDetailedKPI(
   filters: AnalyticsFilters,
   factoryId?: string
 ): Promise<InspectorDetailedKPI | null> {
-  const dateFilter = buildDateFilter(filters)
+  const args = buildRpcArgs(filters, factoryId)
+  const inspectorArgs = { p_inspector: inspectorId, ...args }
 
-  // Get inspector info
-  const inspector = (await getUserDirectory()).find((user) => user.id === inspectorId)
+  const directory = await getUserDirectory()
+  const inspector = directory.find((user) => user.id === inspectorId)
   if (!inspector) return null
 
-  // Fetch process code-to-name mapping (paginated to bypass 1000-row cap)
-  const processesData = await paginatedFetch<{ code: string; name: string }>((from, to) =>
-    supabase.from('inspection_processes').select('code, name').range(from, to)
-  )
-  const processNameMap = new Map<string, string>(processesData.map(p => [p.code, p.name]))
+  const [dailyResult, modelResult, processResult, teamTotals, activeDaysResult] =
+    await Promise.all([
+      supabase.rpc('get_inspector_daily_trend', inspectorArgs),
+      supabase.rpc('get_inspector_model_performance', inspectorArgs),
+      supabase.rpc('get_inspector_process_performance', inspectorArgs),
+      fetchInspectorTotals(args),
+      supabase.rpc('get_analytics_active_days', args),
+    ])
 
-  // Get all inspections for this inspector in the date range
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const myInspections = await paginatedFetch<any>((from, to) => {
-    let q = supabase
-      .from('inspections')
-      .select(`
-        id, status, created_at, model_id, inspection_process, inspection_quantity, defect_quantity,
-        product_models (name, code)
-      `)
-      .eq('user_id', inspectorId)
-      .gte('created_at', dateFilter.gte)
-      .lte('created_at', dateFilter.lte)
-      .range(from, to)
-    if (filters.processId) q = q.eq('inspection_process', filters.processId)
-    if (filters.modelId) q = q.eq('model_id', filters.modelId)
-    if (factoryId) q = q.eq('factory_id', factoryId)
-    return q
-  })
+  if (dailyResult.error) throw dailyResult.error
+  if (modelResult.error) throw modelResult.error
+  if (processResult.error) throw processResult.error
+  if (activeDaysResult.error) throw activeDaysResult.error
 
-  // Get all team inspections for comparison
-  const allTeamInspections = await paginatedFetch<{
-    user_id: string; status: string; created_at: string;
-    inspection_quantity: number; defect_quantity: number
-  }>((from, to) => {
-    let q = supabase
-      .from('inspections')
-      .select('user_id, status, created_at, inspection_quantity, defect_quantity')
-      .gte('created_at', dateFilter.gte)
-      .lte('created_at', dateFilter.lte)
-      .range(from, to)
-    if (filters.processId) q = q.eq('inspection_process', filters.processId)
-    if (filters.modelId) q = q.eq('model_id', filters.modelId)
-    if (factoryId) q = q.eq('factory_id', factoryId)
-    return q
-  })
+  const dailyRows = (dailyResult.data ?? []) as Array<{
+    business_day: string
+    inspection_qty: number
+    defect_qty: number
+  }>
+  const modelRows = (modelResult.data ?? []) as Array<{
+    model_name: string
+    model_code: string
+    inspection_qty: number
+    defect_qty: number
+  }>
+  const processRows = (processResult.data ?? []) as Array<{
+    process_code: string
+    process_name: string
+    inspection_qty: number
+    defect_qty: number
+  }>
 
-  // Calculate basic stats using quantities
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalInspectionQty = myInspections.reduce((sum: number, i: any) => sum + (i.inspection_quantity || 0), 0)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalDefectQty = myInspections.reduce((sum: number, i: any) => sum + (i.defect_quantity || 0), 0)
-  const totalInspections = totalInspectionQty
-  const defectCount = totalDefectQty
-  const defectRate = totalInspectionQty > 0 ? (totalDefectQty / totalInspectionQty) * 100 : 0
-  const passRate = 100 - defectRate
+  const mine = teamTotals.find((row) => row.inspector_id === inspectorId)
+  const totalInspectionQty = mine?.inspection_qty ?? 0
+  const totalDefectQty = mine?.defect_qty ?? 0
+  const defectRate = rate(totalDefectQty, totalInspectionQty)
 
-  // Calculate ranking using quantities
-  const inspectorStats = new Map<string, { totalQty: number; defectQty: number }>()
-  allTeamInspections.forEach((insp: { user_id: string; status: string; inspection_quantity: number; defect_quantity: number }) => {
-    const stats = inspectorStats.get(insp.user_id) || { totalQty: 0, defectQty: 0 }
-    stats.totalQty += (insp.inspection_quantity || 0)
-    stats.defectQty += (insp.defect_quantity || 0)
-    inspectorStats.set(insp.user_id, stats)
-  })
-
-  const rankings = Array.from(inspectorStats.entries())
-    .map(([userId, stats]) => ({
-      userId,
-      defectRate: stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0,
+  // Ranking: lowest defect rate first.
+  const rankings = teamTotals
+    .map((row) => ({
+      inspectorId: row.inspector_id,
+      defectRate: rate(row.defect_qty, row.inspection_qty),
     }))
     .sort((a, b) => a.defectRate - b.defectRate)
 
-  const rank = rankings.findIndex(r => r.userId === inspectorId) + 1
+  const rank = rankings.findIndex((r) => r.inspectorId === inspectorId) + 1
   const totalInspectors = rankings.length
 
-  // Daily trend (business day based) using quantities
-  const dailyMap = new Map<string, { totalQty: number; defectQty: number }>()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  myInspections.forEach((insp: any) => {
-    const date = parseBusinessDate(insp.created_at)
-    const stats = dailyMap.get(date) || { totalQty: 0, defectQty: 0 }
-    stats.totalQty += (insp.inspection_quantity || 0)
-    stats.defectQty += (insp.defect_quantity || 0)
-    dailyMap.set(date, stats)
-  })
-
-  const dailyTrend: InspectorDailyTrend[] = Array.from(dailyMap.entries())
-    .map(([date, stats]) => ({
-      date,
-      inspectionCount: stats.totalQty,
-      defectCount: stats.defectQty,
-      defectRate: stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0,
-    }))
-    .sort((a, b) => a.date.localeCompare(b.date))
-
-  // Model performance using quantities
-  const modelMap = new Map<string, { name: string; code: string; totalQty: number; defectQty: number }>()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  myInspections.forEach((insp: any) => {
-    const modelId = insp.model_id
-    const modelName = insp.product_models?.name || 'Unknown'
-    const modelCode = insp.product_models?.code || 'N/A'
-    const stats = modelMap.get(modelId) || { name: modelName, code: modelCode, totalQty: 0, defectQty: 0 }
-    stats.totalQty += (insp.inspection_quantity || 0)
-    stats.defectQty += (insp.defect_quantity || 0)
-    modelMap.set(modelId, stats)
-  })
-
-  const modelPerformance: InspectorModelPerformance[] = Array.from(modelMap.values()).map(stats => ({
-    modelName: stats.name,
-    modelCode: stats.code,
-    inspectionCount: stats.totalQty,
-    defectCount: stats.defectQty,
-    defectRate: stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0,
+  const dailyTrend: InspectorDailyTrend[] = dailyRows.map((row) => ({
+    date: row.business_day,
+    inspectionCount: row.inspection_qty,
+    defectCount: row.defect_qty,
+    defectRate: rate(row.defect_qty, row.inspection_qty),
   }))
 
-  // Process performance using quantities
-  const processMap = new Map<string, { name: string; code: string; totalQty: number; defectQty: number }>()
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  myInspections.forEach((insp: any) => {
-    const processCode = insp.inspection_process
-    const processName = processNameMap.get(processCode) || processCode
-    const stats = processMap.get(processCode) || { name: processName, code: processCode, totalQty: 0, defectQty: 0 }
-    stats.totalQty += (insp.inspection_quantity || 0)
-    stats.defectQty += (insp.defect_quantity || 0)
-    processMap.set(processCode, stats)
-  })
-
-  const processPerformance: InspectorProcessPerformance[] = Array.from(processMap.values()).map(stats => ({
-    processName: stats.name,
-    processCode: stats.code,
-    inspectionCount: stats.totalQty,
-    defectCount: stats.defectQty,
-    defectRate: stats.totalQty > 0 ? (stats.defectQty / stats.totalQty) * 100 : 0,
+  const modelPerformance: InspectorModelPerformance[] = modelRows.map((row) => ({
+    modelName: row.model_name,
+    modelCode: row.model_code,
+    inspectionCount: row.inspection_qty,
+    defectCount: row.defect_qty,
+    defectRate: rate(row.defect_qty, row.inspection_qty),
   }))
 
-  // Team comparison using quantities
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const teamTotalQty = allTeamInspections.reduce((sum: number, i: any) => sum + (i.inspection_quantity || 0), 0)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const teamDefectQty = allTeamInspections.reduce((sum: number, i: any) => sum + (i.defect_quantity || 0), 0)
-  const avgDefectRate = teamTotalQty > 0 ? (teamDefectQty / teamTotalQty) * 100 : 0
+  const processPerformance: InspectorProcessPerformance[] = processRows.map((row) => ({
+    processName: row.process_name,
+    processCode: row.process_code,
+    inspectionCount: row.inspection_qty,
+    defectCount: row.defect_qty,
+    defectRate: rate(row.defect_qty, row.inspection_qty),
+  }))
 
-  // Calculate number of active days for average daily inspections (business day based)
-  const uniqueDates = new Set(allTeamInspections.map((i: { created_at: string }) =>
-    parseBusinessDate(i.created_at)
-  ))
-  const activeDays = uniqueDates.size || 1
+  const teamTotalQty = teamTotals.reduce((sum, row) => sum + row.inspection_qty, 0)
+  const teamDefectQty = teamTotals.reduce((sum, row) => sum + row.defect_qty, 0)
+  const avgDefectRate = rate(teamDefectQty, teamTotalQty)
+
+  const activeDays = (activeDaysResult.data as number | null) || 1
   const avgDailyInspections = teamTotalQty / activeDays / (totalInspectors || 1)
-
-  const myDailyInspections = totalInspections / activeDays
+  const myDailyInspections = totalInspectionQty / activeDays
 
   return {
     inspectorId,
     inspectorName: inspector.name,
-    totalInspections,
-    defectCount,
+    totalInspections: totalInspectionQty,
+    defectCount: totalDefectQty,
     defectRate,
-    passRate,
+    passRate: 100 - defectRate,
     avgInspectionTime: 4.2, // TODO: 실제 검사 시간 추적 추가
     rank,
     totalInspectors,

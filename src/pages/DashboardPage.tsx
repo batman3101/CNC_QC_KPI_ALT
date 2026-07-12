@@ -34,7 +34,7 @@ import * as inspectionService from '@/services/inspectionService'
 import { getMachines, getProductModels, getDefectTypes } from '@/services/managementService'
 
 // 날짜 유틸리티
-import { getBusinessDate, formatVietnamDateTime, getTodayBusinessDate } from '@/lib/dateUtils'
+import { formatVietnamDateTime } from '@/lib/dateUtils'
 
 // Factory Store
 import { useFactoryStore } from '@/stores/factoryStore'
@@ -46,10 +46,20 @@ export function DashboardPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const { activeFactoryId } = useFactoryStore()
 
-  // Fetch recent inspections
-  const { data: inspections = [], isLoading } = useQuery({
+  // Today's KPI cards, counted in the database over the current business day.
+  const { data: todayStats } = useQuery({
+    queryKey: ['dashboard-today-stats', activeFactoryId],
+    queryFn: () =>
+      inspectionService.getDashboardTodayStats(activeFactoryId || undefined),
+  })
+
+  // The ten most recent inspections. Each row carries the sequence number of
+  // its own day, so the INS-MMDD-XXX id no longer requires holding that whole
+  // day - previously the whole table - in the browser.
+  const { data: recentInspections = [], isLoading } = useQuery({
     queryKey: ['dashboard-inspections', activeFactoryId],
-    queryFn: () => inspectionService.getInspections({ factoryId: activeFactoryId || undefined }),
+    queryFn: () =>
+      inspectionService.getRecentInspections(activeFactoryId || undefined, 10),
   })
 
   // Fetch recent defects. Only the five shown below are requested: this used to
@@ -88,25 +98,17 @@ export function DashboardPage() {
     return defectType ? defectType.name : t('defects.unknownType')
   }
 
-  // Helper function to generate formatted inspection ID (INS-MMDD-XXX)
-  const getFormattedInspectionId = (inspection: { id: string; created_at: string }, allInspections: typeof inspections): string => {
+  // Helper function to generate formatted inspection ID (INS-MMDD-XXX).
+  // day_seq is the row's position within its own day, computed by Postgres.
+  const getFormattedInspectionId = (inspection: {
+    created_at: string
+    day_seq: number
+  }): string => {
     const date = new Date(inspection.created_at)
     const month = String(date.getMonth() + 1).padStart(2, '0')
     const day = String(date.getDate()).padStart(2, '0')
 
-    // Get inspections from the same day, sorted by created_at
-    const dateStr = `${date.getFullYear()}-${month}-${day}`
-    const sameDayInspections = allInspections
-      .filter(i => {
-        const iDate = new Date(i.created_at)
-        return `${iDate.getFullYear()}-${String(iDate.getMonth() + 1).padStart(2, '0')}-${String(iDate.getDate()).padStart(2, '0')}` === dateStr
-      })
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-
-    // Find the sequence number for this inspection
-    const seqNum = sameDayInspections.findIndex(i => i.id === inspection.id) + 1
-
-    return `INS-${month}${day}-${String(seqNum).padStart(3, '0')}`
+    return `INS-${month}${day}-${String(inspection.day_seq).padStart(3, '0')}`
   }
 
   // Helper function to get machine name by ID
@@ -123,20 +125,11 @@ export function DashboardPage() {
     return model?.code || modelId
   }
 
-  // Get today's business date
-  const todayBusinessDate = getTodayBusinessDate()
-
-  // Filter inspections for today's business day (08:00 ~ next day 07:59)
-  const todayInspectionsList = inspections.filter((inspection) => {
-    const inspectionBusinessDate = getBusinessDate(new Date(inspection.created_at))
-    return inspectionBusinessDate === todayBusinessDate
-  })
-
-  // Calculate stats from today's business day data using quantities
-  const todayInspectionsCount = todayInspectionsList.length
-  const todayInspectionQty = todayInspectionsList.reduce((sum, i) => sum + (i.inspection_quantity || 0), 0)
-  const todayDefectQty = todayInspectionsList.reduce((sum, i) => sum + (i.defect_quantity || 0), 0)
-  const failedInspections = todayInspectionsList.filter((i) => i.status === 'fail').length
+  // Today's business day (08:00 ~ next day 07:59) is resolved by the database.
+  const todayInspectionsCount = todayStats?.inspectionCount ?? 0
+  const todayInspectionQty = todayStats?.inspectionQty ?? 0
+  const todayDefectQty = todayStats?.defectQty ?? 0
+  const failedInspections = todayStats?.failedCount ?? 0
   const passRate =
     todayInspectionQty > 0
       ? (((todayInspectionQty - todayDefectQty) / todayInspectionQty) * 100).toFixed(1)
@@ -177,11 +170,7 @@ export function DashboardPage() {
     },
   ]
 
-  // Get recent 10 inspections (from today's business day first, then others)
-  const recentInspections = [
-    ...todayInspectionsList.slice(0, 10),
-    ...inspections.filter(i => !todayInspectionsList.includes(i)).slice(0, 10 - todayInspectionsList.length)
-  ].slice(0, 10)
+  // recentInspections is already the ten newest, ordered by the database.
 
   // Get recent defects (최근 5개)
   const recentDefects = recentDefectsPage?.rows ?? []
@@ -345,7 +334,7 @@ export function DashboardPage() {
                         <TableRow key={inspection.id} hover>
                           <TableCell>
                             <Typography variant="body2" fontWeight={500}>
-                              {getFormattedInspectionId(inspection, inspections)}
+                              {getFormattedInspectionId(inspection)}
                             </Typography>
                           </TableCell>
                           <TableCell>

@@ -6,6 +6,23 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
+/**
+ * Filter arguments shared by the analytics aggregation RPCs.
+ * p_from/p_to are ISO timestamps bounding the business-day range.
+ */
+export type AnalyticsRpcArgs = {
+  p_from: string
+  p_to: string
+  p_process?: string | null
+  p_model?: string | null
+  p_factory?: string | null
+}
+
+/** AnalyticsRpcArgs scoped to a single inspector. */
+export type InspectorRpcArgs = AnalyticsRpcArgs & {
+  p_inspector: string
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -526,6 +543,135 @@ export type Database = {
       set_role_permissions: {
         Args: { p_factory_id: string; p_changes: Json }
         Returns: undefined
+      }
+
+      // Analytics aggregation. These group inspections/defects in Postgres so
+      // the browser never pages the raw rows. All are SECURITY INVOKER, so RLS
+      // still limits what a caller can aggregate.
+      get_analytics_kpi_summary: {
+        Args: AnalyticsRpcArgs
+        Returns: {
+          total_inspections: number
+          inspection_qty: number
+          defect_qty: number
+          active_inspectors: number
+        }[]
+      }
+      get_analytics_inspector_totals: {
+        Args: AnalyticsRpcArgs
+        Returns: {
+          inspector_id: string
+          inspection_qty: number
+          defect_qty: number
+        }[]
+      }
+      get_analytics_defect_rate_trend: {
+        Args: AnalyticsRpcArgs
+        Returns: {
+          business_day: string
+          inspection_qty: number
+          defect_qty: number
+        }[]
+      }
+      get_analytics_model_distribution: {
+        Args: AnalyticsRpcArgs
+        Returns: {
+          model_id: string | null
+          model_name: string
+          model_code: string
+          inspection_qty: number
+          defect_qty: number
+        }[]
+      }
+      get_analytics_machine_performance: {
+        Args: AnalyticsRpcArgs
+        Returns: {
+          machine_id: string | null
+          machine_name: string
+          machine_model: string
+          inspection_qty: number
+          defect_qty: number
+        }[]
+      }
+      get_analytics_defect_type_distribution: {
+        Args: AnalyticsRpcArgs
+        Returns: {
+          defect_type_name: string
+          defect_count: number
+        }[]
+      }
+      get_analytics_hourly_distribution: {
+        Args: AnalyticsRpcArgs
+        Returns: {
+          hour_of_day: number
+          inspection_qty: number
+          defect_qty: number
+        }[]
+      }
+      get_analytics_active_days: {
+        Args: AnalyticsRpcArgs
+        Returns: number
+      }
+      get_inspector_daily_trend: {
+        Args: InspectorRpcArgs
+        Returns: {
+          business_day: string
+          inspection_qty: number
+          defect_qty: number
+        }[]
+      }
+      get_inspector_model_performance: {
+        Args: InspectorRpcArgs
+        Returns: {
+          model_id: string | null
+          model_name: string
+          model_code: string
+          inspection_qty: number
+          defect_qty: number
+        }[]
+      }
+      get_inspector_process_performance: {
+        Args: InspectorRpcArgs
+        Returns: {
+          process_code: string
+          process_name: string
+          inspection_qty: number
+          defect_qty: number
+        }[]
+      }
+      get_report_summary: {
+        Args: {
+          p_from: string
+          p_to: string
+          p_model?: string | null
+          p_factory?: string | null
+        }
+        Returns: Json
+      }
+      get_ai_insights_snapshot: {
+        Args: { p_factory?: string | null }
+        Returns: Json
+      }
+      get_dashboard_today_stats: {
+        Args: { p_factory?: string | null }
+        Returns: {
+          inspection_count: number
+          inspection_qty: number
+          defect_qty: number
+          failed_count: number
+        }[]
+      }
+      get_dashboard_recent_inspections: {
+        Args: { p_factory?: string | null; p_limit?: number }
+        Returns: {
+          id: string
+          created_at: string
+          machine_id: string | null
+          model_id: string | null
+          status: string
+          /** Position of this inspection within its own calendar day. */
+          day_seq: number
+        }[]
       }
     }
     Enums: {

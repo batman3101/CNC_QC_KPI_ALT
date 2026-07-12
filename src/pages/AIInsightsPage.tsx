@@ -20,10 +20,7 @@ import { generateAllInsights } from '@/services/geminiService'
 // Supabase 서비스
 import * as analyticsService from '@/services/analyticsService'
 import * as inspectionService from '@/services/inspectionService'
-import { getProductModels, getDefectTypes } from '@/services/managementService'
-
-// 날짜 유틸리티
-import { getTodayBusinessDate, getBusinessDate, formatDateString } from '@/lib/dateUtils'
+import { getDefectTypes } from '@/services/managementService'
 
 // Factory Store
 import { useFactoryStore } from '@/stores/factoryStore'
@@ -103,19 +100,20 @@ export function AIInsightsPage() {
   }, [])
 
   // 데이터 조회
-  const { data: inspections = [] } = useQuery({
-    queryKey: ['ai-inspections', activeFactoryId],
-    queryFn: () => inspectionService.getInspections({ factoryId: activeFactoryId || undefined }),
+  //
+  // Today's totals, the weekly trend and the per-model defect rates are all
+  // aggregates, so Postgres computes them (get_ai_insights_snapshot). This page
+  // used to fetch every inspection row (~17k) and reduce them here.
+  const { data: snapshot } = useQuery({
+    queryKey: ['ai-snapshot', activeFactoryId],
+    queryFn: () => analyticsService.getAIInsightsSnapshot(activeFactoryId || undefined),
   })
 
-  const { data: defects = [] } = useQuery({
-    queryKey: ['ai-defects', activeFactoryId],
-    queryFn: () => inspectionService.getDefects({ factoryId: activeFactoryId || undefined }),
-  })
-
-  const { data: models = [] } = useQuery({
-    queryKey: ['ai-models'],
-    queryFn: getProductModels,
+  // Only unresolved defects are ever shown, so only those are fetched.
+  const { data: unresolvedDefects = [] } = useQuery({
+    queryKey: ['ai-unresolved-defects', activeFactoryId],
+    queryFn: () =>
+      inspectionService.getUnresolvedDefects(activeFactoryId || undefined),
   })
 
   // Fetch defect types for name mapping
@@ -135,60 +133,38 @@ export function AIInsightsPage() {
   })
 
   // AI용 분석 데이터 구성
+  //
+  // Everything below is now assembled from pre-aggregated data: the snapshot
+  // (today / weekly / per-model), the two analytics RPCs, and the unresolved
+  // defect list. No raw inspection rows reach this component.
   const analyticsData = useMemo<AnalyticsDataForAI | null>(() => {
-    if (!inspections.length) return null
+    if (!snapshot) return null
 
-    const todayBusinessDate = getTodayBusinessDate()
-
-    // 오늘 검사 필터링
-    const todayInspections = inspections.filter((inspection) => {
-      const inspectionBusinessDate = getBusinessDate(new Date(inspection.created_at))
-      return inspectionBusinessDate === todayBusinessDate
-    })
-
-    // 수량 기반 계산 (검사수량 대비 불량수량)
-    const todayInspectionQty = todayInspections.reduce((sum, i) => sum + (i.inspection_quantity || 0), 0)
-    const todayDefectQty = todayInspections.reduce((sum, i) => sum + (i.defect_quantity || 0), 0)
+    const todayInspectionQty = snapshot.today.inspection_qty
+    const todayDefectQty = snapshot.today.defect_qty
     const todayPassQty = todayInspectionQty - todayDefectQty
-    const todayPassRate = todayInspectionQty > 0 ? (todayPassQty / todayInspectionQty) * 100 : 0
 
-    // 주간 트렌드 (수량 기반)
-    const weeklyMap = new Map<string, { inspectionQty: number; defectQty: number; records: number }>()
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date()
-      date.setDate(date.getDate() - i)
-      const dateStr = formatDateString(date)
-      weeklyMap.set(dateStr, { inspectionQty: 0, defectQty: 0, records: 0 })
-    }
-
-    inspections.forEach(inspection => {
-      const dateStr = formatDateString(new Date(inspection.created_at))
-      const existing = weeklyMap.get(dateStr)
-      if (existing) {
-        existing.records++
-        existing.inspectionQty += (inspection.inspection_quantity || 0)
-        existing.defectQty += (inspection.defect_quantity || 0)
-      }
-    })
-
-    const weeklyTrend = Array.from(weeklyMap.entries()).map(([date, stats]) => ({
-      date,
-      total: stats.inspectionQty,
-      passed: stats.inspectionQty - stats.defectQty,
-      failed: stats.defectQty,
-      passRate: stats.inspectionQty > 0 ? ((stats.inspectionQty - stats.defectQty) / stats.inspectionQty) * 100 : 0,
+    const weeklyTrend = snapshot.weekly_trend.map((day) => ({
+      date: day.date,
+      total: day.inspection_qty,
+      passed: day.inspection_qty - day.defect_qty,
+      failed: day.defect_qty,
+      passRate:
+        day.inspection_qty > 0
+          ? ((day.inspection_qty - day.defect_qty) / day.inspection_qty) * 100
+          : 0,
     }))
 
     // 불량 유형 분포
     const totalDefects = defectTypeDistribution.reduce((sum, d) => sum + d.count, 0)
-    const defectTypeDist = defectTypeDistribution.map(d => ({
+    const defectTypeDist = defectTypeDistribution.map((d) => ({
       type: d.defectType,
       count: d.count,
       percentage: totalDefects > 0 ? (d.count / totalDefects) * 100 : 0,
     }))
 
     // 설비별 성과
-    const machinePerf = machinePerformance.map(m => ({
+    const machinePerf = machinePerformance.map((m) => ({
       machineId: m.machineName,
       machineName: m.machineName,
       total: m.totalInspections,
@@ -196,45 +172,34 @@ export function AIInsightsPage() {
     }))
 
     // 모델별 불량률 (수량 기반)
-    const modelMap = new Map<string, { inspectionQty: number; defectQty: number }>()
-    inspections.forEach(inspection => {
-      const existing = modelMap.get(inspection.model_id) || { inspectionQty: 0, defectQty: 0 }
-      existing.inspectionQty += (inspection.inspection_quantity || 0)
-      existing.defectQty += (inspection.defect_quantity || 0)
-      modelMap.set(inspection.model_id, existing)
-    })
-
-    const modelDefectRates = Array.from(modelMap.entries()).map(([modelId, stats]) => {
-      const model = models.find(m => m.id === modelId)
-      return {
-        modelId,
-        modelCode: model?.code || modelId,
-        total: stats.inspectionQty,
-        defectRate: stats.inspectionQty > 0 ? (stats.defectQty / stats.inspectionQty) * 100 : 0,
-      }
-    })
+    const modelDefectRates = snapshot.model_defect_rates.map((m) => ({
+      modelId: m.model_id ?? m.model_code,
+      modelCode: m.model_code,
+      total: m.inspection_qty,
+      defectRate:
+        m.inspection_qty > 0 ? (m.defect_qty / m.inspection_qty) * 100 : 0,
+    }))
 
     // 미해결 불량 (불량 유형 이름으로 변환)
     const defectTypeMap = new Map<string, string>()
-    defectTypesData.forEach(dt => {
+    defectTypesData.forEach((dt) => {
       defectTypeMap.set(dt.id, dt.name)
     })
 
-    const pendingDefects = defects
-      .filter(d => d.status === 'pending' || d.status === 'in_progress')
-      .map(d => ({
-        id: d.id,
-        type: defectTypeMap.get(d.defect_type) || d.defect_type,
-        status: d.status,
-        createdAt: d.created_at,
-      }))
+    const pendingDefects = unresolvedDefects.map((d) => ({
+      id: d.id,
+      type: defectTypeMap.get(d.defect_type) || d.defect_type,
+      status: d.status,
+      createdAt: d.created_at,
+    }))
 
     return {
       todayInspections: {
         total: todayInspectionQty,
         passed: todayPassQty,
         failed: todayDefectQty,
-        passRate: todayPassRate,
+        passRate:
+          todayInspectionQty > 0 ? (todayPassQty / todayInspectionQty) * 100 : 0,
       },
       weeklyTrend,
       defectTypeDistribution: defectTypeDist,
@@ -242,7 +207,13 @@ export function AIInsightsPage() {
       modelDefectRates,
       pendingDefects,
     }
-  }, [inspections, defects, models, defectTypeDistribution, machinePerformance, defectTypesData])
+  }, [
+    snapshot,
+    unresolvedDefects,
+    defectTypeDistribution,
+    machinePerformance,
+    defectTypesData,
+  ])
 
   // 인사이트 생성
   const handleGenerateInsights = useCallback(async () => {
