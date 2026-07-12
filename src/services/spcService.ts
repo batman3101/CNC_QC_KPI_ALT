@@ -364,8 +364,13 @@ export async function getModelSPCSummary(factoryId?: string): Promise<ModelSPCSu
 /**
  * p-chart 위반을 감지하고 spc_alerts 테이블에 upsert
  * 모델별로 p-chart 분석 → Nelson Rule 위반 감지 → DB 저장
+ *
+ * @returns the number of alerts written. SPCPage drives this through TanStack
+ *   Query, whose queryFn may never resolve to undefined - the cache cannot tell
+ *   "resolved with nothing" apart from "not loaded yet" - so every exit path
+ *   below returns a count rather than falling out as void.
  */
-export async function generateAndUpsertAlerts(factoryId?: string): Promise<void> {
+export async function generateAndUpsertAlerts(factoryId?: string): Promise<number> {
   const thirtyDaysAgo = new Date()
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
@@ -374,7 +379,7 @@ export async function generateAndUpsertAlerts(factoryId?: string): Promise<void>
     .from('product_models')
     .select('id, name')
 
-  if (!models || models.length === 0) return
+  if (!models || models.length === 0) return 0
 
   // 모델별 p-chart 분석 및 위반 감지 (병렬 실행)
   type AlertRow = {
@@ -431,7 +436,7 @@ export async function generateAndUpsertAlerts(factoryId?: string): Promise<void>
   )
 
   const newAlerts = perModelResults.flat()
-  if (newAlerts.length === 0) return
+  if (newAlerts.length === 0) return 0
 
   // 기존 open 알림 정리 후 새 알림 삽입 (트랜잭션 보호)
   try {
@@ -443,7 +448,7 @@ export async function generateAndUpsertAlerts(factoryId?: string): Promise<void>
 
     if (deleteError) {
       console.error('[SPC] Failed to delete old alerts:', deleteError)
-      return
+      return 0
     }
 
     const { error: insertError } = await supabase
@@ -452,9 +457,13 @@ export async function generateAndUpsertAlerts(factoryId?: string): Promise<void>
 
     if (insertError) {
       console.error('[SPC] Failed to insert new alerts:', insertError)
+      return 0
     }
+
+    return newAlerts.length
   } catch (err) {
     console.error('[SPC] Alert generation failed:', err)
+    return 0
   }
 }
 

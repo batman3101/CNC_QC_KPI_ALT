@@ -179,10 +179,13 @@ export function PControlChart({
               stroke="hsl(var(--chart-2))"
               name={t('spc.chart.defectRate')}
               strokeWidth={2}
-              dot={({ cx, cy, payload }) => {
+              // Recharts renders one dot per data point as a list, so the
+              // element this returns needs its own key.
+              dot={({ cx, cy, index, payload }) => {
                 const isViolation = payload.is_violation
                 return (
                   <circle
+                    key={`p-dot-${payload.date ?? index}`}
                     cx={cx}
                     cy={cy}
                     r={isViolation ? 6 : 4}
