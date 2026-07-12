@@ -37,14 +37,22 @@ export function PControlChart({
 
   const violationCount = data.filter(d => d.is_violation).length
 
-  // 차트 데이터 포맷팅 (불량률을 퍼센트로 변환)
+  // 불량률을 퍼센트로 변환. 관리한계는 점마다 다르므로(표본 크기의 함수) 각
+  // 점이 자기 한계를 들고 다닌다 - 수평 상수선으로는 그릴 수 없다.
   const chartData = data.map(point => ({
     ...point,
     defect_rate_pct: point.defect_rate * 100,
-    ucl_pct: limits.ucl * 100,
-    lcl_pct: Math.max(0, limits.lcl) * 100,
-    cl_pct: limits.centerLine * 100,
+    ucl_pct: point.ucl * 100,
+    lcl_pct: point.lcl * 100,
   }))
+
+  // LCL이 모든 점에서 0이면(불량률이 낮아 p_bar - 3σ가 음수) 선을 그려도
+  // x축과 겹쳐 읽을 정보가 없다.
+  const hasLowerLimit = limits.lcl_max > 0
+
+  const pct = (v: number) => `${(v * 100).toFixed(2)}%`
+  const rangeLabel = (min: number, max: number) =>
+    min.toFixed(6) === max.toFixed(6) ? pct(min) : `${pct(min)} ~ ${pct(max)}`
 
   return (
     <Card className="shadow-md transition-all duration-300 ease-in-out hover:-translate-y-1 hover:shadow-lg">
@@ -105,6 +113,9 @@ export function PControlChart({
                       <span>{point.defect_count}</span>
                       <span className="text-muted-foreground">{t('spc.chart.sampleSize')}:</span>
                       <span>{point.sample_size}</span>
+                      {/* 이 점의 한계. 표본 크기에 따라 달라지므로 점마다 보여준다. */}
+                      <span className="text-muted-foreground">{t('spc.ucl')}:</span>
+                      <span>{point.ucl_pct.toFixed(2)}%</span>
                       {point.is_violation && (
                         <>
                           <span className="text-muted-foreground">{t('spc.chart.violation')}:</span>
@@ -129,46 +140,44 @@ export function PControlChart({
               />
             )}
 
-            {/* UCL Reference Line */}
-            <ReferenceLine
-              y={limits.ucl * 100}
-              stroke="hsl(var(--destructive))"
-              strokeDasharray="5 5"
-              strokeWidth={2}
-              label={{
-                value: `UCL: ${(limits.ucl * 100).toFixed(2)}%`,
-                position: 'right',
-                fill: 'hsl(var(--destructive))',
-                fontSize: 10,
-              }}
-            />
-
-            {/* Center Line */}
+            {/* Center Line — 표본 크기와 무관한 유일한 상수 */}
             <ReferenceLine
               y={limits.centerLine * 100}
               stroke="hsl(var(--chart-4))"
               strokeWidth={2}
               label={{
-                value: `CL: ${(limits.centerLine * 100).toFixed(2)}%`,
+                value: `CL: ${pct(limits.centerLine)}`,
                 position: 'right',
                 fill: 'hsl(var(--chart-4))',
                 fontSize: 10,
               }}
             />
 
-            {/* LCL Reference Line (only if > 0) */}
-            {limits.lcl > 0 && (
-              <ReferenceLine
-                y={limits.lcl * 100}
+            {/* UCL — 점마다 다르므로 계단선으로 그린다 */}
+            <Line
+              type="stepAfter"
+              dataKey="ucl_pct"
+              stroke="hsl(var(--destructive))"
+              strokeDasharray="5 5"
+              strokeWidth={2}
+              name={t('spc.ucl')}
+              dot={false}
+              activeDot={false}
+              isAnimationActive={false}
+            />
+
+            {/* LCL — 전부 0이면 x축과 겹치므로 생략 */}
+            {hasLowerLimit && (
+              <Line
+                type="stepAfter"
+                dataKey="lcl_pct"
                 stroke="hsl(var(--chart-1))"
                 strokeDasharray="5 5"
                 strokeWidth={2}
-                label={{
-                  value: `LCL: ${(limits.lcl * 100).toFixed(2)}%`,
-                  position: 'right',
-                  fill: 'hsl(var(--chart-1))',
-                  fontSize: 10,
-                }}
+                name={t('spc.lcl')}
+                dot={false}
+                activeDot={false}
+                isAnimationActive={false}
               />
             )}
 
@@ -200,20 +209,21 @@ export function PControlChart({
           </LineChart>
         </ResponsiveContainer>
 
-        {/* 관리한계 정보 */}
+        {/* 관리한계 정보. UCL/LCL은 표본 크기에 따라 변하므로 단일 값이 아니라
+            창(window) 내 범위를 보여준다. */}
         <div className="mt-4 flex flex-wrap gap-4 text-sm">
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full" style={{ backgroundColor: 'hsl(var(--destructive))' }} />
-            <span>{t('spc.ucl')}: {(limits.ucl * 100).toFixed(2)}%</span>
+            <span>{t('spc.ucl')}: {rangeLabel(limits.ucl_min, limits.ucl_max)}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="h-3 w-3 rounded-full" style={{ backgroundColor: 'hsl(var(--chart-4))' }} />
-            <span>{t('spc.cl')}: {(limits.centerLine * 100).toFixed(2)}%</span>
+            <span>{t('spc.cl')}: {pct(limits.centerLine)}</span>
           </div>
-          {limits.lcl > 0 && (
+          {hasLowerLimit && (
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full" style={{ backgroundColor: 'hsl(var(--chart-1))' }} />
-              <span>{t('spc.lcl')}: {(limits.lcl * 100).toFixed(2)}%</span>
+              <span>{t('spc.lcl')}: {rangeLabel(limits.lcl_min, limits.lcl_max)}</span>
             </div>
           )}
         </div>

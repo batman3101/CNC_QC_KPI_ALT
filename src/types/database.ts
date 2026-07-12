@@ -180,7 +180,9 @@ export type Database = {
         Row: {
           created_at: string
           defect_type: string
-          description: string
+          // Nullable: an auto-created defect has no description. The DB used to
+          // require one, which is why the code invented a Korean sentence.
+          description: string | null
           factory_id: string | null
           id: string
           inspection_id: string
@@ -191,7 +193,7 @@ export type Database = {
         Insert: {
           created_at?: string
           defect_type: string
-          description: string
+          description?: string | null
           factory_id?: string | null
           id?: string
           inspection_id: string
@@ -202,7 +204,7 @@ export type Database = {
         Update: {
           created_at?: string
           defect_type?: string
-          description?: string
+          description?: string | null
           factory_id?: string | null
           id?: string
           inspection_id?: string

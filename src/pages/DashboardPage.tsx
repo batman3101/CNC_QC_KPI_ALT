@@ -35,6 +35,7 @@ import { getMachines, getProductModels, getDefectTypes } from '@/services/manage
 
 // 날짜 유틸리티
 import { formatVietnamDateTime, formatDateString, toVietnamTime } from '@/lib/dateUtils'
+import { describeDefect } from '@/lib/defectDescription'
 
 // Factory Store
 import { useFactoryStore } from '@/stores/factoryStore'
@@ -475,7 +476,7 @@ export function DashboardPage() {
                         color="text.secondary"
                         gutterBottom
                       >
-                        {defect.description}
+                        {describeDefect(defect, t)}
                       </Typography>
                       <Typography variant="caption" color="text.disabled">
                         {formatVietnamDateTime(defect.created_at)}

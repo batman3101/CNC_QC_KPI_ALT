@@ -31,13 +31,16 @@ interface DefectEditDialogProps {
   defect: Defect | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (id: string, data: Record<string, string>) => void
+  onSave: (id: string, data: Record<string, string | null>) => void
 }
 
 function createFormSchema(t: (key: string) => string) {
   return z.object({
     defect_type: z.string().min(1, t('validation.selectDefectType')),
-    description: z.string().min(1, t('validation.required')),
+    // Optional: an auto-created defect has no description, and the common reason
+    // to open this dialog is to change the status. Requiring one would force the
+    // inspector to invent a sentence before they could resolve anything.
+    description: z.string(),
     model_id: z.string().min(1, t('validation.selectModel')),
     status: z.enum(['pending', 'in_progress', 'resolved']),
   })
@@ -115,7 +118,12 @@ export function DefectEditDialog({
 
   const onSubmit = (data: FormValues) => {
     if (!defect) return
-    const saveData: Record<string, string> = { ...data }
+    const saveData: Record<string, string | null> = {
+      ...data,
+      // Absent, not empty: the DB stores NULL when the inspector wrote nothing,
+      // so display code has a single case to handle.
+      description: data.description.trim() || null,
+    }
     if (photoUrl) saveData.photo_url = photoUrl
     onSave(defect.id, saveData)
     onOpenChange(false)

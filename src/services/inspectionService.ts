@@ -134,8 +134,20 @@ export interface DefectsPageParams {
   sort?: { key: string; direction: 'asc' | 'desc' } | null
 }
 
+/**
+ * A defect row plus the inspection quantity behind it.
+ *
+ * Auto-created defects carry no description: a machine-written sentence would
+ * have to be written in one language and would then be wrong for every user who
+ * does not read it. The quantity lives on the inspection, so the UI joins it and
+ * renders the sentence at display time in the reader's own language.
+ */
+export interface DefectListRow extends Defect {
+  inspection_defect_quantity: number | null
+}
+
 export interface DefectsPage {
-  rows: Defect[]
+  rows: DefectListRow[]
   /** Rows matching the filters across the whole table, not just this page. */
   totalCount: number
 }
@@ -158,7 +170,9 @@ export async function getDefectsPage(params: DefectsPageParams): Promise<Defects
 
   let query = supabase
     .from('defects')
-    .select('*', { count: 'exact' })
+    // The inspection quantity is joined so the UI can render a translated
+    // sentence for auto-created defects instead of the DB storing one.
+    .select('*, inspections(defect_quantity)', { count: 'exact' })
     .order(sortKey, { ascending })
     .range(from, to)
 
@@ -176,7 +190,17 @@ export async function getDefectsPage(params: DefectsPageParams): Promise<Defects
   const { data, error, count } = await query
   if (error) throw error
 
-  return { rows: data ?? [], totalCount: count ?? 0 }
+  const rows: DefectListRow[] = (data ?? []).map((row) => {
+    const { inspections, ...defect } = row as typeof row & {
+      inspections: { defect_quantity: number } | null
+    }
+    return {
+      ...(defect as unknown as Defect),
+      inspection_defect_quantity: inspections?.defect_quantity ?? null,
+    }
+  })
+
+  return { rows, totalCount: count ?? 0 }
 }
 
 export async function getDefectById(id: string): Promise<Defect | null> {
@@ -285,7 +309,10 @@ export async function submitInspection(data: InspectionSubmitData): Promise<{
       inspection_id: inspection.id,
       model_id: data.modelId,
       defect_type: data.defectType,
-      description: data.defectDescription || '검사 불합격',
+      // Only what the inspector actually typed. The old fallback wrote a Korean
+      // sentence into the DB, which no component-level i18n can undo - it is a
+      // persisted value, so every Vietnamese user read it in Korean forever.
+      description: data.defectDescription?.trim() || null,
       photo_url: data.photoUrl || null,
       status: 'pending',
       factory_id: data.factoryId || null,
@@ -469,7 +496,10 @@ export async function createInspectionRecord(data: InspectionRecordInput): Promi
       inspection_id: inspection.id,
       model_id: data.model_id,
       defect_type: data.defect_type_id,
-      description: `검사 불합격 - 불량 수량: ${data.defect_quantity}`,
+      // No machine-written prose. This used to persist a Korean sentence whose
+      // only content - the defect quantity - is already a column on the
+      // inspection row, so it added nothing and pinned the DB to one language.
+      description: null,
       photo_url: data.photo_url || null,
       status: 'pending',
       factory_id: data.factory_id || null,

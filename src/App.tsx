@@ -5,6 +5,7 @@ import { Suspense, lazy, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SnackbarProvider } from 'notistack'
 import { ThemeProvider } from '@/contexts/ThemeContext'
+import { isOnline } from '@/lib/network'
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { Layout } from '@/components/layout/Layout'
 import { LoginPage } from '@/pages/LoginPage'
@@ -33,6 +34,20 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
       retry: 1,
+      // Default is 'online', which does not merely fail a query while offline -
+      // it never calls the queryFn at all, parking the query in fetchStatus
+      // 'paused'. Every screen then sits on a loading spinner forever, and the
+      // services' offline fallbacks (which read the IndexedDB cache and would
+      // have answered fine) are never reached.
+      //
+      // 'offlineFirst' runs the queryFn once regardless, which is exactly right
+      // here: the reads the inspection form depends on can be served from cache
+      // without a network. Queries that genuinely need the server still fail,
+      // and refetchOnReconnect brings them back when the network returns.
+      //
+      // Mutations are deliberately left on 'online': they must reach the server,
+      // so pausing them until it is reachable is the correct behaviour.
+      networkMode: 'offlineFirst',
     },
   },
 })
@@ -82,12 +97,21 @@ function AppRoutes() {
         if (session?.user) {
           setUser(session.user)
           await loadProfile(session.user.id)
-        } else {
+        } else if (isOnline()) {
           logout()
+        } else {
+          // Offline with no readable session. Deliberately not logout(): that
+          // clears the persisted profile and the cached permissions, which are
+          // the only things that let this device work offline - and being
+          // offline, it could not fetch them back. Leave the stored state alone;
+          // the next start with a network restores the session.
+          console.warn('[Offline] No readable session at startup — keeping stored profile')
         }
       } catch (error) {
         console.error('Auth initialization error:', error)
-        logout()
+        // Same reasoning: a failure here while offline is a network failure, not
+        // a sign-out.
+        if (isOnline()) logout()
       } finally {
         setLoading(false)
       }

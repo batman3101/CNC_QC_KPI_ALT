@@ -1,10 +1,21 @@
 /**
  * Offline Database with Dexie (IndexedDB wrapper)
- * Stores inspections for offline use and caches reference data
+ *
+ * Holds two things:
+ *  - the queue of inspections entered on this device but not yet uploaded, and
+ *  - a cache of the reference data the inspection form needs to be fillable at
+ *    all (models, processes, inspection items, defect types, machines, users).
+ *
+ * The reference cache stores each row exactly as the server returns it. It used
+ * to keep a trimmed projection ({id, code, name, ...}), which meant a cached row
+ * could not be handed back to the UI in place of a real one - so nothing ever
+ * read the cache, and the whole thing was write-only.
  */
 
 import Dexie, { type Table } from 'dexie'
 import type { DefectPointEntry } from '@/types/spc'
+import type { Database } from '@/types/database'
+import type { DirectoryUser } from '@/services/userDirectoryService'
 
 // Offline inspection record type
 export interface OfflineInspection {
@@ -32,53 +43,20 @@ export interface OfflineInspection {
   retry_count: number
 }
 
-// Cached reference data types
-export interface CachedProductModel {
-  id: string
-  code: string
-  name: string
-  is_active: boolean
-  cached_at: string
-}
-
-export interface CachedInspectionProcess {
-  id: string
-  code: string
-  name: string
-  is_active: boolean
-  cached_at: string
-}
-
-export interface CachedDefectType {
-  id: string
-  code: string
-  name: string
-  severity: string
-  is_active: boolean
-  cached_at: string
-}
-
-export interface CachedMachine {
-  id: string
-  name: string
-  model: string | null
-  status: string
-  factory_id: string
-  cached_at: string
-}
-
-export interface CachedUser {
-  id: string
-  name: string
-  email: string
-  role: string
-  cached_at: string
-}
+// Reference data is cached as whole server rows, so a cached read is
+// indistinguishable from a live one to everything above the service layer.
+export type CachedProductModel = Database['public']['Tables']['product_models']['Row']
+export type CachedInspectionProcess = Database['public']['Tables']['inspection_processes']['Row']
+export type CachedInspectionItem = Database['public']['Tables']['inspection_items']['Row']
+export type CachedDefectType = Database['public']['Tables']['defect_types']['Row']
+export type CachedMachine = Database['public']['Tables']['machines']['Row']
+export type CachedUser = DirectoryUser
 
 class OfflineDatabase extends Dexie {
   offlineInspections!: Table<OfflineInspection>
   productModels!: Table<CachedProductModel>
   inspectionProcesses!: Table<CachedInspectionProcess>
+  inspectionItems!: Table<CachedInspectionItem>
   defectTypes!: Table<CachedDefectType>
   machines!: Table<CachedMachine>
   users!: Table<CachedUser>
@@ -94,6 +72,37 @@ class OfflineDatabase extends Dexie {
       machines: 'id, name, status, factory_id',
       users: 'id, email, role',
     })
+
+    // v3 changes what a cached row *is* (whole row, not a projection) and adds
+    // the two tables the form also needs but that were never cached:
+    // inspection_items and users.
+    //
+    // Note the indexes no longer mention is_active. IndexedDB cannot use a
+    // boolean as a key, so that index silently held nothing - which is why the
+    // old cache getters queried `.where('is_active').equals(1)` and always came
+    // back empty.
+    this.version(3)
+      .stores({
+        offlineInspections: 'id, status, created_at, inspector_id, factory_id',
+        productModels: 'id, code',
+        inspectionProcesses: 'id, code',
+        inspectionItems: 'id, model_id',
+        defectTypes: 'id, code',
+        machines: 'id, name, factory_id',
+        users: 'id, role',
+      })
+      .upgrade(async (tx) => {
+        // The v2 rows are trimmed projections. Handing one to the UI would give
+        // it a half-built object, so drop them; the next online run refills the
+        // cache with whole rows. The inspection queue is untouched.
+        await Promise.all([
+          tx.table('productModels').clear(),
+          tx.table('inspectionProcesses').clear(),
+          tx.table('defectTypes').clear(),
+          tx.table('machines').clear(),
+          tx.table('users').clear(),
+        ])
+      })
   }
 }
 
@@ -104,36 +113,9 @@ export function generateOfflineId(): string {
   return `offline_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`
 }
 
-// Clear all cached data
-export async function clearAllCachedData(): Promise<void> {
-  await Promise.all([
-    offlineDb.productModels.clear(),
-    offlineDb.inspectionProcesses.clear(),
-    offlineDb.defectTypes.clear(),
-    offlineDb.machines.clear(),
-    offlineDb.users.clear(),
-  ])
-}
-
-// Get pending inspections
-export async function getPendingInspections(): Promise<OfflineInspection[]> {
-  return offlineDb.offlineInspections
-    .where('status')
-    .anyOf(['pending', 'error'])
-    .toArray()
-}
-
-// Get synced inspections (for display)
-export async function getSyncedInspections(): Promise<OfflineInspection[]> {
-  return offlineDb.offlineInspections
-    .where('status')
-    .equals('synced')
-    .reverse()
-    .limit(50)
-    .toArray()
-}
-
-// Delete synced inspections older than 7 days
+// Delete synced inspections older than 7 days. Called at the end of every
+// successful sync - without it the queue is append-only and IndexedDB grows for
+// as long as the tablet stays installed.
 export async function cleanupSyncedInspections(): Promise<number> {
   const sevenDaysAgo = new Date()
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)

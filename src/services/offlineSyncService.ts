@@ -6,21 +6,19 @@
 import {
   offlineDb,
   generateOfflineId,
+  cleanupSyncedInspections,
   type OfflineInspection,
-  type CachedProductModel,
-  type CachedInspectionProcess,
-  type CachedDefectType,
-  type CachedMachine,
 } from '@/lib/offlineDb'
 import * as inspectionService from '@/services/inspectionService'
 import * as managementService from '@/services/managementService'
+import { isOnline } from '@/lib/network'
 import type { DefectPointEntry } from '@/types/spc'
 import imageCompression from 'browser-image-compression'
 
-// Check online status
-export function isOnline(): boolean {
-  return navigator.onLine
-}
+// isOnline moved to lib/network so managementService can consult it without
+// importing this module, which imports managementService. Re-exported here so
+// existing callers keep working.
+export { isOnline }
 
 // Input type for creating offline inspection
 export interface OfflineInspectionInput {
@@ -202,11 +200,14 @@ async function runSync(): Promise<{
         })
       }
 
-      // Mark as synced
+      // Mark as synced. The photo is now in Supabase Storage, so drop the local
+      // Base64 copy - it is the bulkiest field on the row (up to ~0.5MB) and
+      // keeping it duplicates what the server already has.
       await offlineDb.offlineInspections.update(inspection.id, {
         status: 'synced',
         synced_at: new Date().toISOString(),
         error_message: null,
+        photo_data: null,
       })
 
       success++
@@ -219,6 +220,20 @@ async function runSync(): Promise<{
       })
       failed++
       errors.push(`${inspection.id}: ${errorMessage}`)
+    }
+  }
+
+  // Synced rows were marked and then kept forever: nothing ever called the
+  // cleanup, so IndexedDB grew without bound on a shared factory tablet.
+  if (success > 0) {
+    try {
+      const removed = await cleanupSyncedInspections()
+      if (removed > 0) {
+        console.info(`[OfflineSync] Removed ${removed} synced record(s) older than 7 days`)
+      }
+    } catch (error) {
+      // Housekeeping must never fail the sync it follows.
+      console.warn('[OfflineSync] Cleanup of old synced records failed:', error)
     }
   }
 
@@ -252,51 +267,22 @@ export function cacheReferenceData(factoryId?: string): Promise<void> {
 
 async function runCacheReferenceData(factoryId?: string): Promise<void> {
   try {
-    const now = new Date().toISOString()
-
     // Fetch all reference data in parallel. This must complete before the
     // transaction below opens: awaiting a non-Dexie promise inside a Dexie
     // transaction commits it early.
-    const [models, processes, defectTypes, machines] = await Promise.all([
+    //
+    // inspectionItems and users are new here. Without them the form could pick a
+    // model offline but not measure anything against it, and an admin could not
+    // choose which inspector the record belongs to - so caching the other four
+    // still left the page unusable.
+    const [models, processes, items, defectTypes, machines, users] = await Promise.all([
       managementService.getProductModels(),
       managementService.getInspectionProcesses(),
+      managementService.getInspectionItems(),
       managementService.getDefectTypesRows(),
       managementService.getMachines(factoryId),
+      managementService.getUsers(),
     ])
-
-    const cachedModels = models.map((m): CachedProductModel => ({
-      id: m.id,
-      code: m.code,
-      name: m.name,
-      is_active: true, // product_models don't have is_active, assume all are active
-      cached_at: now,
-    }))
-
-    const cachedProcesses = processes.map((p): CachedInspectionProcess => ({
-      id: p.id,
-      code: p.code,
-      name: p.name,
-      is_active: p.is_active,
-      cached_at: now,
-    }))
-
-    const cachedDefectTypes = defectTypes.map((d): CachedDefectType => ({
-      id: d.id,
-      code: d.code,
-      name: d.name,
-      severity: d.severity,
-      is_active: d.is_active,
-      cached_at: now,
-    }))
-
-    const cachedMachines = machines.map((m): CachedMachine => ({
-      id: m.id,
-      name: m.name,
-      model: m.model || null,
-      status: m.status,
-      factory_id: (m as unknown as { factory_id?: string }).factory_id || factoryId || '',
-      cached_at: now,
-    }))
 
     // One transaction for the whole swap: clear() and the repopulate used to be
     // separate transactions, so a second run could insert rows in between and
@@ -305,71 +291,40 @@ async function runCacheReferenceData(factoryId?: string): Promise<void> {
     // duplicate id.
     await offlineDb.transaction(
       'rw',
-      offlineDb.productModels,
-      offlineDb.inspectionProcesses,
-      offlineDb.defectTypes,
-      offlineDb.machines,
+      [
+        offlineDb.productModels,
+        offlineDb.inspectionProcesses,
+        offlineDb.inspectionItems,
+        offlineDb.defectTypes,
+        offlineDb.machines,
+        offlineDb.users,
+      ],
       async () => {
         await offlineDb.productModels.clear()
-        await offlineDb.productModels.bulkPut(cachedModels)
+        await offlineDb.productModels.bulkPut(models)
 
         await offlineDb.inspectionProcesses.clear()
-        await offlineDb.inspectionProcesses.bulkPut(cachedProcesses)
+        await offlineDb.inspectionProcesses.bulkPut(processes)
+
+        await offlineDb.inspectionItems.clear()
+        await offlineDb.inspectionItems.bulkPut(items)
 
         await offlineDb.defectTypes.clear()
-        await offlineDb.defectTypes.bulkPut(cachedDefectTypes)
+        await offlineDb.defectTypes.bulkPut(defectTypes)
 
         await offlineDb.machines.clear()
-        await offlineDb.machines.bulkPut(cachedMachines)
+        await offlineDb.machines.bulkPut(machines)
+
+        await offlineDb.users.clear()
+        await offlineDb.users.bulkPut(users)
       }
     )
 
-    console.log('[OfflineSync] Reference data cached successfully')
+    console.log(
+      `[OfflineSync] Reference data cached: ${models.length} models, ${processes.length} processes, ` +
+        `${items.length} items, ${defectTypes.length} defect types, ${machines.length} machines, ${users.length} users`
+    )
   } catch (error) {
     console.error('[OfflineSync] Failed to cache reference data:', error)
   }
-}
-
-// Get cached product models
-export async function getCachedProductModels(): Promise<CachedProductModel[]> {
-  return offlineDb.productModels
-    .where('is_active')
-    .equals(1)
-    .toArray()
-}
-
-// Get cached inspection processes
-export async function getCachedInspectionProcesses(): Promise<CachedInspectionProcess[]> {
-  return offlineDb.inspectionProcesses
-    .where('is_active')
-    .equals(1)
-    .toArray()
-}
-
-// Get cached defect types
-export async function getCachedDefectTypes(): Promise<CachedDefectType[]> {
-  return offlineDb.defectTypes
-    .where('is_active')
-    .equals(1)
-    .toArray()
-}
-
-// Get cached machines
-export async function getCachedMachines(factoryId?: string): Promise<CachedMachine[]> {
-  if (factoryId) {
-    return offlineDb.machines.where('factory_id').equals(factoryId).toArray()
-  }
-  return offlineDb.machines.toArray()
-}
-
-// Check if reference data is cached
-export async function hasReferenceData(): Promise<boolean> {
-  const count = await offlineDb.productModels.count()
-  return count > 0
-}
-
-// Get cache timestamp
-export async function getCacheTimestamp(): Promise<string | null> {
-  const model = await offlineDb.productModels.limit(1).first()
-  return model?.cached_at || null
 }

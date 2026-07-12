@@ -1,549 +1,121 @@
 /**
  * SPC 통계 계산 유틸리티
  * Statistical Process Control calculations
+ *
+ * 이 앱의 SPC는 p-chart(불량률 관리도) 하나만 다룬다. np / X-mR / X-bar R
+ * 계산기와 Cpk(공정능력) 체인도 한때 있었으나 어느 화면에서도 호출하지 않아
+ * 제거했다. 다시 필요해지면 git 이력에서 되살릴 것.
  */
 
-import type {
-  CapabilityRating,
-  ProcessCapability,
-  SPCStatistics,
-  SPCViolation,
-  PChartLimits,
-} from '@/types/spc'
+import type { PChartLimits, SPCViolation } from '@/types/spc'
 
 // ============================================
-// 1. 기본 통계 함수
+// 1. p-chart 관리한계
 // ============================================
 
-/**
- * 평균 계산
- */
-export function mean(values: number[]): number {
-  if (values.length === 0) return 0
-  return values.reduce((sum, v) => sum + v, 0) / values.length
-}
-
-/**
- * 표준편차 계산 (모집단)
- */
-export function standardDeviation(values: number[]): number {
-  if (values.length === 0) return 0
-  const avg = mean(values)
-  const squaredDiffs = values.map(v => Math.pow(v - avg, 2))
-  return Math.sqrt(mean(squaredDiffs))
-}
-
-/**
- * 표준편차 계산 (표본) - n-1
- */
-export function sampleStandardDeviation(values: number[]): number {
-  if (values.length <= 1) return 0
-  const avg = mean(values)
-  const squaredDiffs = values.map(v => Math.pow(v - avg, 2))
-  return Math.sqrt(squaredDiffs.reduce((sum, v) => sum + v, 0) / (values.length - 1))
-}
-
-/**
- * 이동 범위 계산
- */
-export function movingRanges(values: number[]): number[] {
-  if (values.length <= 1) return []
-  const ranges: number[] = []
-  for (let i = 1; i < values.length; i++) {
-    ranges.push(Math.abs(values[i] - values[i - 1]))
-  }
-  return ranges
-}
-
-/**
- * 이동 범위 평균 (MR-bar)
- */
-export function movingRangeAverage(values: number[]): number {
-  const ranges = movingRanges(values)
-  return mean(ranges)
-}
-
-/**
- * 범위 (R) 계산
- */
-export function range(values: number[]): number {
-  if (values.length === 0) return 0
-  return Math.max(...values) - Math.min(...values)
-}
-
-/**
- * 중앙값 계산
- */
-export function median(values: number[]): number {
-  if (values.length === 0) return 0
-  const sorted = [...values].sort((a, b) => a - b)
-  const mid = Math.floor(sorted.length / 2)
-  return sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2
-}
-
-// ============================================
-// 2. SPC 상수
-// ============================================
-
-/**
- * d2 상수 (서브그룹 크기별) - 이동범위 기반 시그마 추정
- */
-export function getD2Constant(subgroupSize: number): number {
-  const d2Table: Record<number, number> = {
-    2: 1.128,
-    3: 1.693,
-    4: 2.059,
-    5: 2.326,
-    6: 2.534,
-    7: 2.704,
-    8: 2.847,
-    9: 2.970,
-    10: 3.078,
-  }
-  return d2Table[subgroupSize] || 1.128
-}
-
-/**
- * d3 상수
- */
-export function getD3Constant(subgroupSize: number): number {
-  const d3Table: Record<number, number> = {
-    2: 0.853,
-    3: 0.888,
-    4: 0.880,
-    5: 0.864,
-    6: 0.848,
-    7: 0.833,
-    8: 0.820,
-    9: 0.808,
-    10: 0.797,
-  }
-  return d3Table[subgroupSize] || 0.853
-}
-
-/**
- * A2 상수 (X-bar R용)
- */
-export function getA2Constant(subgroupSize: number): number {
-  const a2Table: Record<number, number> = {
-    2: 1.880,
-    3: 1.023,
-    4: 0.729,
-    5: 0.577,
-    6: 0.483,
-    7: 0.419,
-    8: 0.373,
-    9: 0.337,
-    10: 0.308,
-  }
-  return a2Table[subgroupSize] || 1.880
-}
-
-/**
- * D3, D4 상수 (R 차트용)
- */
-export function getD3D4Constants(subgroupSize: number): { D3: number; D4: number } {
-  const d3d4Table: Record<number, { D3: number; D4: number }> = {
-    2: { D3: 0, D4: 3.267 },
-    3: { D3: 0, D4: 2.574 },
-    4: { D3: 0, D4: 2.282 },
-    5: { D3: 0, D4: 2.114 },
-    6: { D3: 0, D4: 2.004 },
-    7: { D3: 0.076, D4: 1.924 },
-    8: { D3: 0.136, D4: 1.864 },
-    9: { D3: 0.184, D4: 1.816 },
-    10: { D3: 0.223, D4: 1.777 },
-  }
-  return d3d4Table[subgroupSize] || { D3: 0, D4: 3.267 }
-}
-
-// ============================================
-// 3. 관리한계 계산
-// ============================================
-
-/**
- * p-chart 관리한계 계산 (불량률)
- */
-export function calculatePChartLimits(data: {
+/** 하루치 표본 */
+export interface PChartSample {
   defect_count: number
   sample_size: number
-}[]): PChartLimits {
-  if (data.length === 0) {
-    return { p_bar: 0, ucl: 0, lcl: 0, centerLine: 0 }
-  }
-
-  // 전체 불량률 계산
-  const totalDefects = data.reduce((sum, d) => sum + d.defect_count, 0)
-  const totalSamples = data.reduce((sum, d) => sum + d.sample_size, 0)
-  const p_bar = totalSamples > 0 ? totalDefects / totalSamples : 0
-
-  // 평균 샘플 크기
-  const avgSampleSize = totalSamples / data.length
-
-  // 관리한계 계산 (3-시그마)
-  const sigma = Math.sqrt((p_bar * (1 - p_bar)) / avgSampleSize)
-  const ucl = p_bar + 3 * sigma
-  const lcl = Math.max(0, p_bar - 3 * sigma) // 음수 방지
-
-  return {
-    p_bar,
-    ucl,
-    lcl,
-    centerLine: p_bar,
-  }
 }
 
-/**
- * np-chart 관리한계 계산 (불량 개수)
- */
-export function calculateNPChartLimits(data: {
-  defect_count: number
-  sample_size: number
-}[]): {
-  np_bar: number
+/** 한 점의 관리한계 */
+export interface PChartPointLimits {
   ucl: number
   lcl: number
-  centerLine: number
-} {
-  if (data.length === 0) {
-    return { np_bar: 0, ucl: 0, lcl: 0, centerLine: 0 }
-  }
-
-  // 평균 샘플 크기 (일정해야 함)
-  const n = mean(data.map(d => d.sample_size))
-
-  // 평균 불량 개수
-  const np_bar = mean(data.map(d => d.defect_count))
-
-  // p-bar 계산
-  const p_bar = np_bar / n
-
-  // 관리한계
-  const sigma = Math.sqrt(np_bar * (1 - p_bar))
-  const ucl = np_bar + 3 * sigma
-  const lcl = Math.max(0, np_bar - 3 * sigma)
-
-  return {
-    np_bar,
-    ucl,
-    lcl,
-    centerLine: np_bar,
-  }
-}
-
-/**
- * X-MR 관리한계 계산 (개별값 + 이동범위)
- */
-export function calculateXMRLimits(values: number[]): {
-  x: { ucl: number; cl: number; lcl: number }
-  mr: { ucl: number; cl: number; lcl: number }
-  mean: number
-  mrBar: number
-  sigmaEstimate: number
-} {
-  if (values.length < 2) {
-    return {
-      x: { ucl: 0, cl: 0, lcl: 0 },
-      mr: { ucl: 0, cl: 0, lcl: 0 },
-      mean: 0,
-      mrBar: 0,
-      sigmaEstimate: 0,
-    }
-  }
-
-  const xBar = mean(values)
-  const mrBar = movingRangeAverage(values)
-  const d2 = getD2Constant(2) // 이동범위는 항상 n=2
-
-  // 시그마 추정
-  const sigmaEstimate = mrBar / d2
-
-  // X 차트 관리한계
-  const xUcl = xBar + 3 * sigmaEstimate
-  const xLcl = xBar - 3 * sigmaEstimate
-
-  // MR 차트 관리한계
-  const { D3, D4 } = getD3D4Constants(2)
-  const mrUcl = D4 * mrBar
-  const mrLcl = D3 * mrBar
-
-  return {
-    x: { ucl: xUcl, cl: xBar, lcl: xLcl },
-    mr: { ucl: mrUcl, cl: mrBar, lcl: mrLcl },
-    mean: xBar,
-    mrBar,
-    sigmaEstimate,
-  }
-}
-
-/**
- * X-bar R 관리한계 계산 (서브그룹)
- */
-export function calculateXBarRLimits(subgroups: number[][]): {
-  xBar: { ucl: number; cl: number; lcl: number }
-  r: { ucl: number; cl: number; lcl: number }
-  xDoubleBar: number
-  rBar: number
-  sigmaEstimate: number
-} {
-  if (subgroups.length === 0 || subgroups[0].length === 0) {
-    return {
-      xBar: { ucl: 0, cl: 0, lcl: 0 },
-      r: { ucl: 0, cl: 0, lcl: 0 },
-      xDoubleBar: 0,
-      rBar: 0,
-      sigmaEstimate: 0,
-    }
-  }
-
-  const n = subgroups[0].length // 서브그룹 크기
-  const subgroupMeans = subgroups.map(sg => mean(sg))
-  const subgroupRanges = subgroups.map(sg => range(sg))
-
-  const xDoubleBar = mean(subgroupMeans)
-  const rBar = mean(subgroupRanges)
-
-  // 상수
-  const A2 = getA2Constant(n)
-  const { D3, D4 } = getD3D4Constants(n)
-  const d2 = getD2Constant(n)
-
-  // 시그마 추정
-  const sigmaEstimate = rBar / d2
-
-  // X-bar 차트 관리한계
-  const xBarUcl = xDoubleBar + A2 * rBar
-  const xBarLcl = xDoubleBar - A2 * rBar
-
-  // R 차트 관리한계
-  const rUcl = D4 * rBar
-  const rLcl = D3 * rBar
-
-  return {
-    xBar: { ucl: xBarUcl, cl: xDoubleBar, lcl: xBarLcl },
-    r: { ucl: rUcl, cl: rBar, lcl: rLcl },
-    xDoubleBar,
-    rBar,
-    sigmaEstimate,
-  }
-}
-
-// ============================================
-// 4. 공정능력지수 계산
-// ============================================
-
-/**
- * Cp 계산
- */
-export function calculateCp(usl: number, lsl: number, sigma: number): number {
-  if (sigma === 0) return 0
-  return (usl - lsl) / (6 * sigma)
-}
-
-/**
- * Cpk 계산
- */
-export function calculateCpk(
-  usl: number,
-  lsl: number,
-  mean: number,
   sigma: number
-): { cpk: number; cpl: number; cpu: number } {
-  if (sigma === 0) return { cpk: 0, cpl: 0, cpu: 0 }
-
-  const cpu = (usl - mean) / (3 * sigma)
-  const cpl = (mean - lsl) / (3 * sigma)
-  const cpk = Math.min(cpu, cpl)
-
-  return { cpk, cpl, cpu }
 }
 
 /**
- * Pp/Ppk 계산 (장기 공정능력)
+ * 중심선 p-bar = 전체 불량 수 / 전체 검사 수
+ *
+ * 일별 불량률의 단순 평균이 아니다. 검사량이 적은 날과 많은 날의 불량률에
+ * 같은 가중치를 주면 중심선이 왜곡된다.
  */
-export function calculatePpk(
-  usl: number,
-  lsl: number,
-  dataMean: number,
-  overallSigma: number
-): { pp: number; ppk: number } {
-  if (overallSigma === 0) return { pp: 0, ppk: 0 }
-
-  const pp = (usl - lsl) / (6 * overallSigma)
-  const ppu = (usl - dataMean) / (3 * overallSigma)
-  const ppl = (dataMean - lsl) / (3 * overallSigma)
-  const ppk = Math.min(ppu, ppl)
-
-  return { pp, ppk }
+export function calculatePBar(samples: PChartSample[]): number {
+  const totalDefects = samples.reduce((sum, s) => sum + s.defect_count, 0)
+  const totalSamples = samples.reduce((sum, s) => sum + s.sample_size, 0)
+  return totalSamples > 0 ? totalDefects / totalSamples : 0
 }
 
 /**
- * 공정능력 등급 판정
+ * 한 점의 3-시그마 관리한계.
+ *
+ * p-chart의 시그마는 그 점의 표본 크기에 따라 달라진다:
+ *   sigma_i = sqrt(p_bar * (1 - p_bar) / n_i)
+ *
+ * 따라서 관리한계는 수평선이 아니라 계단이다. 예전 구현은 평균 표본 크기로
+ * 시그마를 한 번만 계산해 모든 점에 같은 한계를 적용했는데, 이는 검사량이
+ * 많은 날에는 한계를 실제보다 헐겁게 만들어 진짜 이상을 놓치고, 적은 날에는
+ * 지나치게 빡빡하게 만들어 없는 이상을 만들어냈다.
  */
-export function getCapabilityRating(cpk: number): {
-  rating: CapabilityRating
-  description: string
-  color: string
-} {
-  if (cpk >= 1.67) {
-    return { rating: 'excellent', description: 'Excellent (Cpk >= 1.67)', color: '#22c55e' }
-  } else if (cpk >= 1.33) {
-    return { rating: 'good', description: 'Good (1.33 <= Cpk < 1.67)', color: '#3b82f6' }
-  } else if (cpk >= 1.0) {
-    return { rating: 'adequate', description: 'Adequate (1.0 <= Cpk < 1.33)', color: '#eab308' }
-  } else if (cpk >= 0.67) {
-    return { rating: 'poor', description: 'Poor (0.67 <= Cpk < 1.0)', color: '#f97316' }
-  } else {
-    return { rating: 'inadequate', description: 'Inadequate (Cpk < 0.67)', color: '#ef4444' }
-  }
-}
-
-/**
- * 예상 불량률 계산 (PPM)
- * Z-score 기반 정규분포 누적확률 근사
- */
-export function calculateExpectedDefectRate(cpk: number): { ppm: number; percent: number } {
-  // Cpk to Z-score: Z = 3 * Cpk
-  const z = 3 * cpk
-
-  // 정규분포 누적확률 근사 (Zelen & Severo)
-  function normalCDF(x: number): number {
-    const a1 = 0.254829592
-    const a2 = -0.284496736
-    const a3 = 1.421413741
-    const a4 = -1.453152027
-    const a5 = 1.061405429
-    const p = 0.3275911
-
-    const sign = x < 0 ? -1 : 1
-    x = Math.abs(x) / Math.sqrt(2)
-
-    const t = 1.0 / (1.0 + p * x)
-    const y = 1.0 - ((((a5 * t + a4) * t + a3) * t + a2) * t + a1) * t * Math.exp(-x * x)
-
-    return 0.5 * (1.0 + sign * y)
+export function calculatePChartPointLimits(
+  pBar: number,
+  sampleSize: number
+): PChartPointLimits {
+  // 표본이 없는 날은 신호를 낼 수 없다. 시그마를 0으로 두면 z도 0이 되어
+  // 어떤 규칙에도 걸리지 않는다.
+  if (sampleSize <= 0) {
+    return { ucl: 1, lcl: 0, sigma: 0 }
   }
 
-  // 한쪽 꼬리 불량률 (양쪽 고려)
-  const tailProbability = 1 - normalCDF(z)
-  const defectRate = 2 * tailProbability // 양쪽 꼬리
-
-  const ppm = defectRate * 1000000
-  const percent = defectRate * 100
-
-  return { ppm, percent }
-}
-
-/**
- * 전체 공정능력 계산
- */
-export function calculateProcessCapability(
-  values: number[],
-  usl: number,
-  lsl: number,
-  sigmaEstimate?: number
-): ProcessCapability {
-  const dataMean = mean(values)
-  const sigma = sigmaEstimate ?? sampleStandardDeviation(values)
-
-  const cp = calculateCp(usl, lsl, sigma)
-  const { cpk, cpl, cpu } = calculateCpk(usl, lsl, dataMean, sigma)
-  const { pp, ppk } = calculatePpk(usl, lsl, dataMean, standardDeviation(values))
-
-  const { rating, description } = getCapabilityRating(cpk)
-  const { ppm, percent } = calculateExpectedDefectRate(cpk)
+  const sigma = Math.sqrt((pBar * (1 - pBar)) / sampleSize)
 
   return {
-    cp,
-    cpk,
-    cpl,
-    cpu,
-    pp,
-    ppk,
-    rating,
-    rating_description: description,
-    expected_defect_ppm: ppm,
-    expected_defect_percent: percent,
+    ucl: Math.min(1, pBar + 3 * sigma),
+    lcl: Math.max(0, pBar - 3 * sigma), // 불량률은 음수가 될 수 없다
+    sigma,
   }
 }
 
-// ============================================
-// 5. 통계 요약
-// ============================================
-
 /**
- * SPC 통계 요약 계산
+ * 표준화 값 z_i = (p_i - p_bar) / sigma_i
+ *
+ * 시그마가 0이면(불량이 전혀 없거나 표본이 없는 경우) 편차를 잴 척도가 없다.
+ * 0을 돌려주어 중심선 위에 있는 것으로 취급한다.
  */
-export function calculateSPCStatistics(
-  values: number[],
-  usl?: number,
-  lsl?: number,
-  ucl?: number,
-  lcl?: number
-): SPCStatistics {
-  if (values.length === 0) {
-    return {
-      count: 0,
-      mean: 0,
-      std_dev: 0,
-      min: 0,
-      max: 0,
-      range: 0,
-      median: 0,
-      within_spec_count: 0,
-      within_spec_percent: 0,
-      within_control_count: 0,
-      within_control_percent: 0,
-    }
+export function standardizePChartValue(
+  defectRate: number,
+  pBar: number,
+  sigma: number
+): number {
+  if (sigma === 0) return 0
+  return (defectRate - pBar) / sigma
+}
+
+/** 점별 한계의 최소/최대 — 축 스케일과 요약 표시용 */
+export function summarizePChartLimits(
+  pBar: number,
+  pointLimits: PChartPointLimits[]
+): PChartLimits {
+  if (pointLimits.length === 0) {
+    return { p_bar: pBar, centerLine: pBar, ucl_min: pBar, ucl_max: pBar, lcl_min: pBar, lcl_max: pBar }
   }
 
-  const count = values.length
-  const avg = mean(values)
-  const stdDev = sampleStandardDeviation(values)
-  const minVal = Math.min(...values)
-  const maxVal = Math.max(...values)
-  const rangeVal = maxVal - minVal
-  const medianVal = median(values)
-
-  // 규격 내 개수
-  let withinSpecCount = count
-  if (usl !== undefined && lsl !== undefined) {
-    withinSpecCount = values.filter(v => v >= lsl && v <= usl).length
-  }
-
-  // 관리한계 내 개수
-  let withinControlCount = count
-  if (ucl !== undefined && lcl !== undefined) {
-    withinControlCount = values.filter(v => v >= lcl && v <= ucl).length
-  }
+  const ucls = pointLimits.map(l => l.ucl)
+  const lcls = pointLimits.map(l => l.lcl)
 
   return {
-    count,
-    mean: avg,
-    std_dev: stdDev,
-    min: minVal,
-    max: maxVal,
-    range: rangeVal,
-    median: medianVal,
-    within_spec_count: withinSpecCount,
-    within_spec_percent: (withinSpecCount / count) * 100,
-    within_control_count: withinControlCount,
-    within_control_percent: (withinControlCount / count) * 100,
+    p_bar: pBar,
+    centerLine: pBar,
+    ucl_min: Math.min(...ucls),
+    ucl_max: Math.max(...ucls),
+    lcl_min: Math.min(...lcls),
+    lcl_max: Math.max(...lcls),
   }
 }
 
 // ============================================
-// 6. Nelson Rules 위반 감지
+// 2. Nelson Rules
 // ============================================
+//
+// 규칙 8개는 모두 "중심선에서 시그마 몇 배" 단위로 서술되어 있어 시그마가
+// 일정하다고 가정한다. p-chart는 표본 크기가 변하면 시그마도 변하므로, 규칙을
+// 원래 불량률에 그대로 적용할 수 없다. 대신 표준화 계열 z 위에서 돌린다:
+// 그러면 중심선은 0, 3-시그마 한계는 ±3으로 모든 점에서 동일해진다.
 
-/**
- * Rule 1: 한 점이 관리한계 밖
- */
-export function checkRule1OutOfLimits(
-  points: number[],
-  ucl: number,
-  lcl: number
-): SPCViolation[] {
+/** Rule 1: 한 점이 관리한계 밖 */
+function checkRule1OutOfLimits(points: number[], ucl: number, lcl: number): SPCViolation[] {
   const violations: SPCViolation[] = []
 
   points.forEach((value, index) => {
@@ -571,14 +143,8 @@ export function checkRule1OutOfLimits(
   return violations
 }
 
-/**
- * Rule 2: 연속 N점이 중심선 한쪽 (기본 7점)
- */
-export function checkRule2Run(
-  points: number[],
-  cl: number,
-  consecutiveCount: number = 7
-): SPCViolation[] {
+/** Rule 2: 연속 N점이 중심선 한쪽 (기본 7점) */
+function checkRule2Run(points: number[], cl: number, consecutiveCount = 7): SPCViolation[] {
   const violations: SPCViolation[] = []
 
   if (points.length < consecutiveCount) return violations
@@ -612,13 +178,8 @@ export function checkRule2Run(
   return violations
 }
 
-/**
- * Rule 3: 연속 N점 증가 또는 감소 (기본 6점)
- */
-export function checkRule3Trend(
-  points: number[],
-  consecutiveCount: number = 6
-): SPCViolation[] {
+/** Rule 3: 연속 N점 증가 또는 감소 (기본 6점) */
+function checkRule3Trend(points: number[], consecutiveCount = 6): SPCViolation[] {
   const violations: SPCViolation[] = []
 
   if (points.length < consecutiveCount) return violations
@@ -658,12 +219,8 @@ export function checkRule3Trend(
   return violations
 }
 
-/**
- * Rule 4: 연속 14점 교대로 증감
- */
-export function checkRule4Alternating(
-  points: number[]
-): SPCViolation[] {
+/** Rule 4: 연속 14점 교대로 증감 */
+function checkRule4Alternating(points: number[]): SPCViolation[] {
   const violations: SPCViolation[] = []
   const consecutiveCount = 14
 
@@ -698,14 +255,8 @@ export function checkRule4Alternating(
   return violations
 }
 
-/**
- * Rule 5: 3점 중 2점이 2시그마 밖 (같은 방향)
- */
-export function checkRule5TwoOfThree(
-  points: number[],
-  cl: number,
-  sigma: number
-): SPCViolation[] {
+/** Rule 5: 3점 중 2점이 2시그마 밖 (같은 방향) */
+function checkRule5TwoOfThree(points: number[], cl: number, sigma: number): SPCViolation[] {
   const violations: SPCViolation[] = []
 
   if (points.length < 3) return violations
@@ -743,14 +294,8 @@ export function checkRule5TwoOfThree(
   return violations
 }
 
-/**
- * Rule 6: 5점 중 4점이 1시그마 밖 (같은 방향)
- */
-export function checkRule6FourOfFive(
-  points: number[],
-  cl: number,
-  sigma: number
-): SPCViolation[] {
+/** Rule 6: 5점 중 4점이 1시그마 밖 (같은 방향) */
+function checkRule6FourOfFive(points: number[], cl: number, sigma: number): SPCViolation[] {
   const violations: SPCViolation[] = []
 
   if (points.length < 5) return violations
@@ -788,14 +333,8 @@ export function checkRule6FourOfFive(
   return violations
 }
 
-/**
- * Rule 7: 연속 15점이 1시그마 내 (Stratification)
- */
-export function checkRule7Stratification(
-  points: number[],
-  cl: number,
-  sigma: number
-): SPCViolation[] {
+/** Rule 7: 연속 15점이 1시그마 내 (Stratification) */
+function checkRule7Stratification(points: number[], cl: number, sigma: number): SPCViolation[] {
   const violations: SPCViolation[] = []
   const consecutiveCount = 15
 
@@ -824,14 +363,8 @@ export function checkRule7Stratification(
   return violations
 }
 
-/**
- * Rule 8: 연속 8점이 1시그마 밖 (양쪽, Mixture)
- */
-export function checkRule8Mixture(
-  points: number[],
-  cl: number,
-  sigma: number
-): SPCViolation[] {
+/** Rule 8: 연속 8점이 1시그마 밖 (양쪽, Mixture) */
+function checkRule8Mixture(points: number[], cl: number, sigma: number): SPCViolation[] {
   const violations: SPCViolation[] = []
   const consecutiveCount = 8
 
@@ -843,11 +376,10 @@ export function checkRule8Mixture(
   for (let i = consecutiveCount - 1; i < points.length; i++) {
     const segment = points.slice(i - consecutiveCount + 1, i + 1)
 
-    // 모든 점이 1시그마 밖에 있고, 중심선을 넘나드는지 확인
     const allOutsideOneSigma = segment.every(p => p > oneSigmaAbove || p < oneSigmaBelow)
 
     if (allOutsideOneSigma) {
-      // 양쪽 모두에 점이 있는지 확인 (mixture)
+      // 양쪽 모두에 점이 있어야 mixture다
       const hasAbove = segment.some(p => p > oneSigmaAbove)
       const hasBelow = segment.some(p => p < oneSigmaBelow)
 
@@ -867,27 +399,23 @@ export function checkRule8Mixture(
   return violations
 }
 
-/**
- * 모든 Nelson Rules 위반 감지 (Rules 1-8)
- */
-export function detectNelsonRuleViolations(
+/** 표준화 계열에 Nelson Rules 1-8 전부 적용 */
+function detectNelsonRuleViolations(
   points: number[],
   cl: number,
   ucl: number,
   lcl: number,
-  sigma?: number
+  sigma: number
 ): SPCViolation[] {
-  const calculatedSigma = sigma ?? (ucl - cl) / 3
-
   const violations: SPCViolation[] = [
     ...checkRule1OutOfLimits(points, ucl, lcl),
     ...checkRule2Run(points, cl, 7),
     ...checkRule3Trend(points, 6),
     ...checkRule4Alternating(points),
-    ...checkRule5TwoOfThree(points, cl, calculatedSigma),
-    ...checkRule6FourOfFive(points, cl, calculatedSigma),
-    ...checkRule7Stratification(points, cl, calculatedSigma),
-    ...checkRule8Mixture(points, cl, calculatedSigma),
+    ...checkRule5TwoOfThree(points, cl, sigma),
+    ...checkRule6FourOfFive(points, cl, sigma),
+    ...checkRule7Stratification(points, cl, sigma),
+    ...checkRule8Mixture(points, cl, sigma),
   ]
 
   // 중복 제거 (같은 인덱스의 같은 타입)
@@ -900,54 +428,44 @@ export function detectNelsonRuleViolations(
   })
 }
 
-// ============================================
-// 7. 히스토그램
-// ============================================
-
-/**
- * Sturges 공식으로 빈 개수 결정
- */
-export function calculateOptimalBinCount(n: number): number {
-  if (n <= 0) return 1
-  return Math.ceil(Math.log2(n) + 1)
+/** detectPChartViolations 입력 */
+export interface PChartViolationInput {
+  defect_rate: number
+  ucl: number
+  lcl: number
+  z: number
 }
 
 /**
- * 히스토그램 빈 계산
+ * 표본 크기가 변하는 p-chart의 Nelson Rule 위반 감지.
+ *
+ * 표준화 계열 z 위에서 규칙을 돌린다 — z의 중심선은 0, 3-시그마 한계는 ±3으로
+ * 모든 점에서 같으므로 상수 시그마를 가정하는 규칙들이 비로소 성립한다.
+ * 결과는 다시 원래 불량률 단위로 바꿔 보고한다: 알림을 읽는 사람에게
+ * z 점수는 의미가 없다.
  */
-export function calculateHistogramBins(
-  values: number[],
-  binCount?: number
-): { bin: number; count: number; binStart: number; binEnd: number }[] {
-  if (values.length === 0) return []
+export function detectPChartViolations(points: PChartViolationInput[]): SPCViolation[] {
+  const zValues = points.map(p => p.z)
+  const violations = detectNelsonRuleViolations(zValues, 0, 3, -3, 1)
 
-  const count = binCount ?? calculateOptimalBinCount(values.length)
-  const minVal = Math.min(...values)
-  const maxVal = Math.max(...values)
-  const binWidth = (maxVal - minVal) / count
+  return violations.map(v => {
+    const point = points[v.index]
 
-  const bins = Array.from({ length: count }, (_, i) => ({
-    bin: i,
-    count: 0,
-    binStart: minVal + i * binWidth,
-    binEnd: minVal + (i + 1) * binWidth,
-  }))
+    // R1만 값과 한계를 문장에 담는다. 나머지 규칙의 문장은 "중심선 위로 연속
+    // 7점" 같은 형태라 단위와 무관하므로 그대로 둔다.
+    if (v.rule_code === 'R1' && point) {
+      const limit = v.type === 'ucl_exceeded' ? point.ucl : point.lcl
+      const boundary = v.type === 'ucl_exceeded' ? 'exceeds UCL' : 'below LCL'
+      return {
+        ...v,
+        point_value: point.defect_rate,
+        description: `Point ${v.index + 1}: Defect rate ${(point.defect_rate * 100).toFixed(2)}% ${boundary} (${(limit * 100).toFixed(2)}%)`,
+      }
+    }
 
-  values.forEach(value => {
-    let binIndex = Math.floor((value - minVal) / binWidth)
-    if (binIndex >= count) binIndex = count - 1 // 최대값 처리
-    if (binIndex < 0) binIndex = 0
-    bins[binIndex].count++
+    return {
+      ...v,
+      point_value: point ? point.defect_rate : v.point_value,
+    }
   })
-
-  return bins
-}
-
-/**
- * 히스토그램 빈 중심값 계산
- */
-export function getHistogramBinCenters(
-  bins: { binStart: number; binEnd: number }[]
-): number[] {
-  return bins.map(bin => (bin.binStart + bin.binEnd) / 2)
 }

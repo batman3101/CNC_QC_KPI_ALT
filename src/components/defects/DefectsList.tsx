@@ -37,16 +37,18 @@ import { useSnackbar } from 'notistack'
 import { DefectDetailDialog } from './DefectDetailDialog'
 import { DefectEditDialog } from './DefectEditDialog'
 import { DataTable, type ColumnDef, type SortConfig } from '@/components/common/DataTable'
-import type { Database } from '@/types/database'
-
 // Supabase 서비스
 import * as inspectionService from '@/services/inspectionService'
 import { getProductModels, getDefectTypes } from '@/services/managementService'
 
 // 날짜 유틸리티
 import { formatVietnamDateTime } from '@/lib/dateUtils'
+import { describeDefect } from '@/lib/defectDescription'
 
-type Defect = Database['public']['Tables']['defects']['Row']
+// The list rows carry the parent inspection's defect quantity, so an
+// auto-created defect (which stores no description) can be described in the
+// reader's language instead of the DB holding a Korean sentence.
+type Defect = inspectionService.DefectListRow
 
 export function DefectsList() {
   const { t } = useTranslation()
@@ -229,7 +231,7 @@ export function DefectsList() {
 
   // Edit defect mutation
   const editDefectMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Record<string, string> }) =>
+    mutationFn: ({ id, data }: { id: string; data: Record<string, string | null> }) =>
       inspectionService.updateDefect(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['defects'] })
@@ -293,7 +295,7 @@ export function DefectsList() {
               whiteSpace: 'nowrap',
             }}
           >
-            {row.description}
+            {describeDefect(row, t)}
           </Typography>
         ),
       },
@@ -339,7 +341,7 @@ export function DefectsList() {
     }
   }
 
-  const handleEditSave = (id: string, data: Record<string, string>) => {
+  const handleEditSave = (id: string, data: Record<string, string | null>) => {
     editDefectMutation.mutate({ id, data })
   }
 
@@ -601,7 +603,7 @@ export function DefectsList() {
                 <Chip icon={<Icon />} label={config.label} color={config.color} size="small" />
               </Box>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>{getModelCode(defect.model_id)}</Typography>
-              <Typography variant="body2" color="text.secondary" noWrap sx={{ mb: 1 }}>{defect.description}</Typography>
+              <Typography variant="body2" color="text.secondary" noWrap sx={{ mb: 1 }}>{describeDefect(defect, t)}</Typography>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Typography variant="caption" color="text.disabled">{formatVietnamDateTime(defect.created_at)}</Typography>
                 {renderActions(defect)}

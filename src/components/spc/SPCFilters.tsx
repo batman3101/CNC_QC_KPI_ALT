@@ -16,8 +16,10 @@ import {
 import { DateRangePicker } from '@/components/analytics/DateRangePicker'
 import { RotateCcw } from 'lucide-react'
 import type { DateRange } from 'react-day-picker'
-import type { ControlChartType } from '@/types/spc'
 
+// 차트 유형 선택기는 없다. 드롭다운이 np-chart / X-mR / X-bar R를 제시했지만
+// 이 앱은 p-chart만 그리므로, 다른 유형을 고르면 아무 일도 일어나지 않았다.
+// 해당 계산기들도 호출부가 없어 함께 제거했다.
 interface SPCFiltersProps {
   models: Array<{ id: string; name: string; code: string }>
   processes?: Array<{ id: string; name: string; code: string }>
@@ -25,15 +27,12 @@ interface SPCFiltersProps {
   selectedModelId?: string
   selectedProcessId?: string
   selectedItemId?: string
-  selectedChartType?: ControlChartType
   dateRange?: DateRange
   onModelChange: (modelId: string | undefined) => void
   onProcessChange?: (processId: string | undefined) => void
   onItemChange?: (itemId: string | undefined) => void
-  onChartTypeChange?: (chartType: ControlChartType) => void
   onDateRangeChange: (range: DateRange | undefined) => void
   onReset: () => void
-  showChartTypeFilter?: boolean
   showItemFilter?: boolean
 }
 
@@ -44,25 +43,15 @@ export function SPCFilters({
   selectedModelId,
   selectedProcessId,
   selectedItemId,
-  selectedChartType = 'p-chart',
   dateRange,
   onModelChange,
   onProcessChange,
   onItemChange,
-  onChartTypeChange,
   onDateRangeChange,
   onReset,
-  showChartTypeFilter = false,
   showItemFilter = false,
 }: SPCFiltersProps) {
   const { t } = useTranslation()
-
-  const chartTypes: Array<{ value: ControlChartType; label: string }> = [
-    { value: 'p-chart', label: t('spc.pChart') },
-    { value: 'np-chart', label: t('spc.npChart') },
-    { value: 'x-mr', label: t('spc.xmrChart') },
-    { value: 'x-bar-r', label: t('spc.xbarRChart') },
-  ]
 
   return (
     <Card className="shadow-sm">
@@ -133,30 +122,6 @@ export function SPCFilters({
                   {inspectionItems.map((item) => (
                     <SelectItem key={item.id} value={item.id}>
                       {item.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          {/* 차트 유형 선택 */}
-          {showChartTypeFilter && onChartTypeChange && (
-            <div className="min-w-[180px] flex-1">
-              <label className="mb-1.5 block text-sm font-medium">
-                {t('spc.selectChartType')}
-              </label>
-              <Select
-                value={selectedChartType}
-                onValueChange={(value) => onChartTypeChange(value as ControlChartType)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder={t('spc.selectChartType')} />
-                </SelectTrigger>
-                <SelectContent>
-                  {chartTypes.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>
-                      {type.label}
                     </SelectItem>
                   ))}
                 </SelectContent>

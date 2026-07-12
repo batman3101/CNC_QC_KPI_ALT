@@ -7,6 +7,47 @@ import { supabase } from '@/lib/supabase'
 import { paginatedFetch } from '@/lib/supabasePagination'
 import type { Database } from '@/types/database'
 import { getUserDirectory, type DirectoryUser } from '@/services/userDirectoryService'
+import { isOnline } from '@/lib/network'
+import {
+  cachedProductModels,
+  cachedInspectionProcesses,
+  cachedInspectionItems,
+  cachedDefectTypes,
+  cachedUsers,
+  cachedMachines,
+} from '@/lib/offlineReferenceCache'
+
+/**
+ * Read a reference list, falling back to the offline cache when there is no
+ * network.
+ *
+ * Only the *reads the inspection form depends on* go through here. Writes and
+ * the admin screens still require a connection, which is correct: you cannot
+ * edit master data on a device that cannot see the master copy.
+ *
+ * When online this is a plain network read - a failed request still throws, so
+ * a real error (an RLS denial, say) surfaces instead of being papered over with
+ * a stale cached answer.
+ */
+async function readOfflineFirst<T>(
+  label: string,
+  fromNetwork: () => Promise<T>,
+  fromCache: () => Promise<T | null>
+): Promise<T> {
+  if (isOnline()) return fromNetwork()
+
+  const cached = await fromCache()
+  if (cached === null) {
+    // An empty cache offline does not mean "there are none". It means this
+    // device has never been online since the cache was introduced. Say that,
+    // instead of returning [] and rendering an empty dropdown that reads as a
+    // configuration problem.
+    throw new Error(`${label}: offline and no cached copy on this device`)
+  }
+
+  console.info(`[Offline] ${label}: served from cache`)
+  return cached
+}
 
 type ProductModel = Database['public']['Tables']['product_models']['Row']
 type ProductModelInsert = Database['public']['Tables']['product_models']['Insert']
@@ -29,12 +70,17 @@ type Machine = Database['public']['Tables']['machines']['Row']
 // ============= Product Models CRUD =============
 
 export async function getProductModels(): Promise<ProductModel[]> {
-  return paginatedFetch<ProductModel>((from, to) =>
-    supabase
-      .from('product_models')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(from, to)
+  return readOfflineFirst(
+    'Product models',
+    () =>
+      paginatedFetch<ProductModel>((from, to) =>
+        supabase
+          .from('product_models')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, to)
+      ),
+    cachedProductModels
   )
 }
 
@@ -97,17 +143,22 @@ export async function deleteProductModel(id: string): Promise<void> {
 // ============= Inspection Items CRUD =============
 
 export async function getInspectionItems(modelId?: string): Promise<InspectionItem[]> {
-  return paginatedFetch<InspectionItem>((from, to) => {
-    let query = supabase
-      .from('inspection_items')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(from, to)
-    if (modelId) {
-      query = query.eq('model_id', modelId)
-    }
-    return query
-  })
+  return readOfflineFirst(
+    'Inspection items',
+    () =>
+      paginatedFetch<InspectionItem>((from, to) => {
+        let query = supabase
+          .from('inspection_items')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, to)
+        if (modelId) {
+          query = query.eq('model_id', modelId)
+        }
+        return query
+      }),
+    () => cachedInspectionItems(modelId)
+  )
 }
 
 export async function getInspectionItemById(id: string): Promise<InspectionItem | null> {
@@ -163,12 +214,17 @@ export async function getInspectionItemsByModelId(modelId: string): Promise<Insp
 // ============= Inspection Processes CRUD =============
 
 export async function getInspectionProcesses(): Promise<InspectionProcess[]> {
-  return paginatedFetch<InspectionProcess>((from, to) =>
-    supabase
-      .from('inspection_processes')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(from, to)
+  return readOfflineFirst(
+    'Inspection processes',
+    () =>
+      paginatedFetch<InspectionProcess>((from, to) =>
+        supabase
+          .from('inspection_processes')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, to)
+      ),
+    cachedInspectionProcesses
   )
 }
 
@@ -221,12 +277,17 @@ export async function deleteInspectionProcess(id: string): Promise<void> {
 // ============= Defect Types CRUD =============
 
 export async function getDefectTypesRows(): Promise<DefectTypeRow[]> {
-  return paginatedFetch<DefectTypeRow>((from, to) =>
-    supabase
-      .from('defect_types')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(from, to)
+  return readOfflineFirst(
+    'Defect types',
+    () =>
+      paginatedFetch<DefectTypeRow>((from, to) =>
+        supabase
+          .from('defect_types')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .range(from, to)
+      ),
+    cachedDefectTypes
   )
 }
 
@@ -307,73 +368,94 @@ export async function getMachines(factoryId?: string): Promise<Machine[]> {
   })
 }
 
-export async function searchMachines(query: string, factoryId?: string): Promise<Machine[]> {
+const MACHINE_SEARCH_LIMIT = 50
+
+/**
+ * 숫자만 입력된 경우 스마트 정렬: 정확히 일치하는 번호 우선
+ * (예: "12" 입력 시 CNC-012가 CNC-112보다 먼저)
+ *
+ * Applied to both the online and the cached result, so an inspector sees the
+ * same order either way.
+ */
+function sortMachinesForQuery(machines: Machine[], query: string): Machine[] {
+  const isNumericOnly = /^\d+$/.test(query)
+  if (!isNumericOnly || !query || machines.length === 0) return machines
+
+  const paddedQuery = query.padStart(3, '0') // "12" → "012"
+
+  return [...machines].sort((a, b) => {
+    const aName = a.name || ''
+    const bName = b.name || ''
+
+    // CNC-XXX 형식에서 숫자 부분 추출
+    const aMatch = aName.match(/CNC-(\d+)/i)
+    const bMatch = bName.match(/CNC-(\d+)/i)
+
+    if (aMatch && bMatch) {
+      const aNum = aMatch[1]
+      const bNum = bMatch[1]
+
+      const aExact = aNum === paddedQuery
+      const bExact = bNum === paddedQuery
+
+      if (aExact && !bExact) return -1
+      if (!aExact && bExact) return 1
+
+      return parseInt(aNum, 10) - parseInt(bNum, 10)
+    }
+
+    return aName.localeCompare(bName)
+  })
+}
+
+async function searchMachinesOnline(query: string, factoryId?: string): Promise<Machine[]> {
   let dbQuery = supabase
     .from('machines')
     .select('*')
     .eq('status', 'active')
     .order('name', { ascending: true })
-    .limit(50)
-
-  // 숫자만 입력된 경우 스마트 검색
-  const isNumericOnly = /^\d+$/.test(query)
+    .limit(MACHINE_SEARCH_LIMIT)
 
   if (query) {
-    if (isNumericOnly) {
-      // 숫자 입력: CNC-XXX 형식으로 검색 (예: "12" → CNC-012, CNC-112, CNC-120...)
-      dbQuery = dbQuery.ilike('name', `%${query}%`)
-    } else {
-      dbQuery = dbQuery.ilike('name', `%${query}%`)
-    }
+    dbQuery = dbQuery.ilike('name', `%${query}%`)
   }
   if (factoryId) {
     dbQuery = dbQuery.eq('factory_id', factoryId)
   }
 
   const { data, error } = await dbQuery
-
   if (error) throw error
 
-  let results = data || []
+  return data || []
+}
 
-  // 숫자만 입력된 경우 스마트 정렬: 정확히 일치하는 번호 우선
-  if (isNumericOnly && query && results.length > 0) {
-    const paddedQuery = query.padStart(3, '0') // "12" → "012"
+/** The cached equivalent of the ilike + limit above. */
+async function searchMachinesCached(query: string, factoryId?: string): Promise<Machine[] | null> {
+  const machines = await cachedMachines(factoryId)
+  if (machines === null) return null
 
-    results = results.sort((a, b) => {
-      const aName = a.name || ''
-      const bName = b.name || ''
+  const needle = query.toLowerCase()
+  const matches = needle
+    ? machines.filter((m) => (m.name ?? '').toLowerCase().includes(needle))
+    : machines
 
-      // CNC-XXX 형식에서 숫자 부분 추출
-      const aMatch = aName.match(/CNC-(\d+)/i)
-      const bMatch = bName.match(/CNC-(\d+)/i)
+  return matches.slice(0, MACHINE_SEARCH_LIMIT)
+}
 
-      if (aMatch && bMatch) {
-        const aNum = aMatch[1]
-        const bNum = bMatch[1]
+export async function searchMachines(query: string, factoryId?: string): Promise<Machine[]> {
+  const results = await readOfflineFirst(
+    'Machines',
+    () => searchMachinesOnline(query, factoryId),
+    () => searchMachinesCached(query, factoryId)
+  )
 
-        // 정확히 일치하는 번호 우선 (예: "12" 입력 시 CNC-012 먼저)
-        const aExact = aNum === paddedQuery
-        const bExact = bNum === paddedQuery
-
-        if (aExact && !bExact) return -1
-        if (!aExact && bExact) return 1
-
-        // 그 다음은 숫자 순서대로
-        return parseInt(aNum, 10) - parseInt(bNum, 10)
-      }
-
-      return aName.localeCompare(bName)
-    })
-  }
-
-  return results
+  return sortMachinesForQuery(results, query)
 }
 
 // ============= Users =============
 
 export async function getUsers(): Promise<DirectoryUser[]> {
-  return getUserDirectory()
+  return readOfflineFirst('User directory', getUserDirectory, cachedUsers)
 }
 
 // ============= Bulk Import Functions =============

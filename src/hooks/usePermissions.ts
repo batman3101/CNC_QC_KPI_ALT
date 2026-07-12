@@ -9,7 +9,9 @@ export function usePermissions() {
   const profile = useAuthStore((state) => state.profile)
   const query = useQuery({
     queryKey: permissionQueryKeys.mine(user?.id, profile?.role, profile?.factory_id),
-    queryFn: permissionService.getMyPermissions,
+    // The user id is passed explicitly so the offline copy can be scoped to this
+    // user - a shared tablet must not hand the next person these permissions.
+    queryFn: () => permissionService.getMyPermissions(user!.id),
     enabled: Boolean(user && profile),
     staleTime: 60_000,
   })

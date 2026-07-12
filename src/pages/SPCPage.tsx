@@ -236,10 +236,6 @@ export function SPCPage() {
           onItemChange={setSelectedItemId}
           onDateRangeChange={setDateRange}
           onReset={handleResetFilters}
-          // Hidden: the dropdown offered np-chart / X-mR / X-bar R, but the page
-          // only ever renders the p-chart, so picking another type silently did
-          // nothing. Re-enable it when those charts exist.
-          showChartTypeFilter={false}
           showItemFilter={false}
         />
       </Box>
