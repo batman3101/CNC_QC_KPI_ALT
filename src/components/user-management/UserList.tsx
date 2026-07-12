@@ -163,7 +163,7 @@ export function UserList() {
       },
       {
         id: 'created_at',
-        header: t('common.createdAt'),
+        header: t('reports.createdAt'),
         cell: (row) => (
           <Typography variant="body2">
             {formatVietnamDate(row.created_at)}

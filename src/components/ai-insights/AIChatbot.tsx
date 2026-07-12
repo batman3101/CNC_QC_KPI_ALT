@@ -106,9 +106,7 @@ export function AIChatbot({ analyticsData, cacheScope = 'default' }: AIChatbotPr
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: language === 'vi'
-          ? 'Xin lỗi, đã xảy ra lỗi. Vui lòng thử lại.'
-          : '죄송합니다. 오류가 발생했습니다. 다시 시도해주세요.',
+        content: t('aiInsights.chatError'),
         timestamp: new Date().toISOString(),
       }
       commitMessages([...messagesWithUser, errorMessage])

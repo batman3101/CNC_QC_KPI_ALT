@@ -27,7 +27,13 @@
     "toggleTheme": "Đổi giao diện",
     "manager": "Quản lý",
     "inspector": "Kiểm tra viên",
-    "unassigned": "Chưa chỉ định"
+    "unassigned": "Chưa chỉ định",
+    "count": "",
+    "of": "/",
+    "rankSuffix": "",
+    "hourSuffix": "h",
+    "notAvailable": "N/A",
+    "casesSuffix": ""
   },
   "auth": {
     "login": "Đăng nhập",
@@ -92,7 +98,8 @@
         "q4": "So sánh tỷ lệ đạt theo mẫu sản phẩm",
         "q5": "Thiết bị nào cần cải thiện?"
       }
-    }
+    },
+    "chatError": "Xin lỗi, đã xảy ra lỗi. Vui lòng thử lại."
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -197,7 +204,7 @@
   },
   "defects": {
     "title": "Quản lý lỗi",
-    "description": "Quản lý và xử lý các lỗi phát sinh",
+    "description": "Mô tả",
     "listTitle": "Danh sách lỗi",
     "filterByStatus": "Lọc theo trạng thái",
     "all": "Tất cả",
@@ -215,7 +222,6 @@
     "viewDetails": "Xem chi tiết",
     "detailTitle": "Thông tin chi tiết lỗi",
     "detailDescription": "Kiểm tra thông tin lỗi và trạng thái xử lý",
-    "description": "Mô tả",
     "photo": "Hình ảnh lỗi",
     "noPhoto": "Không có hình ảnh",
     "startAction": "Bắt đầu xử lý",
@@ -361,7 +367,7 @@
   },
   "management": {
     "title": "Quản lý",
-    "description": "Quản lý dữ liệu chính",
+    "description": "Mô tả",
     "productModels": "Quản lý mẫu sản phẩm",
     "inspectionItems": "Quản lý hạng mục kiểm tra",
     "productModelList": "Danh sách mẫu sản phẩm",
@@ -377,7 +383,6 @@
     "deleteInspectionItemConfirm": "Bạn có chắc chắn muốn xóa hạng mục kiểm tra này?",
     "modelCode": "Mã mẫu",
     "modelName": "Tên mẫu",
-    "description": "Mô tả",
     "itemName": "Tên hạng mục",
     "dataType": "Loại dữ liệu",
     "standardValue": "Giá trị chuẩn",
@@ -452,7 +457,8 @@
       "low": "Thấp",
       "medium": "Trung bình",
       "high": "Cao"
-    }
+    },
+    "dataTypeHelper": "OK/NG: Chỉ đánh giá đạt/không đạt | Số: Nhập giá trị đo (giá trị chuẩn là tùy chọn)"
   },
   "userManagement": {
     "title": "Quản lý người dùng",

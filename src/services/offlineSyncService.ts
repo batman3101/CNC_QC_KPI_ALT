@@ -93,14 +93,54 @@ export async function getPendingCount(): Promise<number> {
     .count()
 }
 
+/**
+ * The sync currently running, if any.
+ *
+ * useNetworkStatus() is mounted twice (OfflineIndicator and MobileBottomNav),
+ * so an 'online' event used to start two syncs at once. Both read the same
+ * pending rows before either flipped them to 'syncing', and every queued
+ * inspection was uploaded twice. Callers now share one run.
+ */
+let inFlightSync: Promise<{ success: number; failed: number; errors: string[] }> | null = null
+
 // Sync all pending inspections
-export async function syncPendingInspections(): Promise<{
+export function syncPendingInspections(): Promise<{
   success: number
   failed: number
   errors: string[]
 }> {
   if (!isOnline()) {
-    return { success: 0, failed: 0, errors: ['Offline'] }
+    return Promise.resolve({ success: 0, failed: 0, errors: ['Offline'] })
+  }
+
+  if (inFlightSync) return inFlightSync
+
+  inFlightSync = runSync().finally(() => {
+    inFlightSync = null
+  })
+  return inFlightSync
+}
+
+async function runSync(): Promise<{
+  success: number
+  failed: number
+  errors: string[]
+}> {
+  // Reclaim orphans: a row is flipped to 'syncing' before its upload, and every
+  // pending query looks only at 'pending'/'error'. If the tab was closed mid
+  // upload the row was stranded in 'syncing' forever - never retried, never
+  // counted, never sent. No other sync can be running here (see the guard
+  // above), so anything still 'syncing' is left over from a previous page load.
+  const orphans = await offlineDb.offlineInspections
+    .where('status')
+    .equals('syncing')
+    .toArray()
+
+  if (orphans.length > 0) {
+    console.warn(`[OfflineSync] Reclaiming ${orphans.length} interrupted upload(s)`)
+    await offlineDb.offlineInspections.bulkUpdate(
+      orphans.map((o) => ({ key: o.id, changes: { status: 'pending' as const } }))
+    )
   }
 
   const pending = await offlineDb.offlineInspections

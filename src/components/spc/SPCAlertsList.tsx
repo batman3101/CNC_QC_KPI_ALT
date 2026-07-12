@@ -24,6 +24,7 @@ import {
   Eye,
 } from 'lucide-react'
 import type { SPCAlert, SPCAlertSeverity, SPCAlertStatus } from '@/types/spc'
+import { formatVietnamDateTime } from '@/lib/dateUtils'
 
 interface SPCAlertsListProps {
   alerts: SPCAlert[]
@@ -31,6 +32,8 @@ interface SPCAlertsListProps {
   onAcknowledge?: (alertId: string) => void
   showActions?: boolean
   maxItems?: number
+  /** Opens the full alert list. Without it the "view all" footer is hidden. */
+  onViewAll?: () => void
 }
 
 export function SPCAlertsList({
@@ -39,6 +42,7 @@ export function SPCAlertsList({
   onAcknowledge,
   showActions = true,
   maxItems,
+  onViewAll,
 }: SPCAlertsListProps) {
   const { t } = useTranslation()
 
@@ -118,15 +122,17 @@ export function SPCAlertsList({
     return t(`spc.alerts.${key}`)
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleString('ko-KR', {
+  // formatVietnamDateTime pins the factory's clock (Asia/Ho_Chi_Minh) and the
+  // reader's locale. The raw toLocaleString('ko-KR') did neither: it rendered
+  // the viewer's local timezone in Korean format.
+  const formatDate = (dateString: string) =>
+    formatVietnamDateTime(dateString, {
+      year: undefined,
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
       minute: '2-digit',
     })
-  }
 
   if (alerts.length === 0) {
     return (
@@ -220,9 +226,12 @@ export function SPCAlertsList({
             </TableBody>
           </Table>
         </div>
-        {maxItems && alerts.length > maxItems && (
+        {/* The button had no onClick at all: it rendered "전체 보기 (12)" and
+            did nothing. It now needs an owner to route to, and is hidden if the
+            caller does not supply one. */}
+        {onViewAll && maxItems && alerts.length > maxItems && (
           <div className="mt-4 text-center">
-            <Button variant="link" size="sm">
+            <Button variant="link" size="sm" onClick={onViewAll}>
               {t('nav.viewAll')} ({alerts.length})
             </Button>
           </div>

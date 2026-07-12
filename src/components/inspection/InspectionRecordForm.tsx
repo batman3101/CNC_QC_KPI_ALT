@@ -167,12 +167,14 @@ export function InspectionRecordForm({
   const selectedDefectType = defectTypes.find((dt) => dt.id === watchedValues.defectTypeId)
   const selectedInspector = users.find((u) => u.id === watchedValues.inspectorId)
   const submitDisabled = isSubmitting || inspectionQuantity === 0 || defectQuantity > inspectionQuantity
+  // An empty form used to report 3/5: `selectedMachine || !machineId` is true
+  // when no machine is chosen, and `0 <= 0` satisfied the quantity check.
   const completedInputCount = [
-    selectedDefectType,
-    selectedMachine || !watchedValues.machineId,
-    watchedValues.inspectorId,
+    Boolean(selectedDefectType),
+    Boolean(selectedMachine),
+    Boolean(watchedValues.inspectorId),
     inspectionQuantity > 0,
-    defectQuantity <= inspectionQuantity,
+    inspectionQuantity > 0 && defectQuantity <= inspectionQuantity,
   ].filter(Boolean).length
 
   const SectionHeader = ({

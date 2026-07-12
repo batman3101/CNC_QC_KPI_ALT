@@ -108,7 +108,7 @@ export function ModelSPCSummaryTable({ data, onRowClick }: ModelSPCSummaryTableP
     return (
       <Card className="shadow-md">
         <CardHeader>
-          <CardTitle>{t('analytics.modelDefectDistribution')}</CardTitle>
+          <CardTitle>{t('charts.modelDefectDistribution')}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-center text-muted-foreground">{t('spc.noData')}</p>
@@ -214,7 +214,7 @@ export function ModelSPCSummaryTable({ data, onRowClick }: ModelSPCSummaryTableP
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t pt-3 mt-3">
             <span className="text-sm text-muted-foreground">
-              {sortedData.length}{t('common.count', '개')} {t('common.of', '중')} {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, sortedData.length)}
+              {sortedData.length}{t('common.count')} {t('common.of')} {page * PAGE_SIZE + 1}-{Math.min((page + 1) * PAGE_SIZE, sortedData.length)}
             </span>
             <div className="flex items-center gap-1">
               <Button

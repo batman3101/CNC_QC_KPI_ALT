@@ -74,7 +74,12 @@ export const useAuthStore = create<AuthState>()(
         useFactoryStore.getState().initializeFromUser(profile.factory_id)
       },
 
-      logout: () => set({ user: null, profile: null, profileStatus: 'idle' }),
+      logout: () => {
+        // The factory store is persisted too. Leaving it set would carry the
+        // outgoing user's factory into the next session on a shared tablet.
+        useFactoryStore.getState().reset()
+        set({ user: null, profile: null, profileStatus: 'idle' })
+      },
     }),
     {
       name: 'auth-storage',

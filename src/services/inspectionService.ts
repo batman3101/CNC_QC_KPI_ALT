@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { paginatedFetch } from '@/lib/supabasePagination'
 import type { Database } from '@/types/database'
 import imageCompression from 'browser-image-compression'
 
@@ -358,17 +359,21 @@ export async function getRecentInspections(
  * turns ~15k rows into ~150.
  */
 export async function getUnresolvedDefects(factoryId?: string): Promise<Defect[]> {
-  let query = supabase
-    .from('defects')
-    .select('*')
-    .in('status', ['pending', 'in_progress'])
-    .order('created_at', { ascending: false })
+  // Paged: a plain select stops at PostgREST's 1000-row cap, so a backlog past
+  // 1000 would be silently truncated and the AI prompt would report exactly
+  // "1000 unresolved defects" no matter the real number.
+  return paginatedFetch<Defect>((from, to) => {
+    let query = supabase
+      .from('defects')
+      .select('*')
+      .in('status', ['pending', 'in_progress'])
+      .order('created_at', { ascending: false })
+      .range(from, to)
 
-  if (factoryId) query = query.eq('factory_id', factoryId)
+    if (factoryId) query = query.eq('factory_id', factoryId)
 
-  const { data, error } = await query
-  if (error) throw error
-  return data ?? []
+    return query
+  })
 }
 
 /**

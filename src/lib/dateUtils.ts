@@ -10,6 +10,8 @@
  * - 2025-12-26 08:00 ~ 2025-12-27 07:59 = Business Day 2025-12-26
  */
 
+import i18n from '@/i18n/config'
+
 // Vietnam timezone offset (UTC+7)
 export const VIETNAM_TIMEZONE = 'Asia/Ho_Chi_Minh'
 export const VIETNAM_UTC_OFFSET = 7
@@ -155,7 +157,18 @@ export function formatVietnamDateTime(
     ...options
   }
 
-  return new Intl.DateTimeFormat('ko-KR', defaultOptions).format(dateObj)
+  return new Intl.DateTimeFormat(getDisplayLocale(), defaultOptions).format(dateObj)
+}
+
+/**
+ * Locale to format dates in: the language the user is actually reading.
+ *
+ * This was hardcoded to 'ko-KR', so a Vietnamese operator saw Korean-style
+ * timestamps ("2026. 07. 12.") throughout the app. The timezone stays Vietnam
+ * regardless - that is the factory's clock, not the reader's.
+ */
+function getDisplayLocale(): string {
+  return i18n.language?.startsWith('vi') ? 'vi-VN' : 'ko-KR'
 }
 
 /**
@@ -177,7 +190,7 @@ export function formatVietnamDate(date: Date | string): string {
 export function formatVietnamTime(date: Date | string): string {
   const dateObj = typeof date === 'string' ? new Date(date) : date
 
-  return new Intl.DateTimeFormat('ko-KR', {
+  return new Intl.DateTimeFormat(getDisplayLocale(), {
     timeZone: VIETNAM_TIMEZONE,
     hour: '2-digit',
     minute: '2-digit',

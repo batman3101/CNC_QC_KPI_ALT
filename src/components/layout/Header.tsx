@@ -224,7 +224,15 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
                 {userName || t('auth.login')}
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {userRole || 'Inspector'}
+                {/* userRole is the raw DB enum (admin|manager|inspector); it was
+                    rendered untranslated, with a hardcoded English fallback. */}
+                {userRole
+                  ? t(
+                      `userManagement.role${
+                        userRole.charAt(0).toUpperCase() + userRole.slice(1)
+                      }`
+                    )
+                  : t('userManagement.roleInspector')}
               </Typography>
             </Box>
             <Divider />

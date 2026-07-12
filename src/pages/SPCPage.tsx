@@ -9,7 +9,6 @@ import { useTranslation } from 'react-i18next'
 import { Box, Typography, Tabs, Tab, Grid, useTheme, useMediaQuery } from '@mui/material'
 import { getRecentBusinessDays } from '@/lib/dateUtils'
 import type { DateRange } from 'react-day-picker'
-import type { ControlChartType } from '@/types/spc'
 
 // SPC Components
 import {
@@ -75,7 +74,6 @@ export function SPCPage() {
   const [selectedModelId, setSelectedModelId] = useState<string | undefined>()
   const [selectedProcessId, setSelectedProcessId] = useState<string | undefined>()
   const [selectedItemId, setSelectedItemId] = useState<string | undefined>()
-  const [selectedChartType, setSelectedChartType] = useState<ControlChartType>('p-chart')
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: defaultDateRange.from,
     to: defaultDateRange.to,
@@ -93,7 +91,6 @@ export function SPCPage() {
     setSelectedModelId(undefined)
     setSelectedProcessId(undefined)
     setSelectedItemId(undefined)
-    setSelectedChartType('p-chart')
     setDateRange({
       from: defaultDateRange.from,
       to: defaultDateRange.to,
@@ -233,15 +230,16 @@ export function SPCPage() {
           selectedModelId={selectedModelId}
           selectedProcessId={selectedProcessId}
           selectedItemId={selectedItemId}
-          selectedChartType={selectedChartType}
           dateRange={dateRange}
           onModelChange={setSelectedModelId}
           onProcessChange={setSelectedProcessId}
           onItemChange={setSelectedItemId}
-          onChartTypeChange={setSelectedChartType}
           onDateRangeChange={setDateRange}
           onReset={handleResetFilters}
-          showChartTypeFilter={tabValue === 1}
+          // Hidden: the dropdown offered np-chart / X-mR / X-bar R, but the page
+          // only ever renders the p-chart, so picking another type silently did
+          // nothing. Re-enable it when those charts exist.
+          showChartTypeFilter={false}
           showItemFilter={false}
         />
       </Box>
@@ -281,7 +279,12 @@ export function SPCPage() {
 
             {/* Recent Alerts */}
             <Grid size={{ xs: 12, lg: 6 }}>
-              <SPCAlertsList alerts={alerts} maxItems={5} showActions={false} />
+              <SPCAlertsList
+                alerts={alerts}
+                maxItems={5}
+                showActions={false}
+                onViewAll={() => setTabValue(3)}
+              />
             </Grid>
 
             {/* P-Chart Preview */}

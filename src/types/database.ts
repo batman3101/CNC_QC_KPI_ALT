@@ -644,6 +644,7 @@ export type Database = {
           p_from: string
           p_to: string
           p_model?: string | null
+          p_process?: string | null
           p_factory?: string | null
         }
         Returns: Json
@@ -659,6 +660,20 @@ export type Database = {
           inspection_qty: number
           defect_qty: number
           failed_count: number
+        }[]
+      }
+      get_defect_point_pareto: {
+        Args: {
+          p_from: string
+          p_to: string
+          p_model?: string | null
+          p_process?: string | null
+          p_factory?: string | null
+        }
+        Returns: {
+          item_id: string
+          item_name: string
+          defect_count: number
         }[]
       }
       get_dashboard_recent_inspections: {

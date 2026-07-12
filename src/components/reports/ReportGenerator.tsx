@@ -30,6 +30,7 @@ import { ko } from 'date-fns/locale'
 import { getRecentBusinessDays } from '@/lib/dateUtils'
 import type { ReportType, ReportFormat, ReportFilters } from '@/types/report'
 import * as reportService from '@/services/reportService'
+import { useFactoryStore } from '@/stores/factoryStore'
 
 interface ReportGeneratorProps {
   models: { id: string; name: string; code: string }[]
@@ -39,6 +40,7 @@ interface ReportGeneratorProps {
 export function ReportGenerator({ models, processes }: ReportGeneratorProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const { activeFactoryId } = useFactoryStore()
 
   const [reportType, setReportType] = useState<ReportType>('daily')
   const [format, setFormat] = useState<ReportFormat>('pdf')
@@ -55,7 +57,11 @@ export function ReportGenerator({ models, processes }: ReportGeneratorProps) {
     mutationFn: async (filters: ReportFilters) => {
       setSuccessMessage('')
       setErrorMessage('')
-      const newReport = await reportService.generateReport(filters, format)
+      const newReport = await reportService.generateReport(
+        filters,
+        format,
+        activeFactoryId || undefined
+      )
       return newReport
     },
     onSuccess: async (newReport) => {

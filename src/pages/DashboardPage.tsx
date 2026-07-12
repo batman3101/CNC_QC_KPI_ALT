@@ -34,7 +34,7 @@ import * as inspectionService from '@/services/inspectionService'
 import { getMachines, getProductModels, getDefectTypes } from '@/services/managementService'
 
 // 날짜 유틸리티
-import { formatVietnamDateTime } from '@/lib/dateUtils'
+import { formatVietnamDateTime, formatDateString, toVietnamTime } from '@/lib/dateUtils'
 
 // Factory Store
 import { useFactoryStore } from '@/stores/factoryStore'
@@ -99,28 +99,37 @@ export function DashboardPage() {
   }
 
   // Helper function to generate formatted inspection ID (INS-MMDD-XXX).
-  // day_seq is the row's position within its own day, computed by Postgres.
+  //
+  // day_seq is the row's position within its own *Vietnam* day, computed by
+  // Postgres, so the MMDD part has to be the Vietnam date too. Reading it off
+  // the browser's local clock made the two disagree for anyone outside VN: a
+  // 23:30 VN inspection is already the next day in Korea, so it was labelled
+  // with tomorrow's date but yesterday's sequence number, colliding with the
+  // genuine first inspection of that day.
   const getFormattedInspectionId = (inspection: {
     created_at: string
     day_seq: number
   }): string => {
-    const date = new Date(inspection.created_at)
-    const month = String(date.getMonth() + 1).padStart(2, '0')
-    const day = String(date.getDate()).padStart(2, '0')
+    // formatDateString reads the local fields of the shifted Date, which is how
+    // toVietnamTime is meant to be consumed - toISOString() would re-apply the
+    // offset and shift it back out.
+    const [, month, day] = formatDateString(
+      toVietnamTime(new Date(inspection.created_at))
+    ).split('-')
 
     return `INS-${month}${day}-${String(inspection.day_seq).padStart(3, '0')}`
   }
 
   // Helper function to get machine name by ID
   const getMachineName = (machineId: string | null) => {
-    if (!machineId) return 'N/A'
+    if (!machineId) return t('common.notAvailable')
     const machine = machines.find((m) => m.id === machineId)
     return machine?.name || machineId
   }
 
   // Helper function to get model code by ID
   const getModelCode = (modelId: string | null) => {
-    if (!modelId) return 'N/A'
+    if (!modelId) return t('common.notAvailable')
     const model = models.find((m) => m.id === modelId)
     return model?.code || modelId
   }

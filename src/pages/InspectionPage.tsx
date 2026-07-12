@@ -83,16 +83,33 @@ export function InspectionPage() {
     if (isOnline()) {
       syncPendingInspections()
         .then(() => {
-          queryClient.invalidateQueries({ queryKey: ['inspections'] })
-          queryClient.invalidateQueries({ queryKey: ['defects'] })
-          // Defect counts are their own queries now, so they need their own
-          // invalidation - refetching the list alone would leave the header
-          // badge and the summary cards showing pre-submission numbers.
-          queryClient.invalidateQueries({ queryKey: ['defect-stats'] })
-          queryClient.invalidateQueries({ queryKey: ['defect-pending-count'] })
-          queryClient.invalidateQueries({ queryKey: ['dashboard-defects'] })
-          queryClient.invalidateQueries({ queryKey: ['spc-pchart'] })
-          queryClient.invalidateQueries({ queryKey: ['spc-defect-pareto'] })
+          // Everything an inspection (and its defect) feeds. Missing a key here
+          // leaves that screen showing pre-submission numbers for its whole
+          // staleTime - the dashboard's "today" cards were doing exactly that.
+          for (const key of [
+            'dashboard-today-stats',
+            'dashboard-inspections',
+            'dashboard-defects',
+            'defects',
+            'defect-stats',
+            'defect-pending-count',
+            'public-monitor-data',
+            'spc-pchart',
+            'spc-defect-pareto',
+            'spc-model-defect-rates',
+            'kpi-summary',
+            'defect-trend',
+            'model-distribution',
+            'machine-performance',
+            'hourly-distribution',
+            'inspector-performance',
+            'defect-types-analytics',
+            'ai-snapshot',
+            'ai-unresolved-defects',
+            'report-summary',
+          ]) {
+            queryClient.invalidateQueries({ queryKey: [key] })
+          }
           window.dispatchEvent(new Event('offline-queue-updated'))
         })
         .catch((e) => console.error('[Inspection] background sync failed:', e))

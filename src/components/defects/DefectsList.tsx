@@ -85,7 +85,9 @@ export function DefectsList() {
   // Server-driven paging: the table holds ~15k rows, so only the visible page
   // is fetched. Page/sort/filter state lives here and is sent to the database.
   const [page, setPage] = useState(0)
-  const [rowsPerPage, setRowsPerPage] = useState(isMobile ? 5 : 20)
+  // 10, not 5: DataTable's mobile pager offers [10, 20, 50], and MUI's Select
+  // renders blank (and warns) on an out-of-range value.
+  const [rowsPerPage, setRowsPerPage] = useState(isMobile ? 10 : 20)
   const [sort, setSort] = useState<SortConfig | null>(null)
 
   // Changing what is listed invalidates the current page number. Each control

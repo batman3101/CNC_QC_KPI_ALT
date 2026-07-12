@@ -8,6 +8,7 @@ interface FactoryState {
   setActiveFactory: (id: FactoryCode) => void
   setFactories: (factories: Array<{ id: FactoryCode; name: string; name_vi: string | null }>) => void
   initializeFromUser: (factoryId: string | null) => void
+  reset: () => void
 }
 
 export const useFactoryStore = create<FactoryState>()(
@@ -23,11 +24,18 @@ export const useFactoryStore = create<FactoryState>()(
 
       setFactories: (factories) => set({ factories }),
 
+      // activeFactoryId is persisted, so it must be cleared - not just left
+      // alone - when the signed-in user has no factory. Otherwise the previous
+      // user's factory survives on a shared tablet and the next user's
+      // inspections are written into it.
       initializeFromUser: (factoryId) => {
-        if (factoryId === 'ALT' || factoryId === 'ALV') {
-          set({ activeFactoryId: factoryId })
-        }
+        set({
+          activeFactoryId:
+            factoryId === 'ALT' || factoryId === 'ALV' ? factoryId : null,
+        })
       },
+
+      reset: () => set({ activeFactoryId: null }),
     }),
     {
       name: 'factory-storage',

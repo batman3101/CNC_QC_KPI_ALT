@@ -61,7 +61,7 @@ export function HourlyDistributionChart({
             <XAxis
               dataKey="hour"
               tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
-              tickFormatter={(value) => `${value}시`}
+              tickFormatter={(value) => `${value}${t('common.hourSuffix')}`}
               stroke="hsl(var(--border))"
             />
             <YAxis 
@@ -84,7 +84,7 @@ export function HourlyDistributionChart({
                         <span className="text-[0.70rem] uppercase text-muted-foreground">
                           {t('charts.date')}
                         </span>
-                        <span className="font-bold">{data.hour}시</span>
+                        <span className="font-bold">{data.hour}{t('common.hourSuffix')}</span>
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-[0.70rem] uppercase text-muted-foreground">

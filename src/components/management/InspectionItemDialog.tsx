@@ -381,7 +381,7 @@ export function InspectionItemDialog({
                     </SelectContent>
                   </Select>
                   <FormDescription>
-                    OK/NG: 합격/불합격만 판정 | 수치형: 측정값 입력 (기준값 선택사항)
+                    {t('management.dataTypeHelper')}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -403,7 +403,17 @@ export function InspectionItemDialog({
                             step="0.01"
                             placeholder="0"
                             {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            // `parseFloat(v) || 0` turned every intermediate
+                            // state into 0. Typing "-" makes a number input
+                            // report an empty value, so the field became 0 and
+                            // React wrote "0" back into the DOM - erasing the
+                            // minus sign and making negative values impossible
+                            // to enter. Keep it empty until it parses.
+                            value={field.value ?? ''}
+                            onChange={(e) => {
+                              const next = parseFloat(e.target.value)
+                              field.onChange(Number.isNaN(next) ? undefined : next)
+                            }}
                             disabled={isLoading}
                           />
                         </FormControl>
@@ -445,7 +455,17 @@ export function InspectionItemDialog({
                             step="0.01"
                             placeholder="0"
                             {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            // `parseFloat(v) || 0` turned every intermediate
+                            // state into 0. Typing "-" makes a number input
+                            // report an empty value, so the field became 0 and
+                            // React wrote "0" back into the DOM - erasing the
+                            // minus sign and making negative values impossible
+                            // to enter. Keep it empty until it parses.
+                            value={field.value ?? ''}
+                            onChange={(e) => {
+                              const next = parseFloat(e.target.value)
+                              field.onChange(Number.isNaN(next) ? undefined : next)
+                            }}
                             disabled={isLoading}
                           />
                         </FormControl>
@@ -467,7 +487,17 @@ export function InspectionItemDialog({
                             step="0.01"
                             placeholder="0"
                             {...field}
-                            onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                            // `parseFloat(v) || 0` turned every intermediate
+                            // state into 0. Typing "-" makes a number input
+                            // report an empty value, so the field became 0 and
+                            // React wrote "0" back into the DOM - erasing the
+                            // minus sign and making negative values impossible
+                            // to enter. Keep it empty until it parses.
+                            value={field.value ?? ''}
+                            onChange={(e) => {
+                              const next = parseFloat(e.target.value)
+                              field.onChange(Number.isNaN(next) ? undefined : next)
+                            }}
                             disabled={isLoading}
                           />
                         </FormControl>

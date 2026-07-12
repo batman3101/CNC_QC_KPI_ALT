@@ -182,7 +182,7 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
                       minWidth: 20,
                     }}
                   >
-                    {inspector.rank}위
+                    {inspector.rank}{t('common.rankSuffix')}
                   </Typography>
                   <Typography variant="body2" fontWeight={500} sx={{ flex: 1 }}>
                     {inspector.name}

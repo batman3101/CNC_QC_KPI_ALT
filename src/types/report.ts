@@ -12,6 +12,12 @@ export interface Report {
   date_to: string
   model_id?: string
   process_id?: string
+  /**
+   * Factory the report was generated for. Persisted so a later download
+   * reproduces the same numbers the user saw on screen; without it the PDF was
+   * built from all-factory totals.
+   */
+  factory_id?: string
   file_url?: string
   created_at: string
   created_by: string

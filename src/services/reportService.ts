@@ -39,6 +39,9 @@ export async function getReportSummary(filters: ReportFilters, factoryId?: strin
     p_from: dateFilter.gte,
     p_to: dateFilter.lte,
     p_model: filters.modelId ?? null,
+    // The Process dropdown used to be collected and then dropped on the floor:
+    // picking a process produced totals for every process.
+    p_process: filters.processId ?? null,
     p_factory: factoryId ?? null,
   })
 
@@ -50,7 +53,8 @@ export async function getReportSummary(filters: ReportFilters, factoryId?: strin
 // Generate a new report (stores in memory)
 export async function generateReport(
   filters: ReportFilters,
-  format: 'pdf' | 'excel'
+  format: 'pdf' | 'excel',
+  factoryId?: string
 ): Promise<Report> {
   const typeLabels: Record<string, string> = {
     daily: '일일',
@@ -71,6 +75,7 @@ export async function generateReport(
     date_to: filters.dateRange.to.toISOString(),
     model_id: filters.modelId,
     process_id: filters.processId,
+    factory_id: factoryId,
     created_at: new Date().toISOString(),
     created_by: 'current-user',
     file_url: `/reports/${filters.reportType}-${Date.now()}.${format}`,
@@ -109,7 +114,10 @@ export async function downloadReport(id: string): Promise<Blob> {
     processId: report.process_id,
   }
 
-  const summary = await getReportSummary(filters)
+  // Scope the download to the factory the report was generated for. Without it
+  // the PDF was built from all-factory totals and disagreed with the summary the
+  // user had just been looking at.
+  const summary = await getReportSummary(filters, report.factory_id)
 
   if (report.format === 'pdf') {
     return generatePDFReport(summary, filters, report.title)

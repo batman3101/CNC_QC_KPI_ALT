@@ -147,7 +147,7 @@ export function ReportSummaryCard({ summary, isLoading }: ReportSummaryCardProps
                   >
                     <Typography variant="body2">{defect.type}</Typography>
                     <Typography variant="body2" fontWeight={600}>
-                      {defect.count}건 ({percentage}%)
+                      {defect.count}{t('common.casesSuffix')} ({percentage}%)
                     </Typography>
                   </Box>
                   <LinearProgress

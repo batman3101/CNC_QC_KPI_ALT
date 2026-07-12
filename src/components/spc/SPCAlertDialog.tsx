@@ -3,7 +3,7 @@
  * 알림 상세 조회 및 조치 기능
  */
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -38,6 +38,7 @@ import {
 } from 'lucide-react'
 import { updateSPCAlertStatus } from '@/services/spcService'
 import type { SPCAlert, SPCAlertStatus, SPCAlertResolution } from '@/types/spc'
+import { formatVietnamDateTime } from '@/lib/dateUtils'
 
 interface SPCAlertDialogProps {
   alert: SPCAlert | null
@@ -63,9 +64,12 @@ export function SPCAlertDialog({
     mutationFn: (data: { id: string; resolution: SPCAlertResolution }) =>
       updateSPCAlertStatus(data.id, data.resolution),
     onSuccess: () => {
+      // ['spc-alerts'] does not match ['spc-alerts-all', …] - TanStack compares
+      // key elements, not string prefixes - so the KPI card that counts open
+      // alerts kept its pre-acknowledgement number.
       queryClient.invalidateQueries({ queryKey: ['spc-alerts'] })
+      queryClient.invalidateQueries({ queryKey: ['spc-alerts-all'] })
       queryClient.invalidateQueries({ queryKey: ['spc-open-alerts-count'] })
-      queryClient.invalidateQueries({ queryKey: ['spc-recent-alerts'] })
       toast({
         title: t('common.success'),
         description: t('spc.messages.alertResolved'),
@@ -88,6 +92,16 @@ export function SPCAlertDialog({
     setRootCause('')
     setCorrectiveAction('')
   }
+
+  // The form was only cleared on a successful save. Cancelling out of one alert
+  // and opening another left the first alert's status, root cause and corrective
+  // action pre-filled - and saving then wrote them onto the second alert.
+  useEffect(() => {
+    setStatus('acknowledged')
+    setResolutionNote('')
+    setRootCause('')
+    setCorrectiveAction('')
+  }, [alert?.id, open])
 
   const handleSubmit = () => {
     if (!alert) return
@@ -131,15 +145,7 @@ export function SPCAlertDialog({
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+  const formatDate = (dateString: string) => formatVietnamDateTime(dateString)
 
   const getAlertTypeLabel = (alertType: string) => {
     const typeMap: Record<string, string> = {
@@ -199,13 +205,13 @@ export function SPCAlertDialog({
                 <span className="text-muted-foreground">{t('spc.chart.date')}:</span>
                 <span className="ml-2">{formatDate(alert.created_at)}</span>
               </div>
-              {alert.measured_value !== undefined && (
+              {alert.measured_value != null && (
                 <div>
                   <span className="text-muted-foreground">{t('spc.measuredValue')}:</span>
                   <span className="ml-2 font-medium">{alert.measured_value.toFixed(4)}</span>
                 </div>
               )}
-              {alert.control_limit_value !== undefined && (
+              {alert.control_limit_value != null && (
                 <div>
                   <span className="text-muted-foreground">{t('spc.limitValue')}:</span>
                   <span className="ml-2">{alert.control_limit_value.toFixed(4)}</span>

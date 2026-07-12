@@ -51,13 +51,27 @@ export function MonitorPage() {
   }, [])
 
   // Auto language switch + data refresh
+  //
+  // The board alternates ko/vi so both shifts can read it. i18n.changeLanguage
+  // is app-wide and the detector caches the result in localStorage, so leaving
+  // this page used to leave the whole app - and every future session - stuck in
+  // whichever language the board happened to be showing. Restore the language
+  // the user actually chose when the board unmounts.
   useEffect(() => {
+    const userLanguage = i18n.language
+
     const interval = setInterval(() => {
       const newLang = i18n.language === 'ko' ? 'vi' : 'ko'
       i18n.changeLanguage(newLang)
       queryClient.invalidateQueries({ queryKey: ['public-monitor-data', monitorFactoryId] })
     }, AUTO_REFRESH_INTERVAL)
-    return () => clearInterval(interval)
+
+    return () => {
+      clearInterval(interval)
+      if (i18n.language !== userLanguage) {
+        i18n.changeLanguage(userLanguage)
+      }
+    }
   }, [i18n, queryClient, monitorFactoryId])
 
   const timeStr = currentTime.toLocaleTimeString('ko-KR', { timeZone: 'Asia/Ho_Chi_Minh', hour12: false })
@@ -115,10 +129,10 @@ export function MonitorPage() {
   }, [machines, t])
 
   const getModelCode = useCallback((modelId: string | null): string => {
-    if (!modelId) return 'N/A'
+    if (!modelId) return t('common.notAvailable')
     const m = models.find(md => md.id === modelId)
     return m?.code || modelId
-  }, [models])
+  }, [models, t])
 
   // Computed data
   const totalDefects = allDefects.length

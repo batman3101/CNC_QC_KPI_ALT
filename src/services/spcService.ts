@@ -4,6 +4,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
+import { paginatedFetch } from '@/lib/supabasePagination'
 import { getBusinessDateRangeFilter } from '@/lib/dateUtils'
 import {
   calculatePChartLimits,
@@ -440,11 +441,20 @@ export async function generateAndUpsertAlerts(factoryId?: string): Promise<numbe
 
   // 기존 open 알림 정리 후 새 알림 삽입 (트랜잭션 보호)
   try {
-    const { error: deleteError } = await supabase
+    // Scope the delete to the factory this run regenerates. Without it an admin
+    // - who can see every factory - wiped every other factory's open alerts and
+    // replaced them with only this factory's, and the others were never rebuilt.
+    let deleteQuery = supabase
       .from('spc_alerts')
       .delete()
       .eq('status', 'open')
       .gte('created_at', thirtyDaysAgo.toISOString())
+
+    deleteQuery = factoryId
+      ? deleteQuery.eq('factory_id', factoryId)
+      : deleteQuery.is('factory_id', null)
+
+    const { error: deleteError } = await deleteQuery
 
     if (deleteError) {
       console.error('[SPC] Failed to delete old alerts:', deleteError)
@@ -474,35 +484,38 @@ export async function getSPCAlerts(
   filters?: SPCAlertFilters,
   factoryId?: string
 ): Promise<SPCAlert[]> {
-  let query = supabase
-    .from('spc_alerts')
-    .select(`
-      *,
-      product_models!inner (name)
-    `)
-    .order('created_at', { ascending: false })
+  // Paged: the plain select had no range() and PostgREST caps at 1000 rows, so
+  // past that point the list and the counts derived from it were silently short.
+  const data = await paginatedFetch<Record<string, unknown>>((from, to) => {
+    let query = supabase
+      .from('spc_alerts')
+      .select(`
+        *,
+        product_models!inner (name)
+      `)
+      .order('created_at', { ascending: false })
+      .range(from, to)
 
-  if (factoryId) {
-    query = query.eq('factory_id', factoryId)
-  }
-  if (filters?.status && filters.status.length > 0) {
-    query = query.in('status', filters.status)
-  }
-  if (filters?.severity && filters.severity.length > 0) {
-    query = query.in('severity', filters.severity)
-  }
-  if (filters?.model_id) {
-    query = query.eq('model_id', filters.model_id)
-  }
+    if (factoryId) {
+      query = query.eq('factory_id', factoryId)
+    }
+    if (filters?.status && filters.status.length > 0) {
+      query = query.in('status', filters.status)
+    }
+    if (filters?.severity && filters.severity.length > 0) {
+      query = query.in('severity', filters.severity)
+    }
+    if (filters?.model_id) {
+      query = query.eq('model_id', filters.model_id)
+    }
 
-  const { data, error } = await query
-
-  if (error) {
+    return query
+  }).catch((error: unknown) => {
     console.error('[SPC] Failed to fetch alerts:', error)
-    return []
-  }
+    return [] as Record<string, unknown>[]
+  })
 
-  return (data || []).map((row: Record<string, unknown>) => {
+  return data.map((row: Record<string, unknown>) => {
     const models = row.product_models as { name: string } | null
     return {
       ...row,
@@ -518,22 +531,28 @@ export async function getSPCAlerts(
 export async function getOpenAlertsCount(
   factoryId?: string
 ): Promise<{ total: number; critical: number }> {
-  let query = supabase
-    .from('spc_alerts')
-    .select('id, severity')
-    .eq('status', 'open')
+  // Counted in Postgres. This used to fetch the rows and read data.length, which
+  // stops at PostgREST's 1000-row cap: past that the badge froze at 1000 and a
+  // critical alert beyond row 1000 was invisible.
+  const countOpen = async (critical: boolean): Promise<number> => {
+    let query = supabase
+      .from('spc_alerts')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'open')
 
-  if (factoryId) {
-    query = query.eq('factory_id', factoryId)
+    if (factoryId) query = query.eq('factory_id', factoryId)
+    if (critical) query = query.eq('severity', 'critical')
+
+    const { count, error } = await query
+    if (error) {
+      console.error('[SPC] Failed to count open alerts:', error)
+      return 0
+    }
+    return count ?? 0
   }
 
-  const { data, error } = await query
-  if (error || !data) return { total: 0, critical: 0 }
-
-  return {
-    total: data.length,
-    critical: data.filter(a => a.severity === 'critical').length,
-  }
+  const [total, critical] = await Promise.all([countOpen(false), countOpen(true)])
+  return { total, critical }
 }
 
 /**
@@ -737,41 +756,34 @@ export async function getDefectPointPareto(
 ): Promise<DefectPointParetoRow[]> {
   const dateFilter = getBusinessDateRangeFilter(filters.date_from, filters.date_to)
 
-  let query = supabase
-    .from('inspection_results')
-    .select(`
-      item_id,
-      result,
-      inspection_items!inner ( name ),
-      inspections!inner ( model_id, inspection_process, factory_id, created_at )
-    `)
-    .eq('result', 'fail')
-    .gte('inspections.created_at', dateFilter.gte)
-    .lte('inspections.created_at', dateFilter.lte)
+  // Counted per item in Postgres. The previous version selected raw failing rows
+  // with no ORDER BY and no range(), so PostgREST returned an arbitrary 1000 of
+  // them: the top defect point changed between refreshes and was wrong whenever
+  // more than 1000 failing results existed in the window.
+  const { data, error } = await supabase.rpc('get_defect_point_pareto', {
+    p_from: dateFilter.gte,
+    p_to: dateFilter.lte,
+    p_model: filters.model_id ?? null,
+    p_process: filters.process_id ?? null,
+    p_factory: factoryId ?? null,
+  })
 
-  if (filters.model_id) query = query.eq('inspections.model_id', filters.model_id)
-  if (filters.process_id) query = query.eq('inspections.inspection_process', filters.process_id)
-  if (factoryId) query = query.eq('inspections.factory_id', factoryId)
-
-  const { data, error } = await query
   if (error) {
     console.error('[SPC] Failed to fetch defect-point pareto:', error)
     return []
   }
 
-  const counts = new Map<string, { name: string; count: number }>()
-  for (const row of (data || []) as Array<Record<string, unknown>>) {
-    const itemId = row.item_id as string
-    const item = row.inspection_items as { name: string } | null
-    const name = item?.name ?? itemId
-    const prev = counts.get(itemId)
-    if (prev) prev.count += 1
-    else counts.set(itemId, { name, count: 1 })
-  }
+  const rows = (data ?? []) as Array<{
+    item_id: string
+    item_name: string
+    defect_count: number
+  }>
 
-  return Array.from(counts.entries())
-    .map(([item_id, v]) => ({ item_id, item_name: v.name, defect_count: v.count }))
-    .sort((a, b) => b.defect_count - a.defect_count)
+  return rows.map((row) => ({
+    item_id: row.item_id,
+    item_name: row.item_name,
+    defect_count: row.defect_count,
+  }))
 }
 
 // ============================================

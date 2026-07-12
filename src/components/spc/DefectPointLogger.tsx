@@ -67,11 +67,23 @@ export function DefectPointLogger({ items, parts, onChange }: DefectPointLoggerP
   }
 
   const removePoint = (partIdx: number, itemId: string) => {
-    const next = parts
-      .map((p, i) => (i === partIdx ? p.filter((e) => e.item_id !== itemId) : p))
-      .filter((p) => p.length > 0)
-    onChange(next.length > 0 ? next : [])
-    setActivePart((idx) => Math.min(idx, Math.max(0, (next.length || 1) - 1)))
+    const stripped = parts.map((p, i) =>
+      i === partIdx ? p.filter((e) => e.item_id !== itemId) : p
+    )
+
+    // Keep the part the user is currently filling even when it is empty. The
+    // old code pruned every empty part, so deleting the last point of part 1
+    // also deleted the blank part 2 that "add part" had just created - all the
+    // part chips vanished and the auto-synced defect quantity snapped to 0.
+    const kept = stripped
+      .map((points, index) => ({ points, index }))
+      .filter(({ points, index }) => points.length > 0 || index === activePart)
+
+    const next = kept.map(({ points }) => points)
+    const nextActive = kept.findIndex(({ index }) => index === activePart)
+
+    onChange(next)
+    setActivePart(next.length === 0 ? 0 : Math.max(0, Math.min(nextActive, next.length - 1)))
   }
 
   const addPart = () => {

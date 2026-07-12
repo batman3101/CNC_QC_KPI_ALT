@@ -21,6 +21,7 @@ import {
 import type { Database } from '@/types/database'
 import { getProductModels, getDefectTypes, getUsers, getMachines } from '@/services/managementService'
 import { getInspectionById } from '@/services/inspectionService'
+import { formatVietnamDateTime } from '@/lib/dateUtils'
 
 type Defect = Database['public']['Tables']['defects']['Row']
 
@@ -175,7 +176,7 @@ export function DefectDetailDialog({
                 {t('defects.registeredDate')}
               </Typography>
               <Typography variant="body1">
-                {new Date(defect.created_at).toLocaleString('ko-KR')}
+                {formatVietnamDateTime(defect.created_at)}
               </Typography>
             </Box>
 
