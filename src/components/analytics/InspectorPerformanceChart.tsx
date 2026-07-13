@@ -41,7 +41,7 @@ export function InspectorPerformanceChart({
               yAxisId="left"
               tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
               label={{ 
-                value: t('charts.inspectionCount'), 
+                value: t('charts.inspectionQty'), 
                 angle: -90, 
                 position: 'insideLeft',
                 style: { fill: 'hsl(var(--muted-foreground))' }
@@ -81,7 +81,7 @@ export function InspectorPerformanceChart({
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-[0.70rem] uppercase text-muted-foreground">
-                          {t('charts.inspectionCount')}
+                          {t('charts.inspectionQty')}
                         </span>
                         <span className="font-bold">
                           {data.totalInspections}
@@ -125,7 +125,7 @@ export function InspectorPerformanceChart({
             <Bar
               yAxisId="left"
               dataKey="totalInspections"
-              name={t('charts.inspectionCount')}
+              name={t('charts.inspectionQty')}
               fill="hsl(var(--chart-1))"
               radius={[8, 8, 0, 0]}
             />

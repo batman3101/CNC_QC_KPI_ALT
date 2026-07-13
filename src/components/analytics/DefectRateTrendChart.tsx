@@ -55,7 +55,7 @@ export function DefectRateTrendChart({ data }: DefectRateTrendChartProps) {
               orientation="right"
               tick={{ fontSize: 12, fill: 'hsl(var(--muted-foreground))' }}
               label={{ 
-                value: t('charts.inspectionCount'), 
+                value: t('charts.inspectionQty'), 
                 angle: 90, 
                 position: 'insideRight',
                 style: { fill: 'hsl(var(--muted-foreground))' }
@@ -84,7 +84,7 @@ export function DefectRateTrendChart({ data }: DefectRateTrendChartProps) {
                       </div>
                       <div className="flex flex-col">
                         <span className="text-[0.70rem] uppercase text-muted-foreground">
-                          {t('charts.inspectionCount')}
+                          {t('charts.inspectionQty')}
                         </span>
                         <span className="font-bold">
                           {data.totalInspections}
@@ -142,7 +142,7 @@ export function DefectRateTrendChart({ data }: DefectRateTrendChartProps) {
               type="monotone"
               dataKey="totalInspections"
               stroke="hsl(var(--chart-3))"
-              name={t('charts.inspectionCount')}
+              name={t('charts.inspectionQty')}
               strokeWidth={2}
               strokeDasharray="5 5"
               dot={{ r: 4, fill: 'hsl(var(--chart-3))' }}

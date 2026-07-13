@@ -11,6 +11,7 @@ import {
   AutoAwesome as AutoAwesomeIcon,
   People as PeopleIcon,
   QueryStats as QueryStatsIcon,
+  PrecisionManufacturing as PrecisionManufacturingIcon,
 } from '@mui/icons-material'
 import { usePermissions } from '@/hooks/usePermissions'
 import type { PermissionKey } from '@/types/permissions'
@@ -52,6 +53,13 @@ const getNavItems = (): NavItem[] => [
     href: '/analytics',
     icon: TrendingUpIcon,
     permission: 'analytics',
+    hideOnMobile: true, // 웹 전용
+  },
+  {
+    titleKey: 'nav.machineAnalysis',
+    href: '/machine-analysis',
+    icon: PrecisionManufacturingIcon,
+    permission: 'machineAnalysis',
     hideOnMobile: true, // 웹 전용
   },
   {

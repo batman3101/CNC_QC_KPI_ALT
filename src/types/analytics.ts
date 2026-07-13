@@ -42,6 +42,42 @@ export interface DefectTypeDistribution {
   percentage: number
 }
 
+/**
+ * One machine's quality over a period.
+ *
+ * inspectionCount (records) is carried next to inspectionQty (pieces) on
+ * purpose. A single machine is a thin slice of the data - half of them see
+ * fewer than five inspections in a month - so a defect rate shown without the
+ * sample behind it invites someone to stop a machine over one bad lot.
+ */
+export interface MachineAnalysisSummary {
+  inspectionCount: number
+  inspectionQty: number
+  defectQty: number
+  defectRate: number
+}
+
+/**
+ * Rejected pieces of one defect type, so the slices sum to the machine's total
+ * defect quantity.
+ *
+ * Pieces logged with no type at all - an inspector entered a quantity and
+ * skipped the type - arrive under the UNCLASSIFIED_DEFECT_TYPE sentinel, which
+ * is turned into words at display time so each reader sees it in their own
+ * language.
+ */
+export interface MachineDefectTypeQuantity {
+  defectType: string
+  qty: number
+  percentage: number
+}
+
+export interface MachineAnalysis {
+  summary: MachineAnalysisSummary
+  trend: DefectRateTrend[]
+  defectTypes: MachineDefectTypeQuantity[]
+}
+
 export interface InspectionTimeTrend {
   date: string
   avgTime: number
@@ -57,7 +93,18 @@ export interface TopInspector {
 }
 
 export interface KPISummary {
+  /** Inspection records. The rates below are not computed from this. */
   totalInspections: number
+  /**
+   * Pieces inspected - the denominator of overallDefectRate and fpy.
+   *
+   * It was being computed and thrown away, so the analytics page showed a
+   * defect rate with its denominator nowhere on screen: 4,165 records next to
+   * a 1.27% rate that was really 7,908 pieces out of ~623,000. Nothing on the
+   * page added up, because the two numbers were not in the same unit.
+   */
+  totalInspectionQty: number
+  /** Rejected pieces, not defect records. */
   totalDefects: number
   overallDefectRate: number
   fpy: number // First Pass Yield

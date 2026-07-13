@@ -7,6 +7,7 @@ import {
 } from 'recharts'
 import { useTranslation } from 'react-i18next'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { defectTypeLabel } from '@/lib/defectTypeLabel'
 import type { DefectTypeDistribution } from '@/types/analytics'
 
 interface DefectTypeChartProps {
@@ -24,11 +25,17 @@ const COLORS = [
 export function DefectTypeChart({ data }: DefectTypeChartProps) {
   const { t } = useTranslation()
 
-  const sortedData = [...data].sort((a, b) =>
-    b.percentage - a.percentage ||
-    b.count - a.count ||
-    a.defectType.localeCompare(b.defectType)
-  )
+  // Naming happens here rather than in either caller: this chart is shared by
+  // the analytics and machine-analysis pages, and the untyped-defect sentinel
+  // has to read as words in both.
+  const sortedData = [...data]
+    .map((row) => ({ ...row, defectType: defectTypeLabel(row.defectType, t) }))
+    .sort(
+      (a, b) =>
+        b.percentage - a.percentage ||
+        b.count - a.count ||
+        a.defectType.localeCompare(b.defectType)
+    )
 
   return (
     <Card

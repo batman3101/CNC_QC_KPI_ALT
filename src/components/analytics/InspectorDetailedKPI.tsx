@@ -263,7 +263,7 @@ export function InspectorDetailedKPI({ filters }: InspectorDetailedKPIProps) {
                         yAxisId="left"
                         type="monotone"
                         dataKey="inspectionCount"
-                        name={t('charts.inspectionCount')}
+                        name={t('charts.inspectionQty')}
                         stroke="hsl(var(--chart-1))"
                         strokeWidth={2}
                         dot={false}
@@ -319,7 +319,7 @@ export function InspectorDetailedKPI({ filters }: InspectorDetailedKPIProps) {
                                 <div className="rounded-lg border bg-background p-2 shadow-sm">
                                   <p className="font-bold">{data.modelName}</p>
                                   <p className="text-sm">
-                                    {t('charts.inspectionCount')}: {data.inspectionCount}
+                                    {t('charts.inspectionQty')}: {data.inspectionCount}
                                   </p>
                                   <p className="text-sm text-destructive">
                                     {t('charts.defectRate')}: {data.defectRate.toFixed(2)}%
@@ -330,7 +330,7 @@ export function InspectorDetailedKPI({ filters }: InspectorDetailedKPIProps) {
                           />
                           <Bar
                             dataKey="inspectionCount"
-                            name={t('charts.inspectionCount')}
+                            name={t('charts.inspectionQty')}
                             fill="hsl(var(--chart-1))"
                             radius={[0, 4, 4, 0]}
                           />
@@ -380,7 +380,7 @@ export function InspectorDetailedKPI({ filters }: InspectorDetailedKPIProps) {
                                 <div className="rounded-lg border bg-background p-2 shadow-sm">
                                   <p className="font-bold">{data.processName}</p>
                                   <p className="text-sm">
-                                    {t('charts.inspectionCount')}: {data.inspectionCount}
+                                    {t('charts.inspectionQty')}: {data.inspectionCount}
                                   </p>
                                   <p className="text-sm text-destructive">
                                     {t('charts.defectRate')}: {data.defectRate.toFixed(2)}%
@@ -393,7 +393,7 @@ export function InspectorDetailedKPI({ filters }: InspectorDetailedKPIProps) {
                           <Bar
                             yAxisId="left"
                             dataKey="inspectionCount"
-                            name={t('charts.inspectionCount')}
+                            name={t('charts.inspectionQty')}
                             fill="hsl(var(--chart-1))"
                             radius={[4, 4, 0, 0]}
                           />

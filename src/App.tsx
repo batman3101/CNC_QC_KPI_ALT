@@ -23,6 +23,7 @@ const DashboardPage = lazy(() => import('@/pages/DashboardPage').then((module) =
 const InspectionPage = lazy(() => import('@/pages/InspectionPage').then((module) => ({ default: module.InspectionPage })))
 const DefectsPage = lazy(() => import('@/pages/DefectsPage').then((module) => ({ default: module.DefectsPage })))
 const AnalyticsPage = lazy(() => import('@/pages/AnalyticsPage').then((module) => ({ default: module.AnalyticsPage })))
+const MachineAnalysisPage = lazy(() => import('@/pages/MachineAnalysisPage').then((module) => ({ default: module.MachineAnalysisPage })))
 const ReportsPage = lazy(() => import('@/pages/ReportsPage').then((module) => ({ default: module.ReportsPage })))
 const AIInsightsPage = lazy(() => import('@/pages/AIInsightsPage').then((module) => ({ default: module.AIInsightsPage })))
 const ManagementPage = lazy(() => import('@/pages/ManagementPage').then((module) => ({ default: module.ManagementPage })))
@@ -183,6 +184,7 @@ function AppRoutes() {
         <Route path="/inspection" element={permissionRoute('inspection', <InspectionPage />)} />
         <Route path="/defects" element={permissionRoute('defects', <DefectsPage />)} />
         <Route path="/analytics" element={permissionRoute('analytics', <AnalyticsPage />)} />
+        <Route path="/machine-analysis" element={permissionRoute('machineAnalysis', <MachineAnalysisPage />)} />
         <Route path="/spc" element={permissionRoute('spc', <SPCPage />)} />
         <Route path="/reports" element={permissionRoute('reports', <ReportsPage />)} />
         <Route path="/ai-insights" element={permissionRoute('aiInsights', <AIInsightsPage />)} />

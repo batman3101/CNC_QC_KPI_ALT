@@ -664,6 +664,45 @@ export type Database = {
           failed_count: number
         }[]
       }
+      get_machine_analysis_summary: {
+        Args: {
+          p_machine: string
+          p_from: string
+          p_to: string
+          p_factory?: string | null
+        }
+        Returns: {
+          inspection_count: number
+          inspection_qty: number
+          defect_qty: number
+        }[]
+      }
+      get_machine_defect_trend: {
+        Args: {
+          p_machine: string
+          p_from: string
+          p_to: string
+          p_factory?: string | null
+        }
+        Returns: {
+          business_day: string
+          inspection_qty: number
+          defect_qty: number
+        }[]
+      }
+      get_machine_defect_types: {
+        Args: {
+          p_machine: string
+          p_from: string
+          p_to: string
+          p_factory?: string | null
+        }
+        Returns: {
+          /** 'UNCLASSIFIED' when the inspector logged a quantity but no type. */
+          defect_type_name: string
+          defect_qty: number
+        }[]
+      }
       get_defect_point_pareto: {
         Args: {
           p_from: string

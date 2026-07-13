@@ -31,6 +31,7 @@ import {
   Settings,
   People,
   QueryStats,
+  PrecisionManufacturing,
 } from '@mui/icons-material'
 import { useNetworkStatus } from '@/hooks/useNetworkStatus'
 import { usePermissions } from '@/hooks/usePermissions'
@@ -52,6 +53,7 @@ const mobileNavItems: MobileNavItem[] = [
 
 const hiddenNavItems: MobileNavItem[] = [
   { path: '/analytics', icon: TrendingUp, labelKey: 'nav.analytics', permission: 'analytics' },
+  { path: '/machine-analysis', icon: PrecisionManufacturing, labelKey: 'nav.machineAnalysis', permission: 'machineAnalysis' },
   { path: '/spc', icon: QueryStats, labelKey: 'nav.spc', permission: 'spc' },
   { path: '/reports', icon: Description, labelKey: 'nav.reports', permission: 'reports' },
   { path: '/management', icon: Settings, labelKey: 'nav.management', permission: 'management' },

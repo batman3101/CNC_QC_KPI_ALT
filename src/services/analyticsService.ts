@@ -115,6 +115,7 @@ export async function getKPISummary(
 
   return {
     totalInspections,
+    totalInspectionQty,
     totalDefects: totalDefectQty,
     overallDefectRate: defectRate,
     fpy: 100 - defectRate,

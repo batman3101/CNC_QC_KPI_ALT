@@ -123,7 +123,7 @@ export function MachinePerformanceChart({
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-[0.70rem] uppercase text-muted-foreground">
-                          {t('charts.inspectionCount')}
+                          {t('charts.inspectionQty')}
                         </span>
                         <span className="font-bold">
                           {data.totalInspections}

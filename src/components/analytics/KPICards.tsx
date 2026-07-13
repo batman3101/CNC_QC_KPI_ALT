@@ -72,16 +72,19 @@ export function KPICards({ data, isLoading }: KPICardsProps) {
           <CardContent sx={cardContentSx}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
               <Typography variant="body2" fontWeight={500} color="text.secondary">
-                {t('charts.inspectionCount')}
+                {t('charts.inspectionQty')}
               </Typography>
               <BarChartIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
             </Box>
+            {/* Pieces lead, records follow. The defect rate on the next card is
+                a ratio of pieces, so putting the record count in the headline
+                left the rate with no visible denominator. */}
             <Typography variant="h4" fontWeight={700} gutterBottom>
-              {data.totalInspections.toLocaleString()}
+              {data.totalInspectionQty.toLocaleString()}
             </Typography>
             <Box sx={{ mt: 'auto' }}>
               <Typography variant="caption" color="text.secondary">
-                {t('analytics.period')}
+                {t('analytics.inspectionRecordCount', { count: data.totalInspections })}
               </Typography>
             </Box>
           </CardContent>

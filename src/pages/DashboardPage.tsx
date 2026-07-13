@@ -136,44 +136,53 @@ export function DashboardPage() {
   }
 
   // Today's business day (08:00 ~ next day 07:59) is resolved by the database.
+  //
+  // Two different units live here and mixing them up is the whole reason these
+  // cards were once wrong: inspectionCount is a number of *records*, while the
+  // defect and pass rates are ratios of *pieces*. The cards therefore lead with
+  // the piece counts, so 264 / 12,960 = 2.0% can be checked on the screen, and
+  // relegate the record count to the caption.
   const todayInspectionsCount = todayStats?.inspectionCount ?? 0
   const todayInspectionQty = todayStats?.inspectionQty ?? 0
   const todayDefectQty = todayStats?.defectQty ?? 0
-  const failedInspections = todayStats?.failedCount ?? 0
-  const passRate =
-    todayInspectionQty > 0
-      ? (((todayInspectionQty - todayDefectQty) / todayInspectionQty) * 100).toFixed(1)
-      : '0.0'
-  const defectRate =
-    todayInspectionQty > 0
-      ? ((todayDefectQty / todayInspectionQty) * 100).toFixed(1)
-      : '0.0'
+
+  // A rate needs something to divide by. Reporting 0.0% before the first
+  // inspection of the day - the business day opens at 08:00, so there is always
+  // such a window - puts "no data yet" and "nothing passed" on screen as the
+  // same thing, and a 0% pass rate is what a manager reacts to.
+  const hasTodayData = todayInspectionQty > 0
+  const passRate = hasTodayData
+    ? `${(((todayInspectionQty - todayDefectQty) / todayInspectionQty) * 100).toFixed(1)}%`
+    : '—'
+  const defectRate = hasTodayData
+    ? `${((todayDefectQty / todayInspectionQty) * 100).toFixed(1)}%`
+    : '—'
 
   const stats = [
     {
       title: t('dashboard.todayInspections'),
-      value: todayInspectionsCount.toString(),
-      subtitle: t('dashboard.todayBasis'),
+      value: todayInspectionQty.toLocaleString(),
+      subtitle: t('dashboard.inspectionRecordCount', { count: todayInspectionsCount }),
       icon: BarChart,
       color: 'text.secondary',
     },
     {
       title: t('dashboard.defectCount'),
-      value: failedInspections.toString(),
+      value: todayDefectQty.toLocaleString(),
       subtitle: t('dashboard.todayBasis'),
       icon: Cancel,
       color: 'error.main',
     },
     {
       title: t('dashboard.passRate'),
-      value: `${passRate}%`,
+      value: passRate,
       subtitle: t('dashboard.todayBasis'),
       icon: CheckCircle,
       color: 'success.main',
     },
     {
       title: t('dashboard.defectRate'),
-      value: `${defectRate}%`,
+      value: defectRate,
       subtitle: t('dashboard.todayBasis'),
       icon: AccessTime,
       color: 'error.main',

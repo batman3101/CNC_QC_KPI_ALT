@@ -88,7 +88,7 @@ export function HourlyDistributionChart({
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-[0.70rem] uppercase text-muted-foreground">
-                          {t('charts.inspectionCount')}
+                          {t('charts.inspectionQty')}
                         </span>
                         <span className="font-bold">
                           {data.inspectionCount}
@@ -119,7 +119,7 @@ export function HourlyDistributionChart({
               stroke="hsl(var(--chart-1))"
               fillOpacity={1}
               fill="url(#colorInspections)"
-              name={t('charts.inspectionCount')}
+              name={t('charts.inspectionQty')}
             />
             <Area
               type="monotone"
