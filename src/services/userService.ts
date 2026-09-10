@@ -85,7 +85,7 @@ export async function getUserById(id: string): Promise<User | null> {
 }
 
 /**
- * 사용자 생성 (관리자 전용 Edge Function)
+ * 사용자 생성 (서버에서 역할·공장·기능 권한 검사)
  */
 export async function createUser(input: CreateUserInput): Promise<User> {
   const { data, error } = await supabase.functions.invoke<{ user: User }>('admin-create-user', {
@@ -147,6 +147,8 @@ export async function deleteUser(id: string): Promise<void> {
     .from('users')
     .delete()
     .eq('id', id)
+    .select('id')
+    .single()
 
   if (error) {
     console.error('Error deleting user:', error)

@@ -23,6 +23,8 @@ import { useSnackbar } from 'notistack'
 import type { Database } from '@/types/database'
 import * as userService from '@/services/userService'
 import { useFactoryStore } from '@/stores/factoryStore'
+import { useAuthStore } from '@/stores/authStore'
+import { usePermissions } from '@/hooks/usePermissions'
 
 type User = Database['public']['Tables']['users']['Row']
 
@@ -89,7 +91,14 @@ export function UserDialog({
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { enqueueSnackbar } = useSnackbar()
-  const { factories } = useFactoryStore()
+  const { factories, activeFactoryId } = useFactoryStore()
+  const profile = useAuthStore((state) => state.profile)
+  const { hasPermission } = usePermissions()
+  const isAdmin = profile?.role === 'admin'
+  const canManage = isAdmin || (profile?.role === 'manager' && !!profile.factory_id &&
+    profile.factory_id === activeFactoryId && hasPermission('userManagement') &&
+    (!user || (user.role === 'inspector' && user.factory_id === profile.factory_id)))
+  const defaultFactoryId = isAdmin ? (activeFactoryId ?? '') : (profile?.factory_id ?? '')
   const isEditing = !!user
 
   const formSchema = createFormSchema(t, isEditing, existingEmails, user?.email)
@@ -105,7 +114,7 @@ export function UserDialog({
       name: '',
       email: '',
       role: 'inspector',
-      factory_id: 'ALT',
+      factory_id: defaultFactoryId,
       password: '',
     },
   })
@@ -118,7 +127,7 @@ export function UserDialog({
           name: user.name,
           email: user.email,
           role: user.role as 'admin' | 'manager' | 'inspector',
-          factory_id: user.factory_id || 'ALT',
+          factory_id: user.factory_id || defaultFactoryId,
           password: '',
         })
       } else {
@@ -126,12 +135,12 @@ export function UserDialog({
           name: '',
           email: '',
           role: 'inspector',
-          factory_id: 'ALT',
+          factory_id: defaultFactoryId,
           password: '',
         })
       }
     }
-  }, [open, user, reset])
+  }, [open, user, reset, defaultFactoryId])
 
   // Create mutation
   const createMutation = useMutation({
@@ -164,6 +173,8 @@ export function UserDialog({
   })
 
   const onSubmit = (values: FormValues) => {
+    if (!canManage) return
+    if (!isAdmin && (values.role !== 'inspector' || values.factory_id !== profile?.factory_id)) return
     if (isEditing && user) {
       const updateData: userService.UpdateUserInput = {
         name: values.name,
@@ -249,10 +260,10 @@ export function UserDialog({
                   <Select
                     {...field}
                     label={`${t('userManagement.role')} *`}
-                    disabled={isLoading}
+                    disabled={isLoading || !isAdmin}
                   >
-                    <MenuItem value="admin">{t('userManagement.roleAdmin')}</MenuItem>
-                    <MenuItem value="manager">{t('userManagement.roleManager')}</MenuItem>
+                    {isAdmin && <MenuItem value="admin">{t('userManagement.roleAdmin')}</MenuItem>}
+                    {isAdmin && <MenuItem value="manager">{t('userManagement.roleManager')}</MenuItem>}
                     <MenuItem value="inspector">{t('userManagement.roleInspector')}</MenuItem>
                   </Select>
                   {errors.role && (
@@ -271,7 +282,7 @@ export function UserDialog({
                   <Select
                     {...field}
                     label={`${t('factory.assignment')} *`}
-                    disabled={isLoading}
+                    disabled={isLoading || !isAdmin}
                   >
                     {factories.map((f) => (
                       <MenuItem key={f.id} value={f.id}>{f.name}</MenuItem>
@@ -315,7 +326,7 @@ export function UserDialog({
           <Button
             type="submit"
             variant="contained"
-            disabled={isLoading}
+            disabled={isLoading || !canManage}
           >
             {isLoading ? t('common.loading') : isEditing ? t('common.edit') : t('common.add')}
           </Button>

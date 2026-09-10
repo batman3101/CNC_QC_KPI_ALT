@@ -24,6 +24,7 @@ import { DataTable, type ColumnDef } from '@/components/common/DataTable'
 import { ConfirmDialog } from '@/components/common/ConfirmDialog'
 import { UserDialog } from './UserDialog'
 import { useAuthStore } from '@/stores/authStore'
+import { usePermissions } from '@/hooks/usePermissions'
 import type { Database } from '@/types/database'
 import * as userService from '@/services/userService'
 
@@ -37,7 +38,16 @@ export function UserList() {
   const queryClient = useQueryClient()
   const { enqueueSnackbar } = useSnackbar()
   const currentUser = useAuthStore((state) => state.user)
+  const profile = useAuthStore((state) => state.profile)
+  const { hasPermission } = usePermissions()
   const { activeFactoryId } = useFactoryStore()
+  const canManage = profile?.role === 'admin' || (
+    profile?.role === 'manager' && !!profile.factory_id &&
+    profile.factory_id === activeFactoryId && hasPermission('userManagement')
+  )
+  const canManageUser = (user: User) => canManage && (
+    profile?.role === 'admin' || (user.role === 'inspector' && user.factory_id === profile?.factory_id)
+  )
 
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
@@ -177,16 +187,19 @@ export function UserList() {
   )
 
   const handleAdd = () => {
+    if (!canManage) return
     setSelectedUser(null)
     setDialogOpen(true)
   }
 
   const handleEdit = (user: User) => {
+    if (!canManageUser(user)) return
     setSelectedUser(user)
     setDialogOpen(true)
   }
 
   const handleDeleteClick = (user: User) => {
+    if (!canManageUser(user)) return
     // 자기 자신은 삭제 불가
     if (currentUser && user.id === currentUser.id) {
       enqueueSnackbar(t('userManagement.cannotDeleteSelf'), { variant: 'warning' })
@@ -197,13 +210,13 @@ export function UserList() {
   }
 
   const handleDeleteConfirm = () => {
-    if (userToDelete) {
+    if (userToDelete && canManageUser(userToDelete) && userToDelete.id !== currentUser?.id) {
       deleteMutation.mutate(userToDelete.id)
     }
   }
 
   // Render actions for each row
-  const renderActions = (user: User) => (
+  const renderActions = (user: User) => canManageUser(user) ? (
     <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
       <Tooltip title={t('common.edit')}>
         <IconButton
@@ -227,7 +240,7 @@ export function UserList() {
         </span>
       </Tooltip>
     </Box>
-  )
+  ) : null
 
   // Toolbar with add button
   const toolbarActions = (
@@ -235,6 +248,7 @@ export function UserList() {
       variant="contained"
       startIcon={<Add />}
       onClick={handleAdd}
+      disabled={!canManage}
       size="small"
     >
       {t('userManagement.addUser')}

@@ -82,7 +82,7 @@ Deno.serve(async (request) => {
 
     const { data: caller, error: callerError } = await adminClient
       .from('users')
-      .select('role')
+      .select('role, factory_id')
       .eq('id', authData.user.id)
       .maybeSingle()
 
@@ -90,7 +90,7 @@ Deno.serve(async (request) => {
       console.error('admin-create-user: failed to read caller profile', callerError.message)
       return jsonResponse({ error: '권한을 확인하지 못했습니다.' }, 500)
     }
-    if (caller?.role !== 'admin') {
+    if (!caller || (caller.role !== 'admin' && caller.role !== 'manager')) {
       return jsonResponse({ error: '관리자만 사용자를 생성할 수 있습니다.' }, 403)
     }
 
@@ -103,6 +103,24 @@ Deno.serve(async (request) => {
 
     const input = validateBody(requestBody)
     if (typeof input === 'string') return jsonResponse({ error: input }, 400)
+
+    // Match users_insert RLS: managers may create inspectors in their own
+    // factory only, and must still hold the configurable feature permission.
+    // This client uses service_role, so RLS cannot enforce these checks for us.
+    if (caller.role === 'manager') {
+      if (!caller.factory_id || input.factory_id !== caller.factory_id || input.role !== 'inspector') {
+        return jsonResponse({ error: '자기 공장의 검사자만 생성할 수 있습니다.' }, 403)
+      }
+      const { data: permission, error: permissionError } = await adminClient
+        .from('role_feature_permissions')
+        .select('allowed')
+        .eq('factory_id', caller.factory_id)
+        .eq('role', 'manager')
+        .eq('feature_key', 'userManagement')
+        .maybeSingle()
+      if (permissionError) return jsonResponse({ error: '권한을 확인하지 못했습니다.' }, 500)
+      if (!permission?.allowed) return jsonResponse({ error: '사용자 관리 권한이 없습니다.' }, 403)
+    }
 
     const { data: factory, error: factoryError } = await adminClient
       .from('factories')
