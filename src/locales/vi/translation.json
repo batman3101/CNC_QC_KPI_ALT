@@ -163,6 +163,7 @@
     "submittingRecord": "Đang lưu...",
     "submitSuccess": "Kết quả kiểm tra đã được đăng ký",
     "savedOffline": "Đã lưu ngoại tuyến — sẽ tự động đăng ký khi có kết nối Internet",
+    "queuedForRetry": "Đăng ký lên máy chủ thất bại, đã lưu trên thiết bị — sẽ tự động thử lại ở lần lưu tiếp theo hoặc khi mở lại ứng dụng",
     "photo": "Ảnh",
     "uploadPhoto": "Tải ảnh lên",
     "photoHelper": "Chỉ tải lên tệp ảnh (tối đa 10MB)",

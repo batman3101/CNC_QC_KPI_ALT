@@ -163,6 +163,7 @@
     "submittingRecord": "저장 중...",
     "submitSuccess": "검사 실적이 등록되었습니다",
     "savedOffline": "오프라인 저장됨 — 인터넷 연결 시 자동으로 등록됩니다",
+    "queuedForRetry": "서버 등록에 실패해 기기에 보관 중입니다 — 다음 저장 또는 앱 재실행 시 자동으로 다시 시도합니다",
     "photo": "사진",
     "uploadPhoto": "사진 업로드",
     "photoHelper": "이미지 파일만 업로드 가능 (최대 10MB)",

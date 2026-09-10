@@ -251,75 +251,64 @@ export async function deleteDefect(id: string): Promise<void> {
 
 // ============= Combined Operations =============
 
+/**
+ * Everything one inspection entry produces, saved in a single transaction.
+ *
+ * This used to be three requests in a row (inspections, inspection_results,
+ * defects). A client that stopped after the first left a rejected inspection
+ * with no defect record, and the queue's retry then inserted the inspection a
+ * second time. `clientRef` is the queue row's id: the server keeps it unique,
+ * so replaying the same item returns the row it already created.
+ */
 export interface InspectionSubmitData {
+  /** Idempotency key: the device queue id (offline_<ms>_<rand>). */
+  clientRef: string
   userId: string
-  machineId?: string
+  machineId?: string | null
   modelId: string
   inspectionProcess: string
   inspectionQuantity: number
   defectQuantity: number
-  results: Array<{
+  results?: Array<{
     itemId: string
     measuredValue: number
     result: 'pass' | 'fail'
   }>
-  defectType?: string
-  defectDescription?: string
-  photoUrl?: string
-  factoryId?: string
+  defectType?: string | null
+  defectDescription?: string | null
+  photoUrl?: string | null
+  factoryId?: string | null
 }
 
-export async function submitInspection(data: InspectionSubmitData): Promise<{
-  inspection: Inspection
-  results: InspectionResult[]
-  defect?: Defect
-}> {
-  // Determine overall status
-  const hasFailedResults = data.results.some(r => r.result === 'fail')
-  const status = hasFailedResults || data.defectQuantity > 0 ? 'fail' : 'pass'
-
-  // Create inspection
-  const inspection = await createInspection({
-    user_id: data.userId,
-    machine_id: data.machineId || null,
-    model_id: data.modelId,
-    inspection_process: data.inspectionProcess,
-    inspection_quantity: data.inspectionQuantity,
-    defect_quantity: data.defectQuantity,
-    defect_type: data.defectType || null,
-    photo_url: data.photoUrl || null,
-    status,
-    factory_id: data.factoryId || null,
-  })
-
-  // Create inspection results
-  const results = await createInspectionResults(
-    data.results.map(r => ({
-      inspection_id: inspection.id,
+/** Returns the inspection id - the existing one if this clientRef was already saved. */
+export async function submitInspectionRecord(data: InspectionSubmitData): Promise<string> {
+  const { data: inspectionId, error } = await supabase.rpc('submit_inspection_record', {
+    p_client_ref: data.clientRef,
+    p_user_id: data.userId,
+    p_model_id: data.modelId,
+    p_inspection_process: data.inspectionProcess,
+    p_inspection_quantity: data.inspectionQuantity,
+    p_defect_quantity: data.defectQuantity,
+    p_factory_id: data.factoryId || null,
+    p_machine_id: data.machineId || null,
+    p_defect_type: data.defectType || null,
+    p_photo_url: data.photoUrl || null,
+    // Only what the inspector actually typed. The old fallback wrote a Korean
+    // sentence into the DB, which no component-level i18n can undo - it is a
+    // persisted value, so every Vietnamese user read it in Korean forever.
+    p_defect_description: data.defectDescription?.trim() || null,
+    p_results: (data.results ?? []).map(r => ({
       item_id: r.itemId,
       measured_value: r.measuredValue,
       result: r.result,
-    }))
-  )
+    })),
+  })
 
-  // Create defect if failed
-  let defect: Defect | undefined
-  if (status === 'fail' && data.defectType) {
-    defect = await createDefect({
-      inspection_id: inspection.id,
-      model_id: data.modelId,
-      defect_type: data.defectType,
-      // Only what the inspector actually typed. The old fallback wrote a Korean
-      // sentence into the DB, which no component-level i18n can undo - it is a
-      // persisted value, so every Vietnamese user read it in Korean forever.
-      description: data.defectDescription?.trim() || null,
-      photo_url: data.photoUrl || null,
-      status: 'pending',
-      factory_id: data.factoryId || null,
-    })
+  if (error) throw error
+  if (typeof inspectionId !== 'string') {
+    throw new Error('submit_inspection_record returned no inspection id')
   }
-
-  return { inspection, results, defect }
+  return inspectionId
 }
 
 // ============= Statistics =============
@@ -474,39 +463,26 @@ export interface InspectionRecordInput {
   factory_id?: string
 }
 
-export async function createInspectionRecord(data: InspectionRecordInput): Promise<Inspection> {
-  const status = data.defect_quantity > 0 ? 'fail' : 'pass'
-
-  const inspection = await createInspection({
-    user_id: data.inspector_id,
-    machine_id: data.machine_id || null,
-    model_id: data.model_id,
-    inspection_process: data.inspection_process.code,
-    inspection_quantity: data.inspection_quantity,
-    defect_quantity: data.defect_quantity,
-    defect_type: data.defect_type_id || null,
-    photo_url: data.photo_url || null,
-    status,
-    factory_id: data.factory_id || null,
+/**
+ * Count-based entry (no per-item measurements). Same atomic path as
+ * submitInspectionRecord; kept as a named shape for the queue.
+ */
+export async function createInspectionRecord(
+  clientRef: string,
+  data: InspectionRecordInput
+): Promise<string> {
+  return submitInspectionRecord({
+    clientRef,
+    userId: data.inspector_id,
+    machineId: data.machine_id,
+    modelId: data.model_id,
+    inspectionProcess: data.inspection_process.code,
+    inspectionQuantity: data.inspection_quantity,
+    defectQuantity: data.defect_quantity,
+    defectType: data.defect_type_id,
+    photoUrl: data.photo_url,
+    factoryId: data.factory_id,
   })
-
-  // Create defect record if there are defects
-  if (data.defect_quantity > 0 && data.defect_type_id) {
-    await createDefect({
-      inspection_id: inspection.id,
-      model_id: data.model_id,
-      defect_type: data.defect_type_id,
-      // No machine-written prose. This used to persist a Korean sentence whose
-      // only content - the defect quantity - is already a column on the
-      // inspection row, so it added nothing and pinned the DB to one language.
-      description: null,
-      photo_url: data.photo_url || null,
-      status: 'pending',
-      factory_id: data.factory_id || null,
-    })
-  }
-
-  return inspection
 }
 
 export async function compressAndUploadPhoto(file: File): Promise<string> {

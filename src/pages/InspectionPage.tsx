@@ -79,45 +79,62 @@ export function InspectionPage() {
     // 미동기화 배지 즉시 갱신
     window.dispatchEvent(new Event('offline-queue-updated'))
 
-    // 온라인이면 백그라운드로 즉시 동기화 시도 (UI를 막지 않음)
+    // Online: upload now and only then report the outcome. This used to fire
+    // the sync in the background and show "registered" straight away, so the
+    // inspector walked off while the upload was still running - and a tablet
+    // that slept between the inspection insert and the defect insert left a
+    // rejected inspection with no defect record (78 of them in 32 days). The
+    // form keeps its spinner up while this awaits, which is the point.
+    let outcome: 'synced' | 'queued' | 'offline' = 'offline'
     if (isOnline()) {
-      syncPendingInspections()
-        .then(() => {
-          // Everything an inspection (and its defect) feeds. Missing a key here
-          // leaves that screen showing pre-submission numbers for its whole
-          // staleTime - the dashboard's "today" cards were doing exactly that.
-          for (const key of [
-            'dashboard-today-stats',
-            'dashboard-inspections',
-            'dashboard-defects',
-            'defects',
-            'defect-stats',
-            'defect-pending-count',
-            'public-monitor-data',
-            'spc-pchart',
-            'spc-defect-pareto',
-            'spc-model-defect-rates',
-            'kpi-summary',
-            'defect-trend',
-            'model-distribution',
-            'machine-performance',
-            'hourly-distribution',
-            'inspector-performance',
-            'defect-types-analytics',
-            'ai-snapshot',
-            'ai-unresolved-defects',
-            'report-summary',
-          ]) {
-            queryClient.invalidateQueries({ queryKey: [key] })
-          }
-          window.dispatchEvent(new Event('offline-queue-updated'))
-        })
-        .catch((e) => console.error('[Inspection] background sync failed:', e))
+      try {
+        const result = await syncPendingInspections()
+        outcome = result.failed === 0 ? 'synced' : 'queued'
+        if (result.failed > 0) {
+          console.error('[Inspection] sync left items queued:', result.errors)
+        }
+      } catch (e) {
+        console.error('[Inspection] sync failed:', e)
+        outcome = 'queued'
+      }
+
+      // Everything an inspection (and its defect) feeds. Missing a key here
+      // leaves that screen showing pre-submission numbers for its whole
+      // staleTime - the dashboard's "today" cards were doing exactly that.
+      for (const key of [
+        'dashboard-today-stats',
+        'dashboard-inspections',
+        'dashboard-defects',
+        'defects',
+        'defect-stats',
+        'defect-pending-count',
+        'public-monitor-data',
+        'spc-pchart',
+        'spc-defect-pareto',
+        'spc-model-defect-rates',
+        'kpi-summary',
+        'defect-trend',
+        'model-distribution',
+        'machine-performance',
+        'hourly-distribution',
+        'inspector-performance',
+        'defect-types-analytics',
+        'ai-snapshot',
+        'ai-unresolved-defects',
+        'report-summary',
+      ]) {
+        queryClient.invalidateQueries({ queryKey: [key] })
+      }
+      window.dispatchEvent(new Event('offline-queue-updated'))
     }
 
-    enqueueSnackbar(t(isOnline() ? 'inspection.submitSuccess' : 'inspection.savedOffline'), {
-      variant: 'success',
-    })
+    if (outcome === 'synced') {
+      enqueueSnackbar(t('inspection.submitSuccess'), { variant: 'success' })
+    } else if (outcome === 'queued') {
+      enqueueSnackbar(t('inspection.queuedForRetry'), { variant: 'warning' })
+    } else {
+      enqueueSnackbar(t('inspection.savedOffline'), { variant: 'success' })
+    }
     setInspectionState({ isActive: false, modelId: null, inspectionProcess: null })
   }
 

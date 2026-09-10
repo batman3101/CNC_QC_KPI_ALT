@@ -156,49 +156,38 @@ async function runSync(): Promise<{
       // Update status to syncing
       await offlineDb.offlineInspections.update(inspection.id, { status: 'syncing' })
 
-      // Upload photo (stored as Base64 offline) now that we're online
-      let photoUrl: string | null = null
-      if (inspection.photo_data) {
+      // Upload photo (stored as Base64 offline) now that we're online. The URL
+      // is written back to the queue row at once, so a retry after a stop
+      // between upload and save does not push the same file a second time.
+      let photoUrl: string | null = inspection.photo_url ?? null
+      if (!photoUrl && inspection.photo_data) {
         const file = dataUrlToFile(inspection.photo_data, `${inspection.id}.jpg`)
         photoUrl = await inspectionService.uploadDefectPhoto(file, inspection.id)
+        await offlineDb.offlineInspections.update(inspection.id, { photo_url: photoUrl })
       }
 
-      if (inspection.defect_points && inspection.defect_points.length > 0) {
-        // 측정 공정: inspections + inspection_results(불량 포인트) 기록
-        await inspectionService.submitInspection({
-          userId: inspection.inspector_id,
-          machineId: inspection.machine_id || undefined,
-          modelId: inspection.model_id,
-          inspectionProcess: inspection.inspection_process_code,
-          inspectionQuantity: inspection.inspection_quantity,
-          defectQuantity: inspection.defect_quantity,
-          results: inspection.defect_points.map((p) => ({
-            itemId: p.item_id,
-            measuredValue: p.measured_value ?? 0,
-            result: 'fail' as const,
-          })),
-          defectType: inspection.defect_type_id || undefined,
-          photoUrl: photoUrl || undefined,
-          factoryId: inspection.factory_id || undefined,
-        })
-      } else {
-        // 카운트 기반 경로
-        await inspectionService.createInspectionRecord({
-          model_id: inspection.model_id,
-          inspection_process: {
-            code: inspection.inspection_process_code,
-            name: inspection.inspection_process_name,
-          },
-          defect_type_id: inspection.defect_type_id,
-          machine_id: inspection.machine_id || null,
-          machine_number: inspection.machine_name,
-          inspector_id: inspection.inspector_id,
-          inspection_quantity: inspection.inspection_quantity,
-          defect_quantity: inspection.defect_quantity,
-          photo_url: photoUrl,
-          factory_id: inspection.factory_id,
-        })
-      }
+      // One request, one transaction: inspection + measured points + defect
+      // record land together or not at all. The queue id goes along as the
+      // idempotency key, so replaying this row (reclaimed 'syncing', or a
+      // retry after 'error') returns the inspection it already created
+      // instead of inserting a second one.
+      await inspectionService.submitInspectionRecord({
+        clientRef: inspection.id,
+        userId: inspection.inspector_id,
+        machineId: inspection.machine_id,
+        modelId: inspection.model_id,
+        inspectionProcess: inspection.inspection_process_code,
+        inspectionQuantity: inspection.inspection_quantity,
+        defectQuantity: inspection.defect_quantity,
+        results: (inspection.defect_points ?? []).map((p) => ({
+          itemId: p.item_id,
+          measuredValue: p.measured_value ?? 0,
+          result: 'fail' as const,
+        })),
+        defectType: inspection.defect_type_id,
+        photoUrl,
+        factoryId: inspection.factory_id,
+      })
 
       // Mark as synced. The photo is now in Supabase Storage, so drop the local
       // Base64 copy - it is the bulkiest field on the row (up to ~0.5MB) and

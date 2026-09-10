@@ -318,6 +318,8 @@ export type Database = {
       }
       inspections: {
         Row: {
+          /** Device-queue id used as the idempotency key; NULL for rows written before 2026-09-10. */
+          client_ref: string | null
           created_at: string
           defect_quantity: number
           defect_type: string | null
@@ -332,6 +334,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          client_ref?: string | null
           created_at?: string
           defect_quantity?: number
           defect_type?: string | null
@@ -346,6 +349,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          client_ref?: string | null
           created_at?: string
           defect_quantity?: number
           defect_type?: string | null
@@ -727,6 +731,25 @@ export type Database = {
           item_name: string
           defect_count: number
         }[]
+      }
+      // One transaction for inspection + results + defect. Replaying the same
+      // p_client_ref returns the existing inspection id instead of inserting.
+      submit_inspection_record: {
+        Args: {
+          p_client_ref: string
+          p_user_id: string
+          p_model_id: string
+          p_inspection_process: string
+          p_inspection_quantity: number
+          p_defect_quantity: number
+          p_factory_id: string | null
+          p_machine_id?: string | null
+          p_defect_type?: string | null
+          p_photo_url?: string | null
+          p_defect_description?: string | null
+          p_results?: Json
+        }
+        Returns: string
       }
       get_dashboard_recent_inspections: {
         Args: { p_factory?: string | null; p_limit?: number }

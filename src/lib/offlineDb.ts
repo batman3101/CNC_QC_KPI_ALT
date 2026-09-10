@@ -34,6 +34,9 @@ export interface OfflineInspection {
   inspection_quantity: number
   defect_quantity: number
   photo_data: string | null // Base64 encoded
+  // Set once the photo is in Storage. A retry after a mid-upload stop reuses
+  // this instead of uploading the same file again.
+  photo_url?: string | null
   notes: string | null
   defect_points: DefectPointEntry[] | null
   status: 'pending' | 'syncing' | 'synced' | 'error'
