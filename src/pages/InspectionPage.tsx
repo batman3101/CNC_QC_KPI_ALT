@@ -8,7 +8,13 @@ import { InspectionRecordForm } from '@/components/inspection/InspectionRecordFo
 import type { InspectionProcess, InspectionRecordInput } from '@/types/inspection'
 import type { DefectPart } from '@/types/spc'
 import * as managementService from '@/services/managementService'
-import { saveInspectionOffline, syncPendingInspections, compressImageToBase64, isOnline } from '@/services/offlineSyncService'
+import {
+  saveInspectionOffline,
+  syncPendingInspections,
+  getQueuedInspectionStatus,
+  compressImageToBase64,
+  isOnline,
+} from '@/services/offlineSyncService'
 import { useFactoryStore } from '@/stores/factoryStore'
 
 interface InspectionState {
@@ -57,7 +63,7 @@ export function InspectionPage() {
     const failedPoints = defectParts.flat()
 
     // 항상 로컬 큐에 즉시 저장 (네트워크 대기 없음)
-    await saveInspectionOffline({
+    const queued = await saveInspectionOffline({
       model_id: data.model_id,
       model_code: selectedModel?.code ?? '',
       inspection_process_code: data.inspection_process.code,
@@ -85,18 +91,23 @@ export function InspectionPage() {
     // that slept between the inspection insert and the defect insert left a
     // rejected inspection with no defect record (78 of them in 32 days). The
     // form keeps its spinner up while this awaits, which is the point.
+    //
+    // Success is judged from THIS entry's queue row, not from the aggregate
+    // result: the sync may have been running already when the row was queued
+    // (it now drains the queue, but the row's status is the fact), and an
+    // older row failing must not turn this entry's success into a warning.
     let outcome: 'synced' | 'queued' | 'offline' = 'offline'
     if (isOnline()) {
       try {
         const result = await syncPendingInspections()
-        outcome = result.failed === 0 ? 'synced' : 'queued'
         if (result.failed > 0) {
           console.error('[Inspection] sync left items queued:', result.errors)
         }
       } catch (e) {
         console.error('[Inspection] sync failed:', e)
-        outcome = 'queued'
       }
+      const status = await getQueuedInspectionStatus(queued.id)
+      outcome = status === 'synced' ? 'synced' : 'queued'
 
       // Everything an inspection (and its defect) feeds. Missing a key here
       // leaves that screen showing pre-submission numbers for its whole

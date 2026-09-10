@@ -92,6 +92,21 @@ export async function getPendingCount(): Promise<number> {
 }
 
 /**
+ * Status of one queued inspection, or null if the row is gone.
+ *
+ * The page that just queued an entry reports success from THIS, not from the
+ * aggregate sync result: a sync that was already running when the entry was
+ * queued may have finished without ever touching it, and a sync that did save
+ * it may still report failures for older rows.
+ */
+export async function getQueuedInspectionStatus(
+  id: string
+): Promise<OfflineInspection['status'] | null> {
+  const row = await offlineDb.offlineInspections.get(id)
+  return row?.status ?? null
+}
+
+/**
  * The sync currently running, if any.
  *
  * useNetworkStatus() is mounted twice (OfflineIndicator and MobileBottomNav),
@@ -141,74 +156,85 @@ async function runSync(): Promise<{
     )
   }
 
-  const pending = await offlineDb.offlineInspections
-    .where('status')
-    .anyOf(['pending', 'error'])
-    .filter((i) => i.retry_count < 3) // Skip items that failed too many times
-    .toArray()
-
   let success = 0
   let failed = 0
   const errors: string[] = []
 
-  for (const inspection of pending) {
-    try {
-      // Update status to syncing
-      await offlineDb.offlineInspections.update(inspection.id, { status: 'syncing' })
+  // Drain the queue rather than process one snapshot of it. The list used to
+  // be read once at the start, so an entry queued while this run was already
+  // uploading was skipped - and the caller who queued it, having joined this
+  // run's promise, was told everything succeeded. Later passes read 'pending'
+  // only: an item that failed in this run is already 'error' and must wait for
+  // the next run, not be retried three times in a row here.
+  let pass = 0
+  for (;;) {
+    const pending = await offlineDb.offlineInspections
+      .where('status')
+      .anyOf(pass === 0 ? ['pending', 'error'] : ['pending'])
+      .filter((i) => i.retry_count < 3) // Skip items that failed too many times
+      .toArray()
+    if (pending.length === 0) break
+    pass += 1
 
-      // Upload photo (stored as Base64 offline) now that we're online. The URL
-      // is written back to the queue row at once, so a retry after a stop
-      // between upload and save does not push the same file a second time.
-      let photoUrl: string | null = inspection.photo_url ?? null
-      if (!photoUrl && inspection.photo_data) {
-        const file = dataUrlToFile(inspection.photo_data, `${inspection.id}.jpg`)
-        photoUrl = await inspectionService.uploadDefectPhoto(file, inspection.id)
-        await offlineDb.offlineInspections.update(inspection.id, { photo_url: photoUrl })
+    for (const inspection of pending) {
+      try {
+        // Update status to syncing
+        await offlineDb.offlineInspections.update(inspection.id, { status: 'syncing' })
+
+        // Upload photo (stored as Base64 offline) now that we're online. The URL
+        // is written back to the queue row at once, so a retry after a stop
+        // between upload and save does not push the same file a second time.
+        let photoUrl: string | null = inspection.photo_url ?? null
+        if (!photoUrl && inspection.photo_data) {
+          const file = dataUrlToFile(inspection.photo_data, `${inspection.id}.jpg`)
+          photoUrl = await inspectionService.uploadDefectPhoto(file, inspection.id)
+          await offlineDb.offlineInspections.update(inspection.id, { photo_url: photoUrl })
+        }
+
+        // One request, one transaction: inspection + measured points + defect
+        // record land together or not at all. The queue id goes along as the
+        // idempotency key, so replaying this row (reclaimed 'syncing', or a
+        // retry after 'error') returns the inspection it already created
+        // instead of inserting a second one.
+        await inspectionService.submitInspectionRecord({
+          clientRef: inspection.id,
+          userId: inspection.inspector_id,
+          machineId: inspection.machine_id,
+          modelId: inspection.model_id,
+          inspectionProcess: inspection.inspection_process_code,
+          inspectionQuantity: inspection.inspection_quantity,
+          defectQuantity: inspection.defect_quantity,
+          results: (inspection.defect_points ?? []).map((p) => ({
+            itemId: p.item_id,
+            measuredValue: p.measured_value ?? 0,
+            result: 'fail' as const,
+          })),
+          defectType: inspection.defect_type_id,
+          photoUrl,
+          factoryId: inspection.factory_id,
+        })
+
+        // Mark as synced. The photo is now in Supabase Storage, so drop the local
+        // Base64 copy - it is the bulkiest field on the row (up to ~0.5MB) and
+        // keeping it duplicates what the server already has.
+        await offlineDb.offlineInspections.update(inspection.id, {
+          status: 'synced',
+          synced_at: new Date().toISOString(),
+          error_message: null,
+          photo_data: null,
+        })
+
+        success++
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+        await offlineDb.offlineInspections.update(inspection.id, {
+          status: 'error',
+          error_message: errorMessage,
+          retry_count: inspection.retry_count + 1,
+        })
+        failed++
+        errors.push(`${inspection.id}: ${errorMessage}`)
       }
-
-      // One request, one transaction: inspection + measured points + defect
-      // record land together or not at all. The queue id goes along as the
-      // idempotency key, so replaying this row (reclaimed 'syncing', or a
-      // retry after 'error') returns the inspection it already created
-      // instead of inserting a second one.
-      await inspectionService.submitInspectionRecord({
-        clientRef: inspection.id,
-        userId: inspection.inspector_id,
-        machineId: inspection.machine_id,
-        modelId: inspection.model_id,
-        inspectionProcess: inspection.inspection_process_code,
-        inspectionQuantity: inspection.inspection_quantity,
-        defectQuantity: inspection.defect_quantity,
-        results: (inspection.defect_points ?? []).map((p) => ({
-          itemId: p.item_id,
-          measuredValue: p.measured_value ?? 0,
-          result: 'fail' as const,
-        })),
-        defectType: inspection.defect_type_id,
-        photoUrl,
-        factoryId: inspection.factory_id,
-      })
-
-      // Mark as synced. The photo is now in Supabase Storage, so drop the local
-      // Base64 copy - it is the bulkiest field on the row (up to ~0.5MB) and
-      // keeping it duplicates what the server already has.
-      await offlineDb.offlineInspections.update(inspection.id, {
-        status: 'synced',
-        synced_at: new Date().toISOString(),
-        error_message: null,
-        photo_data: null,
-      })
-
-      success++
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-      await offlineDb.offlineInspections.update(inspection.id, {
-        status: 'error',
-        error_message: errorMessage,
-        retry_count: inspection.retry_count + 1,
-      })
-      failed++
-      errors.push(`${inspection.id}: ${errorMessage}`)
     }
   }
 

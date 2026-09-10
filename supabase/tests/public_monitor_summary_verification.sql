@@ -2,8 +2,12 @@
 -- Read-only. Run as a database owner (the analytics RPCs are SECURITY INVOKER
 -- and need to see every inspection for the comparison to be meaningful).
 --
+-- Window: the last 7 business days plus today (08:00 seven days ago -> 07:59:59.999
+-- tomorrow, Vietnam time). NOT a calendar month - the monitor's own month range is
+-- exercised by the browser, this file checks the aggregation contract.
+--
 -- Asserts the contract the monitor now shares with the analytics screen:
---   1. month total   == get_analytics_kpi_summary.defect_qty
+--   1. window total  == get_analytics_kpi_summary.defect_qty
 --   2. every day     == get_analytics_defect_rate_trend.defect_qty
 --   3. type slices, top-N lists and recent rows never exceed the total, and the
 --      type slices sum to it exactly (they are not truncated)

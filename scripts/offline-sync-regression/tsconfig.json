@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@/lib/offlineDb": ["stubs/offlineDb.ts"],
+      "@/services/inspectionService": ["stubs/inspectionService.ts"],
+      "@/services/managementService": ["stubs/empty.ts"],
+      "@/lib/network": ["stubs/network.ts"],
+      "browser-image-compression": ["stubs/empty.ts"],
+      "@/*": ["../../src/*"]
+    }
+  }
+}

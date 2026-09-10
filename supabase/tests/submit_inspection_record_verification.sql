@@ -65,21 +65,58 @@ BEGIN
   SELECT count(*) INTO v_n FROM public.defects WHERE inspection_id = v_id1;
   IF v_n <> 1 THEN RAISE EXCEPTION 'replay inserted a second defect'; END IF;
 
-  -- 3. a failing defect insert (bad model FK on the defect) rolls the inspection back too
+  -- 3. atomicity: a failure AFTER the inspection row is written must remove it.
+  --    Valid inspection inputs, but a results row whose item_id violates
+  --    inspection_results_item_id_fkey - that INSERT runs after the inspection
+  --    INSERT succeeded. (A bad model would fail on the inspection itself and
+  --    prove nothing about the later steps.)
   BEGIN
     PERFORM public.submit_inspection_record(
-      v_ref || '_bad', v_user, gen_random_uuid(), v_process, 10, 2, v_factory, v_machine, v_type);
-    RAISE EXCEPTION 'expected the bad model to fail';
+      v_ref || '_bad_result', v_user, v_model, v_process, 10, 2, v_factory, v_machine, v_type, NULL, NULL,
+      jsonb_build_array(jsonb_build_object('item_id', gen_random_uuid(), 'measured_value', 1, 'result', 'fail')));
+    RAISE EXCEPTION 'expected the bad result item to fail';
   EXCEPTION WHEN foreign_key_violation THEN
     NULL;
   END;
-  SELECT count(*) INTO v_n FROM public.inspections WHERE client_ref = v_ref || '_bad';
-  IF v_n <> 0 THEN RAISE EXCEPTION 'inspection survived a failed transaction'; END IF;
+  SELECT count(*) INTO v_n FROM public.inspections WHERE client_ref = v_ref || '_bad_result';
+  IF v_n <> 0 THEN RAISE EXCEPTION 'inspection survived a failed results insert'; END IF;
+
+  --    Same again one step later: the results INSERT succeeds (no results) and
+  --    the defect INSERT fails on defects_model_id_fkey? Not reachable - the
+  --    defect reuses the inspection's model. Use an enum cast failure in the
+  --    results stage instead: 'bogus' is not an inspection_result.
+  BEGIN
+    PERFORM public.submit_inspection_record(
+      v_ref || '_bad_enum', v_user, v_model, v_process, 10, 2, v_factory, v_machine, v_type, NULL, NULL,
+      jsonb_build_array(jsonb_build_object('item_id', COALESCE(v_item, gen_random_uuid()), 'measured_value', 1, 'result', 'bogus')));
+    RAISE EXCEPTION 'expected the bad enum to fail';
+  EXCEPTION WHEN invalid_text_representation OR foreign_key_violation THEN
+    NULL;
+  END;
+  SELECT count(*) INTO v_n FROM public.inspections WHERE client_ref = v_ref || '_bad_enum';
+  IF v_n <> 0 THEN RAISE EXCEPTION 'inspection survived a failed enum cast'; END IF;
 
   -- 4. untyped rejection: inspection row only, no defect
   v_id2 := public.submit_inspection_record(v_ref || '_untyped', v_user, v_model, v_process, 10, 1, v_factory, v_machine, NULL);
   SELECT count(*) INTO v_n FROM public.defects WHERE inspection_id = v_id2;
   IF v_n <> 0 THEN RAISE EXCEPTION 'untyped rejection must not create a defect row'; END IF;
+
+  -- 4b. quantity bounds (re-audit R3): 10/10 allowed, 10/11 refused, 0/0 refused
+  PERFORM public.submit_inspection_record(v_ref || '_10_10', v_user, v_model, v_process, 10, 10, v_factory, v_machine, v_type);
+  BEGIN
+    PERFORM public.submit_inspection_record(v_ref || '_10_11', v_user, v_model, v_process, 10, 11, v_factory, v_machine, v_type);
+    RAISE EXCEPTION 'expected 10/11 to be refused';
+  EXCEPTION WHEN SQLSTATE '22023' THEN NULL; END;
+  BEGIN
+    PERFORM public.submit_inspection_record(v_ref || '_0_0', v_user, v_model, v_process, 0, 0, v_factory, v_machine, NULL);
+    RAISE EXCEPTION 'expected 0/0 to be refused';
+  EXCEPTION WHEN SQLSTATE '22023' THEN NULL; END;
+  --     ...and the table CHECK guards every other write path too
+  BEGIN
+    INSERT INTO public.inspections (user_id, model_id, inspection_process, inspection_quantity, defect_quantity, factory_id)
+    VALUES (v_user, v_model, v_process, 10, 11, v_factory);
+    RAISE EXCEPTION 'expected the CHECK constraint to refuse 10/11';
+  EXCEPTION WHEN check_violation THEN NULL; END;
 
   -- 5. grants
   IF NOT has_function_privilege('authenticated', 'public.submit_inspection_record(text, uuid, uuid, text, integer, integer, text, uuid, text, text, text, jsonb)', 'EXECUTE') THEN
