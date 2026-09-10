@@ -531,6 +531,17 @@ export type Database = {
         }
         Returns: Json
       }
+      // Rejected pieces for the public TV monitor, aggregated from inspections
+      // so the board matches the analytics KPI card. See monitorService.ts for
+      // the parsed shape.
+      get_public_monitor_summary: {
+        Args: {
+          p_factory_id: string
+          p_start_at: string
+          p_end_at: string
+        }
+        Returns: Json
+      }
       get_role_permissions: {
         Args: { p_factory_id: string }
         Returns: {

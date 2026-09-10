@@ -21,13 +21,13 @@ import {
   LabelList,
 } from 'recharts'
 
-import { EMPTY_PUBLIC_MONITOR_DATA, getPublicMonitorData } from '@/services/monitorService'
+import { EMPTY_PUBLIC_MONITOR_SUMMARY, getPublicMonitorSummary } from '@/services/monitorService'
 import {
-  getBusinessDate,
   getBusinessDayEnd,
   getBusinessDayStart,
   getTodayBusinessDate,
 } from '@/lib/dateUtils'
+import { defectTypeLabel } from '@/lib/defectTypeLabel'
 import { useFactoryStore } from '@/stores/factoryStore'
 
 const AUTO_REFRESH_INTERVAL = 2 * 60 * 1000
@@ -91,131 +91,81 @@ export function MonitorPage() {
   }), [businessMonthStartDate, businessMonthEndDate])
 
   // Queries
-  const { data: monitorData = EMPTY_PUBLIC_MONITOR_DATA, isLoading: defectsLoading, isError } = useQuery({
+  //
+  // Every number on this board is rejected *pieces* (sum of
+  // inspections.defect_quantity), aggregated on the server so it matches the
+  // analytics KPI card. It used to count defect records instead, which read
+  // 272 for a day the app reported as 996.
+  const { data: summary = EMPTY_PUBLIC_MONITOR_SUMMARY, isLoading: defectsLoading, isError } = useQuery({
     queryKey: ['public-monitor-data', monitorFactoryId, currentBusinessMonth],
-    queryFn: () => getPublicMonitorData(
+    queryFn: () => getPublicMonitorSummary(
       monitorFactoryId,
       businessMonthRange.startDate,
       businessMonthRange.endDate
     ),
   })
-  const allDefects = monitorData.defects
-  const inspections = monitorData.inspections
-  const machines = monitorData.machines
-  const models = monitorData.product_models
-  const defectTypes = monitorData.defect_types
-
-  // Build inspection_id -> machine_id map
-  const inspectionMachineMap = useMemo(() => {
-    const map: Record<string, string | null> = {}
-    inspections.forEach(ins => { map[ins.id] = ins.machine_id ?? null })
-    return map
-  }, [inspections])
-
-  const getDefectMachineId = useCallback((defect: { inspection_id: string }): string | null => {
-    return inspectionMachineMap[defect.inspection_id] ?? null
-  }, [inspectionMachineMap])
 
   // Helpers
-  const getDefectTypeName = useCallback((defectTypeId: string): string => {
-    const dt = defectTypes.find(d => d.id === defectTypeId || d.code === defectTypeId)
-    return dt ? dt.name : defectTypeId
-  }, [defectTypes])
+  const getDefectTypeName = useCallback((name: string): string => defectTypeLabel(name, t), [t])
 
-  const getMachineName = useCallback((machineId: string | null): string => {
-    if (!machineId || machineId === 'unassigned') return t('common.unassigned', '미지정')
-    const m = machines.find(mc => mc.id === machineId)
-    return m?.name || machineId
-  }, [machines, t])
+  const getMachineName = useCallback((machineName: string | null): string => {
+    return machineName || t('common.unassigned', '미지정')
+  }, [t])
 
-  const getModelCode = useCallback((modelId: string | null): string => {
-    if (!modelId) return t('common.notAvailable')
-    const m = models.find(md => md.id === modelId)
-    return m?.code || modelId
-  }, [models, t])
+  const getModelCode = useCallback((modelCode: string | null): string => {
+    return modelCode || t('common.notAvailable')
+  }, [t])
 
   // Computed data
-  const totalDefects = allDefects.length
+  const totalDefects = summary.total_defect_qty
 
-  const todayDefects = useMemo(() =>
-    allDefects.filter(d => getBusinessDate(new Date(d.created_at)) === todayBusinessDate),
-    [allDefects, todayBusinessDate]
+  const todayDefectQty = useMemo(() =>
+    summary.daily.find(d => d.business_day === todayBusinessDate)?.defect_qty ?? 0,
+    [summary.daily, todayBusinessDate]
   )
 
-  const worstMachine = useMemo(() => {
-    const map: Record<string, number> = {}
-    allDefects.forEach(d => {
-      const key = getDefectMachineId(d) || 'unassigned'
-      map[key] = (map[key] || 0) + 1
-    })
-    const sorted = Object.entries(map).sort((a, b) => b[1] - a[1])
-    return sorted.length > 0 ? { machineId: sorted[0][0], count: sorted[0][1] } : { machineId: '', count: 0 }
-  }, [allDefects, getDefectMachineId])
+  const worstMachine = summary.machines[0] ?? null
 
-  const topIssue = useMemo(() => {
-    const map: Record<string, number> = {}
-    allDefects.forEach(d => {
-      const key = d.defect_type || 'unknown'
-      map[key] = (map[key] || 0) + 1
-    })
-    const sorted = Object.entries(map).sort((a, b) => b[1] - a[1])
-    return sorted.length > 0 ? sorted[0][0] : ''
-  }, [allDefects])
+  const topIssue = summary.defect_types[0] ?? null
 
   const dailyDefectTrend = useMemo(() => {
     const days: { date: string; count: number }[] = []
     const [year, month, todayDay] = todayBusinessDate.split('-').map(Number)
+    const byDay = new Map(summary.daily.map(d => [d.business_day, d.defect_qty]))
 
     for (let day = 1; day <= todayDay; day++) {
       const bd = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-      const count = allDefects.filter(def => getBusinessDate(new Date(def.created_at)) === bd).length
       const label = `${String(month).padStart(2, '0')}.${String(day).padStart(2, '0')}.`
-      days.push({ date: label, count })
+      days.push({ date: label, count: byDay.get(bd) ?? 0 })
     }
     return days
-  }, [allDefects, todayBusinessDate])
+  }, [summary.daily, todayBusinessDate])
 
-  const topMachines = useMemo(() => {
-    const map: Record<string, { count: number; recentDefectType: string }> = {}
-    // Sort by created_at desc to find recent defect type
-    const sorted = [...allDefects].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    sorted.forEach(d => {
-      const key = getDefectMachineId(d) || 'unassigned'
-      if (!map[key]) {
-        map[key] = { count: 0, recentDefectType: d.defect_type || '' }
-      }
-      map[key].count++
-    })
-    return Object.entries(map)
-      .sort((a, b) => b[1].count - a[1].count)
-      .slice(0, 5)
-      .map(([machineId, val]) => ({ machineId, ...val }))
-  }, [allDefects, getDefectMachineId])
+  // The server already returns the top 5 machines and top 8 models. Shares are
+  // computed against the month total, not against the truncated list.
+  const topMachines = summary.machines
 
   const defectTypeDistribution = useMemo(() => {
-    const map: Record<string, number> = {}
-    allDefects.forEach(d => {
-      const key = d.defect_type || 'unknown'
-      map[key] = (map[key] || 0) + 1
-    })
-    const total = allDefects.length || 1
-    return Object.entries(map)
-      .sort((a, b) => b[1] - a[1])
-      .map(([type, count]) => ({ type, name: getDefectTypeName(type), count, percent: Math.round((count / total) * 100) }))
-  }, [allDefects, getDefectTypeName])
+    const total = summary.total_defect_qty || 1
+    return summary.defect_types.map(d => ({
+      type: d.defect_type_name,
+      name: getDefectTypeName(d.defect_type_name),
+      count: d.defect_qty,
+      percent: Math.round((d.defect_qty / total) * 100),
+    }))
+  }, [summary.defect_types, summary.total_defect_qty, getDefectTypeName])
 
   const modelDefectShare = useMemo(() => {
-    const map: Record<string, number> = {}
-    allDefects.forEach(d => {
-      const key = d.model_id || 'unknown'
-      map[key] = (map[key] || 0) + 1
-    })
-    const total = allDefects.length || 1
-    return Object.entries(map)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([modelId, count]) => ({ modelId, name: getModelCode(modelId), count, percent: Math.round((count / total) * 100) }))
-  }, [allDefects, getModelCode])
+    const total = summary.total_defect_qty || 1
+    return summary.models.map(m => ({
+      modelId: m.model_id ?? 'unknown',
+      name: getModelCode(m.model_code),
+      count: m.defect_qty,
+      percent: Math.round((m.defect_qty / total) * 100),
+    }))
+  }, [summary.models, summary.total_defect_qty, getModelCode])
+
+  const recentDefects = summary.recent
 
 
   // Skeleton block helper
@@ -231,7 +181,7 @@ export function MonitorPage() {
     </div>
   )
 
-  const maxMachineCount = topMachines.length > 0 ? topMachines[0].count : 1
+  const maxMachineCount = topMachines.length > 0 ? topMachines[0].defect_qty : 1
 
   if (isError) {
     return (
@@ -287,7 +237,7 @@ export function MonitorPage() {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-slate-300 truncate">{t('monitor.todayDefects')}</p>
             {defectsLoading ? <Skeleton className="h-10 w-20 mt-1" /> : (
-              <p className="text-5xl font-bold text-green-500 leading-none">{todayDefects.length.toLocaleString()}</p>
+              <p className="text-5xl font-bold text-green-500 leading-none">{todayDefectQty.toLocaleString()}</p>
             )}
             <p className="text-sm text-slate-400 mt-1">{t('monitor.todayDefectsDesc')}</p>
           </div>
@@ -299,8 +249,8 @@ export function MonitorPage() {
             <p className="text-sm font-medium text-slate-300 truncate">{t('monitor.worstMachine')}</p>
             {defectsLoading ? <Skeleton className="h-10 w-20 mt-1" /> : (
               <>
-                <p className="text-4xl font-bold text-white leading-none truncate">{getMachineName(worstMachine.machineId)}</p>
-                <p className="text-sm text-slate-400 mt-1">{worstMachine.count} {t('monitor.count')} - {t('monitor.worstMachineDesc')}</p>
+                <p className="text-4xl font-bold text-white leading-none truncate">{worstMachine ? getMachineName(worstMachine.machine_name) : '-'}</p>
+                <p className="text-sm text-slate-400 mt-1">{worstMachine?.defect_qty ?? 0} {t('monitor.pieces')} - {t('monitor.worstMachineDesc')}</p>
               </>
             )}
           </div>
@@ -311,7 +261,7 @@ export function MonitorPage() {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-slate-300 truncate">{t('monitor.topIssue')}</p>
             {defectsLoading ? <Skeleton className="h-10 w-20 mt-1" /> : (
-              <p className="text-3xl font-bold text-purple-500 leading-tight truncate">{topIssue ? getDefectTypeName(topIssue) : '-'}</p>
+              <p className="text-3xl font-bold text-purple-500 leading-tight truncate">{topIssue ? getDefectTypeName(topIssue.defect_type_name) : '-'}</p>
             )}
             <p className="text-sm text-slate-400 mt-1">{t('monitor.topIssueDesc')}</p>
           </div>
@@ -354,7 +304,7 @@ export function MonitorPage() {
               <div className="flex-1 flex items-center justify-center text-slate-500 text-base">{t('monitor.noData')}</div>
             ) : (
               topMachines.map((m, i) => (
-                <div key={m.machineId} className="flex flex-col gap-1">
+                <div key={m.machine_id ?? 'unassigned'} className="flex flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <div
                       className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
@@ -362,17 +312,17 @@ export function MonitorPage() {
                     >
                       {i + 1}
                     </div>
-                    <span className="font-bold text-white text-base truncate flex-1">{getMachineName(m.machineId)}</span>
-                    <span className="text-slate-300 text-base font-mono shrink-0">{m.count} {t('monitor.count')}</span>
+                    <span className="font-bold text-white text-base truncate flex-1">{getMachineName(m.machine_name)}</span>
+                    <span className="text-slate-300 text-base font-mono shrink-0">{m.defect_qty} {t('monitor.pieces')}</span>
                   </div>
                   <div className="ml-8">
                     <div className="w-full h-2 bg-slate-700 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
-                        style={{ width: `${(m.count / maxMachineCount) * 100}%`, backgroundColor: RANK_COLORS[i] }}
+                        style={{ width: `${(m.defect_qty / maxMachineCount) * 100}%`, backgroundColor: RANK_COLORS[i] }}
                       />
                     </div>
-                    <p className="text-sm text-slate-400 mt-1">{t('monitor.recentIssue')}: {getDefectTypeName(m.recentDefectType)}</p>
+                    <p className="text-sm text-slate-400 mt-1">{t('monitor.recentIssue')}: {getDefectTypeName(m.recent_defect_type_name)}</p>
                   </div>
                 </div>
               ))
@@ -465,7 +415,7 @@ export function MonitorPage() {
               <div className="flex flex-col gap-2">
                 {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
               </div>
-            ) : allDefects.length === 0 ? (
+            ) : recentDefects.length === 0 ? (
               <p className="text-slate-500 text-base text-center py-4">{t('monitor.noData')}</p>
             ) : (
               <table className="w-full text-sm">
@@ -475,17 +425,19 @@ export function MonitorPage() {
                     <th className="text-left py-2 font-medium">{t('monitor.defectMachine')}</th>
                     <th className="text-left py-2 font-medium">{t('monitor.defectModel')}</th>
                     <th className="text-left py-2 font-medium">{t('monitor.defectType')}</th>
+                    <th className="text-right py-2 font-medium">{t('monitor.defectQty')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {allDefects.slice(0, 5).map((defect, idx) => (
+                  {recentDefects.map((defect, idx) => (
                     <tr key={defect.id} className={`border-b border-slate-700/50 ${idx === 0 ? 'text-orange-300' : 'text-slate-300'}`}>
                       <td className="py-2 font-mono whitespace-nowrap">
                         {new Date(defect.created_at).toLocaleString('ko-KR', { timeZone: 'Asia/Ho_Chi_Minh', hour12: false, month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                       </td>
-                      <td className="py-2 truncate max-w-[120px]">{getMachineName(getDefectMachineId(defect))}</td>
-                      <td className="py-2 truncate max-w-[100px]">{getModelCode(defect.model_id)}</td>
-                      <td className="py-2 truncate max-w-[160px]">{getDefectTypeName(defect.defect_type || '')}</td>
+                      <td className="py-2 truncate max-w-[120px]">{getMachineName(defect.machine_name)}</td>
+                      <td className="py-2 truncate max-w-[100px]">{getModelCode(defect.model_code)}</td>
+                      <td className="py-2 truncate max-w-[160px]">{getDefectTypeName(defect.defect_type_name)}</td>
+                      <td className="py-2 text-right font-mono whitespace-nowrap">{defect.defect_qty.toLocaleString()}</td>
                     </tr>
                   ))}
                 </tbody>
