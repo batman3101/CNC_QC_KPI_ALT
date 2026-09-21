@@ -485,12 +485,39 @@ export async function createInspectionRecord(
   })
 }
 
-export async function compressAndUploadPhoto(file: File): Promise<string> {
+/**
+ * Every photo goes through here: <= 0.5MB, <= 1600px, always JPEG.
+ *
+ * The output type is pinned because the library otherwise re-encodes to the
+ * INPUT type, and a canvas can only write JPEG/PNG/WebP. Asked for anything
+ * else it silently writes PNG. So an iPhone HEIC - which Safari can decode -
+ * came back as a lossless PNG that no quality setting can shrink; the library
+ * then cut the dimensions by 5% ten times and gave up. What reached storage
+ * was 716x955 and ~900KB: twice the size budget at a third of the pixels,
+ * labelled image/heic, named .jpg, containing PNG. A PNG input took the same
+ * path. JPEG is the one type where `quality` actually does something.
+ *
+ * Still throws on a file the browser cannot decode at all (HEIC outside
+ * Safari); callers show that to the user.
+ */
+export async function compressPhoto(file: File): Promise<File> {
   const compressed = await imageCompression(file, {
     maxSizeMB: 0.5,
     maxWidthOrHeight: 1600,
     useWebWorker: true,
+    fileType: 'image/jpeg',
   })
+  // The library copies the input's name over, so IMG_0001.HEIC would keep its
+  // extension - and uploadDefectPhoto names the stored object from it.
+  const baseName = file.name.replace(/\.[^.]*$/, '') || 'photo'
+  return new File([compressed], `${baseName}.jpg`, {
+    type: 'image/jpeg',
+    lastModified: file.lastModified,
+  })
+}
+
+export async function compressAndUploadPhoto(file: File): Promise<string> {
+  const compressed = await compressPhoto(file)
   const contextId = crypto.randomUUID()
   return uploadDefectPhoto(compressed, contextId)
 }

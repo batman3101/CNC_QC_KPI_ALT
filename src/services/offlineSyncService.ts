@@ -13,7 +13,6 @@ import * as inspectionService from '@/services/inspectionService'
 import * as managementService from '@/services/managementService'
 import { isOnline } from '@/lib/network'
 import type { DefectPointEntry } from '@/types/spc'
-import imageCompression from 'browser-image-compression'
 
 // isOnline moved to lib/network so managementService can consult it without
 // importing this module, which imports managementService. Re-exported here so
@@ -60,11 +59,7 @@ export async function saveInspectionOffline(
 
 // File → compressed Base64 dataURL (for offline storage; no network)
 export async function compressImageToBase64(file: File): Promise<string> {
-  const compressed = await imageCompression(file, {
-    maxSizeMB: 0.5,
-    maxWidthOrHeight: 1600,
-    useWebWorker: true,
-  })
+  const compressed = await inspectionService.compressPhoto(file)
   return await new Promise<string>((resolve, reject) => {
     const reader = new FileReader()
     reader.onloadend = () => resolve(reader.result as string)
