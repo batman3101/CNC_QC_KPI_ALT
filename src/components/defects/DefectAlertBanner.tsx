@@ -48,7 +48,10 @@ export function DefectAlertBanner() {
             <Button
               color="inherit"
               size="small"
-              onClick={() => navigate('/defects')}
+              // Carries the filter, not just the page: this banner sits in the
+              // layout, so on /defects itself a bare navigate('/defects') went
+              // nowhere and the button looked dead.
+              onClick={() => navigate('/defects?status=pending')}
               sx={{ whiteSpace: 'nowrap' }}
             >
               {t('defects.alert.viewDetails')}

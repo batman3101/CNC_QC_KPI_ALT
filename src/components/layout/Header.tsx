@@ -149,7 +149,7 @@ export function Header({ onMenuClick, userName, userRole }: HeaderProps) {
           <Tooltip title={pendingDefectCount > 0 ? t('defects.alert.pendingCount', { count: pendingDefectCount }) : t('defects.noPending')}>
             <IconButton
               color="inherit"
-              onClick={() => navigate('/defects')}
+              onClick={() => navigate(pendingDefectCount > 0 ? '/defects?status=pending' : '/defects')}
               sx={{ minWidth: 44, minHeight: 44 }}
             >
               <Badge

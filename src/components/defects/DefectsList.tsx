@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { useSearchParams } from 'react-router-dom'
 import { useFactoryStore } from '@/stores/factoryStore'
 import {
   Card,
@@ -50,11 +51,24 @@ import { describeDefect } from '@/lib/defectDescription'
 // reader's language instead of the DB holding a Korean sentence.
 type Defect = inspectionService.DefectListRow
 
+const STATUS_VALUES = ['pending', 'in_progress', 'resolved'] as const
+
+// A status named in the URL, if it is one this list can filter by.
+function requestedStatus(params: URLSearchParams): string | null {
+  const value = params.get('status')
+  return value && (STATUS_VALUES as readonly string[]).includes(value) ? value : null
+}
+
 export function DefectsList() {
   const { t } = useTranslation()
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
-  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [searchParams, setSearchParams] = useSearchParams()
+  // Read once for the initial value so a link to ?status=pending does not fetch
+  // the unfiltered page first; the effect below handles later arrivals.
+  const [statusFilter, setStatusFilter] = useState<string>(
+    () => requestedStatus(searchParams) ?? 'all'
+  )
   const [defectTypeFilter, setDefectTypeFilter] = useState<string>('all')
   const [selectedDefect, setSelectedDefect] = useState<Defect | null>(null)
   const [detailDialogOpen, setDetailDialogOpen] = useState(false)
@@ -104,6 +118,26 @@ export function DefectsList() {
     setStatusFilter(value)
     setPage(0)
   }
+
+  // The pending-defects banner and the header bell link here with
+  // ?status=pending. The param is a one-shot request, not the filter's home:
+  // apply it, then strip it. Left in the URL, a second click on the same link
+  // would navigate to the address already showing and do nothing - which is
+  // how those links behaved on this page before they carried a filter at all.
+  const statusRequest = requestedStatus(searchParams)
+  useEffect(() => {
+    if (!statusRequest) return
+    setStatusFilter(statusRequest)
+    setPage(0)
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('status')
+        return next
+      },
+      { replace: true }
+    )
+  }, [statusRequest, setSearchParams])
 
   const changeDefectTypeFilter = (value: string) => {
     setDefectTypeFilter(value)
