@@ -183,7 +183,9 @@
     "completed": "완료",
     "saveInspection": "검사 저장",
     "photoSizeError": "사진 크기는 10MB를 초과할 수 없습니다",
-    "photoTypeError": "이미지 파일만 업로드 가능합니다"
+    "photoTypeError": "이미지 파일만 업로드 가능합니다",
+    "photoProcessError": "사진을 처리하지 못했습니다 — 다른 사진으로 다시 시도하거나, 사진을 삭제한 뒤 저장하세요. 입력한 내용은 그대로 남아 있습니다",
+    "saveFailed": "기기에 저장하지 못했습니다 — 기기 저장 공간을 확인한 뒤 다시 시도하세요. 입력한 내용은 그대로 남아 있습니다"
   },
   "defects": {
     "title": "불량 관리",
@@ -205,6 +207,7 @@
     "startAction": "조치 시작",
     "completeAction": "조치 완료",
     "changePhoto": "사진 변경",
+    "photoUploadError": "사진 업로드에 실패했습니다 — 인터넷 연결을 확인한 뒤 다시 시도하세요",
     "uploadPhoto": "사진 업로드",
     "statusChanged": "상태 변경 완료",
     "edit": "수정",

@@ -59,28 +59,52 @@ export function InspectionPage() {
     meta: { defectTypeName: string | null; inspectorName: string },
   ) => {
     // 사진은 네트워크 업로드 대신 로컬에서 Base64로 압축 저장 (동기화 시 업로드됨)
-    const photoBase64 = photoFile ? await compressImageToBase64(photoFile) : null
+    //
+    // Both steps below run entirely on the device, so a failure here never
+    // reaches the server and leaves no trace in its logs. They used to throw
+    // into a try/finally with no catch: the spinner stopped, nothing was saved
+    // and nothing was said. Stop and say so instead - returning (not throwing)
+    // keeps the form open with everything the inspector typed. Saving without
+    // the photo is not an option: they would walk off believing it was attached.
+    let photoBase64: string | null = null
+    if (photoFile) {
+      try {
+        photoBase64 = await compressImageToBase64(photoFile)
+      } catch (e) {
+        console.error('[Inspection] photo compression failed:', photoFile.type, photoFile.size, e)
+        enqueueSnackbar(t('inspection.photoProcessError'), { variant: 'error' })
+        return
+      }
+    }
     const failedPoints = defectParts.flat()
 
     // 항상 로컬 큐에 즉시 저장 (네트워크 대기 없음)
-    const queued = await saveInspectionOffline({
-      model_id: data.model_id,
-      model_code: selectedModel?.code ?? '',
-      inspection_process_code: data.inspection_process.code,
-      inspection_process_name: data.inspection_process.name,
-      defect_type_id: data.defect_type_id,
-      defect_type_name: meta.defectTypeName,
-      machine_id: data.machine_id,
-      machine_name: data.machine_number,
-      inspector_id: data.inspector_id,
-      inspector_name: meta.inspectorName,
-      inspection_quantity: data.inspection_quantity,
-      defect_quantity: data.defect_quantity,
-      photo_data: photoBase64,
-      notes: null,
-      factory_id: activeFactoryId ?? '',
-      defect_points: failedPoints.length > 0 ? failedPoints : null,
-    })
+    let queued: Awaited<ReturnType<typeof saveInspectionOffline>>
+    try {
+      queued = await saveInspectionOffline({
+        model_id: data.model_id,
+        model_code: selectedModel?.code ?? '',
+        inspection_process_code: data.inspection_process.code,
+        inspection_process_name: data.inspection_process.name,
+        defect_type_id: data.defect_type_id,
+        defect_type_name: meta.defectTypeName,
+        machine_id: data.machine_id,
+        machine_name: data.machine_number,
+        inspector_id: data.inspector_id,
+        inspector_name: meta.inspectorName,
+        inspection_quantity: data.inspection_quantity,
+        defect_quantity: data.defect_quantity,
+        photo_data: photoBase64,
+        notes: null,
+        factory_id: activeFactoryId ?? '',
+        defect_points: failedPoints.length > 0 ? failedPoints : null,
+      })
+    } catch (e) {
+      // IndexedDB refused the row - in practice a full or blocked device store.
+      console.error('[Inspection] local save failed:', e)
+      enqueueSnackbar(t('inspection.saveFailed'), { variant: 'error' })
+      return
+    }
 
     // 미동기화 배지 즉시 갱신
     window.dispatchEvent(new Event('offline-queue-updated'))

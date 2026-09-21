@@ -84,6 +84,7 @@ export function DefectEditDialog({
 
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoError, setPhotoError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -95,21 +96,33 @@ export function DefectEditDialog({
         status: defect.status,
       })
       setPhotoUrl(defect.photo_url || null)
+      setPhotoError(null)
     }
   }, [defect, open, reset])
 
+  // Every way out of here that does not attach the photo says why. These used
+  // to be bare returns and a console.error, so a rejected file looked exactly
+  // like a button that does nothing.
   const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-    if (file.size > 10 * 1024 * 1024) return
-    if (!file.type.startsWith('image/')) return
+    if (file.size > 10 * 1024 * 1024) {
+      setPhotoError(t('inspection.photoSizeError'))
+      return
+    }
+    if (!file.type.startsWith('image/')) {
+      setPhotoError(t('inspection.photoTypeError'))
+      return
+    }
 
+    setPhotoError(null)
     setPhotoUploading(true)
     try {
       const url = await compressAndUploadPhoto(file)
       setPhotoUrl(url)
     } catch (error) {
-      console.error('Photo upload failed:', error)
+      console.error('Photo upload failed:', file.type, file.size, error)
+      setPhotoError(t('defects.photoUploadError'))
     } finally {
       setPhotoUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -263,6 +276,7 @@ export function DefectEditDialog({
                   {t('defects.uploadPhoto')}
                 </Button>
               )}
+              {photoError && <FormHelperText error>{photoError}</FormHelperText>}
             </Box>
           </Box>
         </DialogContent>

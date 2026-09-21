@@ -183,7 +183,9 @@
     "completed": "Hoàn thành",
     "saveInspection": "Lưu kiểm tra",
     "photoSizeError": "Kích thước ảnh không được vượt quá 10MB",
-    "photoTypeError": "Chỉ chấp nhận tệp hình ảnh"
+    "photoTypeError": "Chỉ chấp nhận tệp hình ảnh",
+    "photoProcessError": "Không xử lý được ảnh — hãy thử ảnh khác, hoặc xóa ảnh rồi lưu lại. Nội dung đã nhập vẫn được giữ nguyên",
+    "saveFailed": "Không lưu được trên thiết bị — hãy kiểm tra dung lượng lưu trữ của thiết bị rồi thử lại. Nội dung đã nhập vẫn được giữ nguyên"
   },
   "defects": {
     "title": "Quản lý lỗi",
@@ -205,6 +207,7 @@
     "startAction": "Bắt đầu xử lý",
     "completeAction": "Hoàn tất xử lý",
     "changePhoto": "Thay đổi ảnh",
+    "photoUploadError": "Tải ảnh lên thất bại — hãy kiểm tra kết nối mạng rồi thử lại",
     "uploadPhoto": "Tải ảnh lên",
     "statusChanged": "Thay đổi trạng thái thành công",
     "edit": "Sửa",
