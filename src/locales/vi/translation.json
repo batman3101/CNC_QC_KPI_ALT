@@ -79,7 +79,10 @@
     "defectQty": "Số lượng lỗi",
     "inspectionCount": "Số lượt kiểm tra",
     "lowSampleWarning": "Kỳ này chỉ có {{count}} lượt kiểm tra. Mẫu quá ít nên tỷ lệ lỗi chưa đáng tin cậy.",
-    "noDataForPeriod": "Không có dữ liệu kiểm tra của {{machine}} trong kỳ này"
+    "noDataForPeriod": "Không có dữ liệu kiểm tra của {{machine}} trong kỳ này",
+    "customPeriod": "Chọn thời gian",
+    "calendarHint": "Chọn một ngày, hoặc chọn ngày bắt đầu và ngày kết thúc",
+    "apply": "Áp dụng"
   },
   "aiInsights": {
     "title": "AI Insights",

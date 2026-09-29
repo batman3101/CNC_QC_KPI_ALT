@@ -19,6 +19,7 @@ import { PrecisionManufacturing, Cancel, Inventory, Assignment } from '@mui/icon
 
 import { DefectRateTrendChart } from '@/components/analytics/DefectRateTrendChart'
 import { DefectTypeChart } from '@/components/analytics/DefectTypeChart'
+import { PeriodCalendarPicker } from '@/components/analytics/PeriodCalendarPicker'
 import * as managementService from '@/services/managementService'
 import { getMachineAnalysis } from '@/services/machineAnalysisService'
 import { getRecentBusinessDays } from '@/lib/dateUtils'
@@ -48,8 +49,14 @@ export function MachineAnalysisPage() {
   const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null)
   const [machineInput, setMachineInput] = useState('')
   const [periodDays, setPeriodDays] = useState(DEFAULT_PERIOD_DAYS)
+  // A range picked on the calendar. While set, it overrides the preset buttons;
+  // pressing a preset clears it again.
+  const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>()
 
-  const range = useMemo(() => getRecentBusinessDays(periodDays), [periodDays])
+  const range = useMemo(
+    () => customRange ?? getRecentBusinessDays(periodDays),
+    [customRange, periodDays]
+  )
 
   // Server-side search: the factory has 800+ machines, far too many to put in a
   // dropdown. searchMachines already ranks exact-prefix matches first and falls
@@ -62,7 +69,13 @@ export function MachineAnalysisPage() {
   })
 
   const { data: analysis, isLoading } = useQuery({
-    queryKey: ['machine-analysis', selectedMachine?.id, periodDays, activeFactoryId],
+    queryKey: [
+      'machine-analysis',
+      selectedMachine?.id,
+      range.from.toISOString(),
+      range.to.toISOString(),
+      activeFactoryId,
+    ],
     queryFn: () =>
       getMachineAnalysis(
         selectedMachine!.id,
@@ -165,17 +178,23 @@ export function MachineAnalysisPage() {
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <ButtonGroup variant="outlined" size="small" fullWidth>
-                {[7, 30, 90].map((days) => (
-                  <Button
-                    key={days}
-                    variant={periodDays === days ? 'contained' : 'outlined'}
-                    onClick={() => setPeriodDays(days)}
-                  >
-                    {t('machineAnalysis.lastDays', { count: days })}
-                  </Button>
-                ))}
-              </ButtonGroup>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+                <ButtonGroup variant="outlined" size="small" fullWidth>
+                  {[7, 30, 90].map((days) => (
+                    <Button
+                      key={days}
+                      variant={!customRange && periodDays === days ? 'contained' : 'outlined'}
+                      onClick={() => {
+                        setCustomRange(undefined)
+                        setPeriodDays(days)
+                      }}
+                    >
+                      {t('machineAnalysis.lastDays', { count: days })}
+                    </Button>
+                  ))}
+                </ButtonGroup>
+                <PeriodCalendarPicker value={customRange} onApply={setCustomRange} />
+              </Box>
             </Grid>
           </Grid>
         </CardContent>
