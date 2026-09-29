@@ -79,7 +79,18 @@
     "defectQty": "Số lượng lỗi",
     "inspectionCount": "Số lượt kiểm tra",
     "lowSampleWarning": "Kỳ này chỉ có {{count}} lượt kiểm tra. Mẫu quá ít nên tỷ lệ lỗi chưa đáng tin cậy.",
-    "noDataForPeriod": "Không có dữ liệu kiểm tra của {{machine}} trong kỳ này"
+    "noDataForPeriod": "Không có dữ liệu kiểm tra của {{machine}} trong kỳ này",
+    "customPeriod": "Chọn thời gian",
+    "calendarHint": "Chọn một ngày, hoặc chọn ngày bắt đầu và ngày kết thúc",
+    "apply": "Áp dụng",
+    "table": {
+      "machine": "Máy",
+      "model": "Model máy",
+      "title": "Máy được kiểm tra trong kỳ",
+      "subtitle": "{{count}} máy có dữ liệu kiểm tra trong kỳ này · Nhấn vào một dòng để xem phân tích chi tiết ở trên",
+      "paginationInfo": "{{from}}-{{to}} / Tổng {{count}} máy",
+      "empty": "Không có máy nào được kiểm tra trong kỳ này"
+    }
   },
   "aiInsights": {
     "title": "AI Insights",
@@ -429,6 +440,11 @@
     "dataTypeHelper": "OK/NG: Chỉ đánh giá đạt/không đạt | Số: Nhập giá trị đo (giá trị chuẩn là tùy chọn)"
   },
   "userManagement": {
+    "deactivate": "Vô hiệu hóa",
+    "deactivateUser": "Vô hiệu hóa người dùng",
+    "deactivateUserConfirm": "Người dùng này sẽ không thể đăng nhập và sẽ bị ẩn khỏi danh sách. Các hồ sơ kiểm tra và tên người kiểm tra của họ vẫn được giữ nguyên. Bạn có muốn vô hiệu hóa không?",
+    "userDeactivated": "Người dùng đã bị vô hiệu hóa",
+    "cannotDeactivateSelf": "Không thể vô hiệu hóa chính mình",
     "title": "Quản lý người dùng",
     "description": "Quản lý người dùng và quyền truy cập hệ thống",
     "userList": "Danh sách người dùng",

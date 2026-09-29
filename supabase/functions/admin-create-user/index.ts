@@ -82,7 +82,7 @@ Deno.serve(async (request) => {
 
     const { data: caller, error: callerError } = await adminClient
       .from('users')
-      .select('role, factory_id')
+      .select('role, factory_id, deactivated_at')
       .eq('id', authData.user.id)
       .maybeSingle()
 
@@ -90,7 +90,8 @@ Deno.serve(async (request) => {
       console.error('admin-create-user: failed to read caller profile', callerError.message)
       return jsonResponse({ error: '권한을 확인하지 못했습니다.' }, 500)
     }
-    if (!caller || (caller.role !== 'admin' && caller.role !== 'manager')) {
+    // A deactivated caller's JWT can outlive the Auth ban by up to an hour.
+    if (!caller || caller.deactivated_at || (caller.role !== 'admin' && caller.role !== 'manager')) {
       return jsonResponse({ error: '관리자만 사용자를 생성할 수 있습니다.' }, 403)
     }
 

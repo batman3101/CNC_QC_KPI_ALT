@@ -413,7 +413,7 @@ export function InspectionRecordForm({
                         <InputLabel>{t('inspection.inspector')} *</InputLabel>
                         <Select {...field} label={`${t('inspection.inspector')} *`}>
                           {users
-                            .filter((u) => u.role !== 'admin')
+                            .filter((u) => u.role !== 'admin' && !u.deactivated_at)
                             .map((user) => (
                               <MenuItem key={user.id} value={user.id}>
                                 {user.name} ({user.role === 'manager' ? t('common.manager') : t('common.inspector')})

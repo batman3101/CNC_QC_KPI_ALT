@@ -79,7 +79,18 @@
     "defectQty": "불량 수량",
     "inspectionCount": "검사 건수",
     "lowSampleWarning": "이 기간의 검사가 {{count}}건뿐입니다. 표본이 적어 불량률을 신뢰하기 어렵습니다.",
-    "noDataForPeriod": "{{machine}}의 검사 기록이 이 기간에 없습니다"
+    "noDataForPeriod": "{{machine}}의 검사 기록이 이 기간에 없습니다",
+    "customPeriod": "기간 선택",
+    "calendarHint": "하루는 날짜를 한 번, 기간은 시작일과 종료일을 누르세요",
+    "apply": "적용",
+    "table": {
+      "machine": "설비",
+      "model": "설비 모델",
+      "title": "기간 내 검사 설비",
+      "subtitle": "이 기간에 검사 실적이 있는 설비 {{count}}대 · 행을 누르면 위에서 상세 분석을 볼 수 있습니다",
+      "paginationInfo": "{{from}}-{{to}} / 총 {{count}}대",
+      "empty": "이 기간에 검사 실적이 있는 설비가 없습니다"
+    }
   },
   "aiInsights": {
     "title": "AI 인사이트",
@@ -429,6 +440,11 @@
     "dataTypeHelper": "OK/NG: 합격/불합격만 판정 | 수치형: 측정값 입력 (기준값 선택사항)"
   },
   "userManagement": {
+    "deactivate": "비활성화",
+    "deactivateUser": "사용자 비활성화",
+    "deactivateUserConfirm": "이 사용자는 더 이상 로그인할 수 없고 목록에서 사라집니다. 이 사용자가 한 검사 기록과 검사자 이름은 그대로 남습니다. 비활성화하시겠습니까?",
+    "userDeactivated": "사용자가 비활성화되었습니다",
+    "cannotDeactivateSelf": "자기 자신은 비활성화할 수 없습니다",
     "title": "사용자 관리",
     "description": "시스템 사용자 및 권한을 관리합니다",
     "userList": "사용자 목록",

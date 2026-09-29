@@ -35,9 +35,13 @@ type ProductModel = Database['public']['Tables']['product_models']['Row']
 
 interface ProductModelManagementProps {
   readOnly?: boolean
+  // Deleting is admin-only even when editing is allowed: removing an inspection
+  // item cascades to its measured values, and this data is shared by every
+  // factory.
+  canDelete?: boolean
 }
 
-export function ProductModelManagement({ readOnly = true }: ProductModelManagementProps) {
+export function ProductModelManagement({ readOnly = true, canDelete = false }: ProductModelManagementProps) {
   const { t } = useTranslation()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editingModel, setEditingModel] = useState<ProductModel | null>(null)
@@ -130,13 +134,13 @@ export function ProductModelManagement({ readOnly = true }: ProductModelManageme
   }
 
   const handleDelete = (id: string) => {
-    if (readOnly) return
+    if (readOnly || !canDelete) return
     setDeletingId(id)
     setDeleteDialogOpen(true)
   }
 
   const confirmDelete = () => {
-    if (!readOnly && deletingId) {
+    if (!readOnly && canDelete && deletingId) {
       deleteMutation.mutate(deletingId)
     }
   }
@@ -151,13 +155,15 @@ export function ProductModelManagement({ readOnly = true }: ProductModelManageme
       >
         <Edit />
       </IconButton>
-      <IconButton
-        size="small"
-        onClick={() => handleDelete(model.id)}
-        color="error"
-      >
-        <Delete />
-      </IconButton>
+      {canDelete && (
+        <IconButton
+          size="small"
+          onClick={() => handleDelete(model.id)}
+          color="error"
+        >
+          <Delete />
+        </IconButton>
+      )}
     </>
   )
 

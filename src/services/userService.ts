@@ -24,7 +24,10 @@ export interface UpdateUserInput {
   factory_id?: string
 }
 
-async function getFunctionErrorMessage(error: unknown): Promise<string> {
+async function getFunctionErrorMessage(
+  error: unknown,
+  fallback = '사용자 생성에 실패했습니다'
+): Promise<string> {
   const context = (error as { context?: unknown } | null)?.context
   if (context instanceof Response) {
     try {
@@ -41,7 +44,7 @@ async function getFunctionErrorMessage(error: unknown): Promise<string> {
       // Fall through to the stable client-facing message.
     }
   }
-  return '사용자 생성에 실패했습니다'
+  return fallback
 }
 
 /**
@@ -53,6 +56,7 @@ export async function getUsers(factoryId?: string): Promise<User[]> {
       let query = supabase
         .from('users')
         .select('*')
+        .is('deactivated_at', null)
         .order('created_at', { ascending: false })
         .range(from, to)
       if (factoryId) {
@@ -101,58 +105,42 @@ export async function createUser(input: CreateUserInput): Promise<User> {
 }
 
 /**
- * 사용자 수정
+ * 사용자 수정 (서버에서 역할·공장·기능 권한 검사)
+ *
+ * Goes through the Edge Function rather than updating public.users directly:
+ * the login email and password live in Auth, which only the service role can
+ * change for another user. Updating the table alone left a changed email out
+ * of the login and silently dropped a new password.
  */
 export async function updateUser(id: string, input: UpdateUserInput): Promise<User> {
-  // 이메일 중복 체크 (자기 자신 제외)
-  if (input.email) {
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', input.email)
-      .neq('id', id)
-      .single()
+  const { data, error } = await supabase.functions.invoke<{ user: User }>('admin-manage-user', {
+    body: { action: 'update', user_id: id, ...input },
+  })
 
-    if (existingUser) {
-      throw new Error('이미 사용 중인 이메일입니다')
-    }
+  if (error || !data?.user) {
+    console.error('Admin manage user function error (update):', error?.message)
+    throw new Error(await getFunctionErrorMessage(error, '사용자 수정에 실패했습니다'))
   }
 
-  const updateData: Partial<User> = {}
-  if (input.email) updateData.email = input.email
-  if (input.name) updateData.name = input.name
-  if (input.role) updateData.role = input.role
-  if (input.factory_id !== undefined) updateData.factory_id = input.factory_id
-
-  const { data, error } = await supabase
-    .from('users')
-    .update(updateData)
-    .eq('id', id)
-    .select()
-    .single()
-
-  if (error) {
-    console.error('Error updating user:', error)
-    throw new Error('사용자 수정에 실패했습니다')
-  }
-
-  return data
+  return data.user
 }
 
 /**
- * 사용자 삭제
+ * 사용자 비활성화
+ *
+ * Deactivates instead of deleting: inspections.user_id is ON DELETE SET NULL,
+ * so a delete erased the inspector from every inspection that person recorded,
+ * and it left the Auth login working. The function bans the login and marks
+ * the profile, which stays so history keeps the name.
  */
-export async function deleteUser(id: string): Promise<void> {
-  const { error } = await supabase
-    .from('users')
-    .delete()
-    .eq('id', id)
-    .select('id')
-    .single()
+export async function deactivateUser(id: string): Promise<void> {
+  const { data, error } = await supabase.functions.invoke<{ user: User }>('admin-manage-user', {
+    body: { action: 'deactivate', user_id: id },
+  })
 
-  if (error) {
-    console.error('Error deleting user:', error)
-    throw new Error('사용자 삭제에 실패했습니다')
+  if (error || !data?.user) {
+    console.error('Admin manage user function error (deactivate):', error?.message)
+    throw new Error(await getFunctionErrorMessage(error, '사용자 비활성화에 실패했습니다'))
   }
 }
 
@@ -177,7 +165,7 @@ export async function getUserEmails(): Promise<string[]> {
 export async function getUserCountsByRole(factoryId?: string): Promise<Record<string, number>> {
   try {
     const rows = await paginatedFetch<{ role: string }>((from, to) => {
-      let query = supabase.from('users').select('role').range(from, to)
+      let query = supabase.from('users').select('role').is('deactivated_at', null).range(from, to)
       if (factoryId) {
         query = query.eq('factory_id', factoryId)
       }

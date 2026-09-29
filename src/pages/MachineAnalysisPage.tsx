@@ -19,14 +19,19 @@ import { PrecisionManufacturing, Cancel, Inventory, Assignment } from '@mui/icon
 
 import { DefectRateTrendChart } from '@/components/analytics/DefectRateTrendChart'
 import { DefectTypeChart } from '@/components/analytics/DefectTypeChart'
+import { MachinePeriodTable } from '@/components/analytics/MachinePeriodTable'
+import { PeriodCalendarPicker } from '@/components/analytics/PeriodCalendarPicker'
 import * as managementService from '@/services/managementService'
-import { getMachineAnalysis } from '@/services/machineAnalysisService'
+import { getMachineAnalysis, getMachinesInPeriod } from '@/services/machineAnalysisService'
 import { getRecentBusinessDays } from '@/lib/dateUtils'
 import { useFactoryStore } from '@/stores/factoryStore'
 import type { Database } from '@/types/database'
 import type { DefectTypeDistribution } from '@/types/analytics'
 
 type Machine = Database['public']['Tables']['machines']['Row']
+// Only the id and name are needed, which lets a row picked from the period
+// table be selected without fetching the full machine record.
+type MachineOption = Pick<Machine, 'id' | 'name'>
 
 /**
  * Below this many inspections a machine's defect rate is not worth acting on.
@@ -45,11 +50,17 @@ export function MachineAnalysisPage() {
   const { t } = useTranslation()
   const { activeFactoryId } = useFactoryStore()
 
-  const [selectedMachine, setSelectedMachine] = useState<Machine | null>(null)
+  const [selectedMachine, setSelectedMachine] = useState<MachineOption | null>(null)
   const [machineInput, setMachineInput] = useState('')
   const [periodDays, setPeriodDays] = useState(DEFAULT_PERIOD_DAYS)
+  // A range picked on the calendar. While set, it overrides the preset buttons;
+  // pressing a preset clears it again.
+  const [customRange, setCustomRange] = useState<{ from: Date; to: Date }>()
 
-  const range = useMemo(() => getRecentBusinessDays(periodDays), [periodDays])
+  const range = useMemo(
+    () => customRange ?? getRecentBusinessDays(periodDays),
+    [customRange, periodDays]
+  )
 
   // Server-side search: the factory has 800+ machines, far too many to put in a
   // dropdown. searchMachines already ranks exact-prefix matches first and falls
@@ -62,7 +73,13 @@ export function MachineAnalysisPage() {
   })
 
   const { data: analysis, isLoading } = useQuery({
-    queryKey: ['machine-analysis', selectedMachine?.id, periodDays, activeFactoryId],
+    queryKey: [
+      'machine-analysis',
+      selectedMachine?.id,
+      range.from.toISOString(),
+      range.to.toISOString(),
+      activeFactoryId,
+    ],
     queryFn: () =>
       getMachineAnalysis(
         selectedMachine!.id,
@@ -71,6 +88,16 @@ export function MachineAnalysisPage() {
         activeFactoryId || undefined
       ),
     enabled: Boolean(selectedMachine),
+  })
+
+  const { data: periodMachines = [], isLoading: periodMachinesLoading } = useQuery({
+    queryKey: [
+      'machines-in-period',
+      range.from.toISOString(),
+      range.to.toISOString(),
+      activeFactoryId,
+    ],
+    queryFn: () => getMachinesInPeriod(range.from, range.to, activeFactoryId || undefined),
   })
 
   // Both pages measure defect types in pieces, so the shared chart takes this
@@ -136,7 +163,7 @@ export function MachineAnalysisPage() {
         <CardContent>
           <Grid container spacing={2} alignItems="center">
             <Grid size={{ xs: 12, md: 6 }}>
-              <Autocomplete
+              <Autocomplete<MachineOption>
                 options={machines}
                 getOptionLabel={(option) => option.name}
                 isOptionEqualToValue={(option, value) => option.id === value.id}
@@ -165,17 +192,23 @@ export function MachineAnalysisPage() {
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <ButtonGroup variant="outlined" size="small" fullWidth>
-                {[7, 30, 90].map((days) => (
-                  <Button
-                    key={days}
-                    variant={periodDays === days ? 'contained' : 'outlined'}
-                    onClick={() => setPeriodDays(days)}
-                  >
-                    {t('machineAnalysis.lastDays', { count: days })}
-                  </Button>
-                ))}
-              </ButtonGroup>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+                <ButtonGroup variant="outlined" size="small" fullWidth>
+                  {[7, 30, 90].map((days) => (
+                    <Button
+                      key={days}
+                      variant={!customRange && periodDays === days ? 'contained' : 'outlined'}
+                      onClick={() => {
+                        setCustomRange(undefined)
+                        setPeriodDays(days)
+                      }}
+                    >
+                      {t('machineAnalysis.lastDays', { count: days })}
+                    </Button>
+                  ))}
+                </ButtonGroup>
+                <PeriodCalendarPicker value={customRange} onApply={setCustomRange} />
+              </Box>
             </Grid>
           </Grid>
         </CardContent>
@@ -255,6 +288,17 @@ export function MachineAnalysisPage() {
           </Grid>
         </>
       )}
+
+      <MachinePeriodTable
+        rows={periodMachines}
+        loading={periodMachinesLoading}
+        selectedMachineId={selectedMachine?.id}
+        onSelect={(row) => {
+          if (!row.machineId) return
+          setSelectedMachine({ id: row.machineId, name: row.machineName })
+          window.scrollTo({ top: 0, behavior: 'smooth' })
+        }}
+      />
     </Box>
   )
 }

@@ -32,9 +32,13 @@ type DefectType = Database['public']['Tables']['defect_types']['Row']
 
 interface DefectTypeManagementProps {
   readOnly?: boolean
+  // Deleting is admin-only even when editing is allowed: removing an inspection
+  // item cascades to its measured values, and this data is shared by every
+  // factory.
+  canDelete?: boolean
 }
 
-export function DefectTypeManagement({ readOnly = true }: DefectTypeManagementProps) {
+export function DefectTypeManagement({ readOnly = true, canDelete = false }: DefectTypeManagementProps) {
   const { t, i18n } = useTranslation()
   const isVietnamese = i18n.language === 'vi'
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -180,13 +184,13 @@ export function DefectTypeManagement({ readOnly = true }: DefectTypeManagementPr
   }
 
   const handleDeleteClick = (id: string) => {
-    if (readOnly) return
+    if (readOnly || !canDelete) return
     setDeletingId(id)
     setDeleteDialogOpen(true)
   }
 
   const handleConfirmDelete = () => {
-    if (!readOnly && deletingId) {
+    if (!readOnly && canDelete && deletingId) {
       deleteMutation.mutate(deletingId)
     }
   }
@@ -206,13 +210,15 @@ export function DefectTypeManagement({ readOnly = true }: DefectTypeManagementPr
       >
         <Edit />
       </IconButton>
-      <IconButton
-        size="small"
-        onClick={() => handleDeleteClick(type.id)}
-        color="error"
-      >
-        <Delete />
-      </IconButton>
+      {canDelete && (
+        <IconButton
+          size="small"
+          onClick={() => handleDeleteClick(type.id)}
+          color="error"
+        >
+          <Delete />
+        </IconButton>
+      )}
     </>
   )
 

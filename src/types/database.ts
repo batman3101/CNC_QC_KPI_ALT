@@ -490,9 +490,11 @@ export type Database = {
           id: string
           name: string
           role: 'admin' | 'manager' | 'inspector'
+          deactivated_at: string | null
         }
         Insert: {
           created_at?: string
+          deactivated_at?: string | null
           email: string
           factory_id?: string | null
           id?: string
@@ -501,6 +503,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          deactivated_at?: string | null
           email?: string
           factory_id?: string | null
           id?: string
@@ -525,6 +528,7 @@ export type Database = {
           name: string
           role: 'admin' | 'manager' | 'inspector'
           factory_id: string | null
+          deactivated_at: string | null
         }[]
       }
       get_public_monitor_data: {

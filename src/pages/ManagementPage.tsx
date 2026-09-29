@@ -6,6 +6,7 @@ import { InspectionItemManagement } from '@/components/management/InspectionItem
 import { InspectionProcessManagement } from '@/components/management/InspectionProcessManagement'
 import { DefectTypeManagement } from '@/components/management/DefectTypeManagement'
 import { useAuthStore } from '@/stores/authStore'
+import { usePermissions } from '@/hooks/usePermissions'
 
 interface TabPanelProps {
   children?: React.ReactNode
@@ -34,7 +35,12 @@ export function ManagementPage() {
   const theme = useTheme()
   const isMobile = useMediaQuery(theme.breakpoints.down('md'))
   const [tabValue, setTabValue] = useState(0)
-  const isAdmin = useAuthStore((state) => state.profile?.role === 'admin')
+  const role = useAuthStore((state) => state.profile?.role)
+  const { hasPermission } = usePermissions()
+  const isAdmin = role === 'admin'
+  // Mirrors the master-data RLS: a manager with the management permission may
+  // add and edit, only an admin may delete.
+  const canEdit = isAdmin || (role === 'manager' && hasPermission('management'))
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue)
@@ -60,19 +66,19 @@ export function ManagementPage() {
         </Tabs>
 
         <TabPanel value={tabValue} index={0}>
-          <ProductModelManagement readOnly={!isAdmin} />
+          <ProductModelManagement readOnly={!canEdit} canDelete={isAdmin} />
         </TabPanel>
 
         <TabPanel value={tabValue} index={1}>
-          <InspectionItemManagement readOnly={!isAdmin} />
+          <InspectionItemManagement readOnly={!canEdit} canDelete={isAdmin} />
         </TabPanel>
 
         <TabPanel value={tabValue} index={2}>
-          <InspectionProcessManagement readOnly={!isAdmin} />
+          <InspectionProcessManagement readOnly={!canEdit} canDelete={isAdmin} />
         </TabPanel>
 
         <TabPanel value={tabValue} index={3}>
-          <DefectTypeManagement readOnly={!isAdmin} />
+          <DefectTypeManagement readOnly={!canEdit} canDelete={isAdmin} />
         </TabPanel>
       </Box>
     </Box>
