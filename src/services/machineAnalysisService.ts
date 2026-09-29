@@ -4,6 +4,7 @@ import type {
   MachineAnalysis,
   MachineAnalysisSummary,
   MachineDefectTypeQuantity,
+  MachinePeriodRow,
   DefectRateTrend,
 } from '@/types/analytics'
 
@@ -112,4 +113,34 @@ export async function getMachineAnalysis(
   }))
 
   return { summary, trend, defectTypes }
+}
+
+/**
+ * Every machine with at least one inspection in the period, with its totals.
+ *
+ * Reuses the analytics page's per-machine RPC rather than adding a new one: it
+ * filters on the same created_at bounds as the single-machine RPCs above, so a
+ * row here matches the cards shown when that machine is selected.
+ */
+export async function getMachinesInPeriod(
+  from: Date,
+  to: Date,
+  factoryId?: string
+): Promise<MachinePeriodRow[]> {
+  const range = getBusinessDateRangeFilter(from, to)
+  const { data, error } = await supabase.rpc('get_analytics_machine_performance', {
+    p_from: range.gte,
+    p_to: range.lte,
+    p_factory: factoryId ?? null,
+  })
+  if (error) throw error
+
+  return (data ?? []).map((row) => ({
+    machineId: row.machine_id,
+    machineName: row.machine_name,
+    machineModel: row.machine_model,
+    inspectionQty: row.inspection_qty,
+    defectQty: row.defect_qty,
+    defectRate: rate(row.defect_qty, row.inspection_qty),
+  }))
 }

@@ -72,6 +72,20 @@ export interface MachineDefectTypeQuantity {
   percentage: number
 }
 
+/**
+ * One machine's totals over the chosen period, for the table that lists every
+ * machine inspected in it. `machineId` is null for inspections whose machine
+ * row was deleted - they are still counted, just not selectable.
+ */
+export interface MachinePeriodRow {
+  machineId: string | null
+  machineName: string
+  machineModel: string
+  inspectionQty: number
+  defectQty: number
+  defectRate: number
+}
+
 export interface MachineAnalysis {
   summary: MachineAnalysisSummary
   trend: DefectRateTrend[]

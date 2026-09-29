@@ -82,7 +82,15 @@
     "noDataForPeriod": "Không có dữ liệu kiểm tra của {{machine}} trong kỳ này",
     "customPeriod": "Chọn thời gian",
     "calendarHint": "Chọn một ngày, hoặc chọn ngày bắt đầu và ngày kết thúc",
-    "apply": "Áp dụng"
+    "apply": "Áp dụng",
+    "table": {
+      "machine": "Máy",
+      "model": "Model máy",
+      "title": "Máy được kiểm tra trong kỳ",
+      "subtitle": "{{count}} máy có dữ liệu kiểm tra trong kỳ này · Nhấn vào một dòng để xem phân tích chi tiết ở trên",
+      "paginationInfo": "{{from}}-{{to}} / Tổng {{count}} máy",
+      "empty": "Không có máy nào được kiểm tra trong kỳ này"
+    }
   },
   "aiInsights": {
     "title": "AI Insights",
