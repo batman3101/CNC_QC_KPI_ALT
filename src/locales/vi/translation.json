@@ -440,6 +440,11 @@
     "dataTypeHelper": "OK/NG: Chỉ đánh giá đạt/không đạt | Số: Nhập giá trị đo (giá trị chuẩn là tùy chọn)"
   },
   "userManagement": {
+    "deactivate": "Vô hiệu hóa",
+    "deactivateUser": "Vô hiệu hóa người dùng",
+    "deactivateUserConfirm": "Người dùng này sẽ không thể đăng nhập và sẽ bị ẩn khỏi danh sách. Các hồ sơ kiểm tra và tên người kiểm tra của họ vẫn được giữ nguyên. Bạn có muốn vô hiệu hóa không?",
+    "userDeactivated": "Người dùng đã bị vô hiệu hóa",
+    "cannotDeactivateSelf": "Không thể vô hiệu hóa chính mình",
     "title": "Quản lý người dùng",
     "description": "Quản lý người dùng và quyền truy cập hệ thống",
     "userList": "Danh sách người dùng",

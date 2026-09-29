@@ -14,7 +14,7 @@ import {
 import {
   Add,
   Edit,
-  Delete,
+  PersonOff,
   AdminPanelSettings,
   SupervisorAccount,
   Person,
@@ -68,11 +68,11 @@ export function UserList() {
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => userService.deleteUser(id),
+    mutationFn: (id: string) => userService.deactivateUser(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] })
       queryClient.invalidateQueries({ queryKey: ['user-emails'] })
-      enqueueSnackbar(t('userManagement.userDeleted'), { variant: 'success' })
+      enqueueSnackbar(t('userManagement.userDeactivated'), { variant: 'success' })
       setDeleteConfirmOpen(false)
       setUserToDelete(null)
     },
@@ -202,7 +202,7 @@ export function UserList() {
     if (!canManageUser(user)) return
     // 자기 자신은 삭제 불가
     if (currentUser && user.id === currentUser.id) {
-      enqueueSnackbar(t('userManagement.cannotDeleteSelf'), { variant: 'warning' })
+      enqueueSnackbar(t('userManagement.cannotDeactivateSelf'), { variant: 'warning' })
       return
     }
     setUserToDelete(user)
@@ -227,7 +227,7 @@ export function UserList() {
           <Edit fontSize="small" />
         </IconButton>
       </Tooltip>
-      <Tooltip title={t('common.delete')}>
+      <Tooltip title={t('userManagement.deactivate')}>
         <span>
           <IconButton
             size="small"
@@ -235,7 +235,7 @@ export function UserList() {
             onClick={() => handleDeleteClick(user)}
             disabled={currentUser?.id === user.id}
           >
-            <Delete fontSize="small" />
+            <PersonOff fontSize="small" />
           </IconButton>
         </span>
       </Tooltip>
@@ -300,9 +300,9 @@ export function UserList() {
       <ConfirmDialog
         open={deleteConfirmOpen}
         onOpenChange={setDeleteConfirmOpen}
-        title={t('userManagement.deleteUser')}
-        description={t('userManagement.deleteUserConfirm')}
-        confirmLabel={t('common.delete')}
+        title={t('userManagement.deactivateUser')}
+        description={t('userManagement.deactivateUserConfirm')}
+        confirmLabel={t('userManagement.deactivate')}
         cancelLabel={t('common.cancel')}
         onConfirm={handleDeleteConfirm}
         loading={deleteMutation.isPending}

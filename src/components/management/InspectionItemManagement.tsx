@@ -42,9 +42,13 @@ type InspectionProcess = Database['public']['Tables']['inspection_processes']['R
 
 interface InspectionItemManagementProps {
   readOnly?: boolean
+  // Deleting is admin-only even when editing is allowed: removing an inspection
+  // item cascades to its measured values, and this data is shared by every
+  // factory.
+  canDelete?: boolean
 }
 
-export function InspectionItemManagement({ readOnly = true }: InspectionItemManagementProps) {
+export function InspectionItemManagement({ readOnly = true, canDelete = false }: InspectionItemManagementProps) {
   const { t } = useTranslation()
   const [selectedModelId, setSelectedModelId] = useState<string>('all')
   const [selectedProcessId, setSelectedProcessId] = useState<string>('all')
@@ -285,13 +289,13 @@ export function InspectionItemManagement({ readOnly = true }: InspectionItemMana
   }
 
   const handleDelete = (id: string) => {
-    if (readOnly) return
+    if (readOnly || !canDelete) return
     setDeletingId(id)
     setDeleteDialogOpen(true)
   }
 
   const confirmDelete = () => {
-    if (!readOnly && deletingId) {
+    if (!readOnly && canDelete && deletingId) {
       deleteMutation.mutate(deletingId)
     }
   }
@@ -306,13 +310,15 @@ export function InspectionItemManagement({ readOnly = true }: InspectionItemMana
       >
         <Edit />
       </IconButton>
-      <IconButton
-        size="small"
-        onClick={() => handleDelete(item.id)}
-        color="error"
-      >
-        <Delete />
-      </IconButton>
+      {canDelete && (
+        <IconButton
+          size="small"
+          onClick={() => handleDelete(item.id)}
+          color="error"
+        >
+          <Delete />
+        </IconButton>
+      )}
     </>
   )
 
